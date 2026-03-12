@@ -1,0 +1,3 @@
+Running: SELECT * FROM users WHERE user_guid='768a0c7f-4b54-4190-96e5-495a3ef814af';
+
+{"id":"1","user_guid":"768a0c7f-4b54-4190-96e5-495a3ef814af","admin_guid":"cf79f26f-afcb-4915-a3c6-6eae3e33f83f","user_type":"customer","first_name":"Deepakkumar","last_name":"R","email":"deepak@gmal.com","mobile":"9876543214","alternate_mobile":"","gender":"male","company_name":"TATA","tax_id":"","landline":"","country":"India","state":"tamilnadu","city":"coimbatore","address":"main road","permanent_address":"main road","image_path":"uploads\/users\/user_69a054fd867f5.jpeg","isActive":"1","isDeleted":"0","createdOn":"2026-02-26 19:43:17","modifiedOn":"2026-02-26 19:43:17"}

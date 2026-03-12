@@ -1,0 +1,26 @@
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* Hide vertical scrollbar but keep scrolling */
+/* Completely hide vertical scrollbar */
+.hide-scrollbar {
+  overflow-y: auto;            /* Enable vertical scroll */
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0;                    /* Chrome, Safari */
+  background: transparent;     /* Optional */
+}
+
+
+
