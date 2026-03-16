@@ -1,13 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Button,
   IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Menu,
   MenuItem,
   Typography,
@@ -17,25 +12,47 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Checkbox,
   Paper,
+  Chip,
+  Grid,
+  Card,
+  CardContent,
+  Stack,
+  Tooltip,
 } from "@mui/material";
 
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import AddIcon from "@mui/icons-material/Add";
-import PrintIcon from "@mui/icons-material/Print";
-import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditIcon from "@mui/icons-material/Edit";
+import {
+  MoreVertical,
+  Plus,
+  Printer,
+  Trash2,
+  Eye,
+  Pencil,
+  Search,
+  CheckCircle,
+  Clock,
+  XCircle,
+  FileText,
+  ChevronRight,
+  TrendingUp,
+} from "lucide-react";
+
 import Pagination from "../../../components/DynamicComponents/Pagination";
 import SectionHeader from '../../../components/common/Header';
-import { Delete } from "@mui/icons-material";
-
 import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
 import { printQuotation } from "./QuotationPrint";
 import { useLoading } from "../../LoadingContext";
 import TemplateSelectionModal from "../../../components/Billing/TemplateSelectionModal";
+
+// Constants for colors
+const STATUS_COLORS = {
+  "Approval Pending": { bg: "#FFF7ED", text: "#EA580C", icon: <Clock size={16} /> },
+  "Work In Progress": { bg: "#EFF6FF", text: "#3B82F6", icon: <TrendingUp size={16} /> },
+  "Completed": { bg: "#ECFDF5", text: "#10B981", icon: <CheckCircle size={16} /> },
+  "Delivered": { bg: "#F5F3FF", text: "#8B5CF6", icon: <CheckCircle size={16} /> },
+  "Rejected": { bg: "#FEF2F2", text: "#EF4444", icon: <XCircle size={16} /> },
+};
 
 export default function QuotationList() {
   const navigate = useNavigate();
@@ -44,13 +61,10 @@ export default function QuotationList() {
 
   const [quotations, setQuotations] = useState([]);
   const [search, setSearch] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 5; // same visual density as invoice
+  const rowsPerPage = 8; 
 
-  // Template Modal State
   const [openTemplateModal, setOpenTemplateModal] = useState(false);
   const [printQuotationGuid, setPrintQuotationGuid] = useState(null);
 
@@ -79,11 +93,22 @@ export default function QuotationList() {
     loadQuotations();
   }, []);
 
+  /* ---------------- STATS ---------------- */
+  const stats = useMemo(() => {
+    return {
+      total: quotations.length,
+      pending: quotations.filter(q => q.status === "Approval Pending").length,
+      completed: quotations.filter(q => q.status === "Completed" || q.status === "Delivered").length,
+      wip: quotations.filter(q => q.status === "Work In Progress").length,
+    };
+  }, [quotations]);
+
   /* ---------------- SEARCH ---------------- */
   const filtered = quotations.filter((q) => {
     const s = search.toLowerCase();
     return (
       q.quotation_no?.toLowerCase().includes(s) ||
+      q.customer_name?.toLowerCase().includes(s) ||
       q.status?.toLowerCase().includes(s)
     );
   });
@@ -94,18 +119,6 @@ export default function QuotationList() {
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
-
-
-  /* ---------------- MENU ---------------- */
-  const openMenu = (e, row) => {
-    setAnchorEl(e.currentTarget);
-    setSelectedRow(row);
-  };
-
-  const closeMenu = () => {
-    setAnchorEl(null);
-    setSelectedRow(null);
-  };
 
   /* ---------------- STATUS ---------------- */
   const handleStatusChange = async (quotation_guid, newStatus, row) => {
@@ -123,9 +136,9 @@ export default function QuotationList() {
     await updateStatusAPI(quotation_guid, newStatus);
   };
 
-
   const updateStatusAPI = async (quotation_guid, newStatus) => {
     try {
+      show();
       const form = new FormData();
       form.append("status", newStatus);
 
@@ -150,6 +163,8 @@ export default function QuotationList() {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      hide();
     }
   };
 
@@ -180,7 +195,9 @@ export default function QuotationList() {
   };
 
   const deleteQuotation = async (guid) => {
+    if (!window.confirm("Are you sure you want to delete this quotation?")) return;
     try {
+      show();
       const res = await fetch(
         apiEndpoints.Quotation + "?quotation_guid=" + guid,
         {
@@ -192,6 +209,8 @@ export default function QuotationList() {
       if (data.success) loadQuotations();
     } catch (e) {
       console.error(e);
+    } finally {
+      hide();
     }
   };
 
@@ -200,7 +219,6 @@ export default function QuotationList() {
     if (selectedRow) {
       setPrintQuotationGuid(selectedRow.quotation_guid);
       setOpenTemplateModal(true);
-      closeMenu();
     }
   };
 
@@ -222,264 +240,272 @@ export default function QuotationList() {
     }
   };
 
-  /* ---------------- UI ---------------- */
+  const StatCard = ({ title, value, color, icon: Icon }) => (
+    <Card sx={{ 
+      borderRadius: "20px", 
+      border: "1px solid #E2E8F0", 
+      boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)",
+      height: "100%",
+      position: 'relative',
+      overflow: 'hidden',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)'
+      }
+    }}>
+      <CardContent sx={{ p: 2.5 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box>
+            <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 700, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              {title}
+            </Typography>
+            <Typography sx={{ fontSize: 28, fontWeight: 800, color: "#1E293B", lineHeight: 1.2 }}>
+              {value}
+            </Typography>
+          </Box>
+          <Box sx={{ 
+            width: 52, height: 52, borderRadius: "14px", 
+            backgroundColor: `${color}10`, color: color,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 4px 10px -2px ${color}30`
+          }}>
+            <Icon size={26} />
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <Box sx={{ fontFamily: "Montserrat", p: 3 }}>
+    <Box sx={{ p: { xs: 1.5, md: 4 }, minHeight: "100vh", backgroundColor: "#F9FAFB" }}>
       <SectionHeader />
 
-      {/* SEARCH */}
-      <Box display="flex" justifyContent="flex-end" mt={2}>
-        <TextField
-          placeholder="Search..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{
-            backgroundColor: "#f1f3f4",
-            borderRadius: "6px",
-            width: { xs: "100%", sm: 250 },
-            "& fieldset": { border: "none" },
-            height: "40px",
-            "& input": { padding: "10px" },
-          }}
-        />
+      {/* Stats Section - Using CSS Grid for perfect alignment */}
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { 
+          xs: '1fr', 
+          sm: 'repeat(2, 1fr)', 
+          md: 'repeat(4, 1fr)' 
+        }, 
+        gap: { xs: 2, md: 3 }, 
+        mt: 4, 
+        mb: 5 
+      }}>
+        <StatCard title="Total Quotations" value={stats.total} color="#3B82F6" icon={FileText} />
+        <StatCard title="Approval Pending" value={stats.pending} color="#EA580C" icon={Clock} />
+        <StatCard title="Work In Progress" value={stats.wip} color="#8B5CF6" icon={TrendingUp} />
+        <StatCard title="Completed" value={stats.completed} color="#10B981" icon={CheckCircle} />
       </Box>
 
-      {/* TABLE */}
-      <Paper elevation={0} sx={{ mt: 2, borderRadius: 2 }}>
+      {/* Top Bar with Search */}
+      <Box sx={{ 
+        display: "flex", flexWrap: "wrap", justifyContent: "flex-start", 
+        alignItems: "center", mb: 4, px: { xs: 0.5, md: 0 } 
+      }}>
+        <Box sx={{ position: "relative", width: { xs: "100%", sm: "100%", md: 450 } }}>
+          <Search size={18} style={{ 
+            position: "absolute", left: 14, top: "50%", 
+            transform: "translateY(-50%)", color: "#94A3B8",
+            zIndex: 1
+          }} />
+          <TextField
+            placeholder="Search quotation number, customer or status..."
+            fullWidth
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                paddingLeft: "38px",
+                borderRadius: "14px",
+                backgroundColor: "#fff",
+                border: "1px solid #E2E8F0",
+                height: '45px',
+                transition: 'all 0.2s',
+                "& fieldset": { border: "none" },
+                "&.Mui-focused": { 
+                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
+                  border: '1px solid #8B5CF6'
+                }
+              }
+            }}
+          />
+        </Box>
+      </Box>
+
+      {/* Main Content Area */}
+      <Paper sx={{ 
+        borderRadius: "20px", overflow: "hidden", 
+        border: "1px solid #E5E7EB", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" 
+      }}>
         <Box sx={{ width: "100%", overflowX: "auto" }}>
-          <Table sx={{ minWidth: 900 }}>
-            <TableHead>
-              <TableRow>
-                {/* <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={
-                      selectedIds.length === filtered.length &&
-                      filtered.length > 0
-                    }
-                    onChange={(e) =>
-                      setSelectedIds(
-                        e.target.checked
-                          ? filtered.map((q) => q.quotation_guid)
-                          : []
-                      )
-                    }
-                  />
-                </TableCell> */}
-                <TableCell>Quotation No</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Items</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {paginatedQuotations.map((row) => {
-
-                const totals = safeParse(row.totals);
-                const parts = safeParse(row.parts);
-                const labour = safeParse(row.labour);
-                const itemsCount =
-                  (parts?.length || 0) + (labour?.length || 0);
-
-                return (
-                  <TableRow key={row.quotation_guid} hover>
-                    {/* <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedIds.includes(row.quotation_guid)}
-                        onChange={() =>
-                          setSelectedIds((prev) =>
-                            prev.includes(row.quotation_guid)
-                              ? prev.filter((id) => id !== row.quotation_guid)
-                              : [...prev, row.quotation_guid]
-                          )
-                        }
-                      />
-                    </TableCell> */}
-
-                    <TableCell>{row.quotation_no}</TableCell>
-                    <TableCell>{row.customer_name || "-"}</TableCell>
-                    <TableCell>
-                      {new Date(row.created_on).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{itemsCount} items</TableCell>
-                    <TableCell>
-                      ₹{Number(totals?.grandTotal || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        size="small"
-                        value={row.status}
-                        onChange={(e) =>
-                          handleStatusChange(
-                            row.quotation_guid,
-                            e.target.value,
-                            row
-                          )
-                        }
-                        sx={{ minWidth: 200 }}
-                      >
-                        <MenuItem value="Approval Pending">
-                          Approval Pending
-                        </MenuItem>
-                        <MenuItem value="Work In Progress">
-                          Work In Progress
-                        </MenuItem>
-                        <MenuItem value="Completed">Completed</MenuItem>
-                        <MenuItem value="Delivered">Delivered</MenuItem>
-                        <MenuItem value="Rejected">Rejected</MenuItem>
-                      </Select>
-                    </TableCell>
-
-                    <TableCell align="right">
-                      <IconButton onClick={(e) => openMenu(e, row)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+            <Box component="thead">
+              <Box component="tr" sx={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                <Box component="th" sx={tableHeadStyle}>Quotation No</Box>
+                <Box component="th" sx={tableHeadStyle}>Customer Name</Box>
+                <Box component="th" sx={tableHeadStyle}>Created Date</Box>
+                <Box component="th" sx={tableHeadStyle}>Total Amount</Box>
+                <Box component="th" sx={tableHeadStyle}>Status</Box>
+                <Box component="th" sx={{ ...tableHeadStyle, textAlign: "right" }}>Actions</Box>
+              </Box>
+            </Box>
+            <Box component="tbody">
+              {paginatedQuotations.length > 0 ? (
+                paginatedQuotations.map((row, idx) => {
+                  const totals = safeParse(row.totals);
+                  const statusInfo = STATUS_COLORS[row.status] || { bg: "#F3F4F6", text: "#6B7280", icon: null };
+                  
+                  return (
+                    <Box 
+                      component="tr" 
+                      key={row.quotation_guid} 
+                      onClick={() => navigate("/view-quotation/" + row.quotation_guid)}
+                      sx={{ 
+                        "&:hover": { backgroundColor: "#F8FAFC" },
+                        borderBottom: idx === paginatedQuotations.length - 1 ? "none" : "1px solid #F1F5F9",
+                        transition: "0.2s",
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Box component="td" sx={tableCellStyle}>
+                        <Typography sx={{ fontWeight: 600, color: "#1E293B", fontSize: 15 }}>
+                          {row.quotation_no}
+                        </Typography>
+                      </Box>
+                      <Box component="td" sx={tableCellStyle}>
+                        <Typography sx={{ color: "#475569", fontSize: 14 }}>
+                          {row.customer_name || "Guest Customer"}
+                        </Typography>
+                      </Box>
+                      <Box component="td" sx={tableCellStyle}>
+                        <Typography sx={{ color: "#64748B", fontSize: 14 }}>
+                          {new Date(row.created_on).toLocaleDateString("en-GB", {
+                            day: "2-digit", month: "short", year: "numeric"
+                          })}
+                        </Typography>
+                      </Box>
+                      <Box component="td" sx={tableCellStyle}>
+                        <Typography sx={{ fontWeight: 700, color: "#111827", fontSize: 15 }}>
+                          ₹{Number(totals?.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Box>
+                      <Box component="td" sx={tableCellStyle} onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          size="small"
+                          value={row.status}
+                          onChange={(e) => handleStatusChange(row.quotation_guid, e.target.value, row)}
+                          sx={{ 
+                            "& .MuiSelect-select": {
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              py: 0.5,
+                              px: 1.5,
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              borderRadius: "8px",
+                              backgroundColor: statusInfo.bg,
+                              color: statusInfo.text,
+                            },
+                            "& fieldset": { border: "none" },
+                            minWidth: 180
+                          }}
+                        >
+                          {Object.keys(STATUS_COLORS).map(status => (
+                            <MenuItem key={status} value={status}>{status}</MenuItem>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box component="td" sx={{ ...tableCellStyle, textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Tooltip title="Edit">
+                            <IconButton 
+                              onClick={() => navigate("/edit-quotation/" + row.quotation_guid)} 
+                              size="small" 
+                              sx={{ color: "#8B5CF6", '&:hover': { backgroundColor: "#F5F3FF" } }}
+                            >
+                              <Pencil size={18} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Print">
+                            <IconButton 
+                              onClick={() => { setPrintQuotationGuid(row.quotation_guid); setOpenTemplateModal(true); }} 
+                              size="small" 
+                              sx={{ color: "#10B981", '&:hover': { backgroundColor: "#ECFDF5" } }}
+                            >
+                              <Printer size={18} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton 
+                              onClick={() => deleteQuotation(row.quotation_guid)} 
+                              size="small" 
+                              sx={{ color: "#EF4444", '&:hover': { backgroundColor: "#FEF2F2" } }}
+                            >
+                              <Trash2 size={18} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Box>
+                    </Box>
+                  );
+                })
+              ) : (
+                <Box component="tr">
+                  <Box component="td" colSpan={6} sx={{ py: 10, textAlign: "center" }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: '#94A3B8' }}>
+                      <FileText size={48} />
+                      <Box>
+                        <Typography sx={{ fontWeight: 600, color: '#1E293B' }}>No quotations found</Typography>
+                        <Typography variant="body2">{search ? "Try adjusting your search filters" : "Start by creating your first quotation"}</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </Box>
         </Box>
       </Paper>
 
-      {/* ACTION MENU */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
-        <MenuItem
-          onClick={() => {
-            navigate("/view-quotation/" + selectedRow?.quotation_guid);
-            closeMenu();
-          }}
-        >
-          <VisibilityIcon sx={{ mr: 1 }} /> View
-        </MenuItem>
-
-        <MenuItem
-          onClick={() => {
-            navigate("/edit-quotation/" + selectedRow?.quotation_guid);
-            closeMenu();
-          }}
-        >
-          <EditIcon sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-
-        <MenuItem
-          onClick={handlePrintClick}
-        >
-          <PrintIcon sx={{ mr: 1 }} /> Print
-        </MenuItem>
-
-        <MenuItem
-          sx={{ color: "red" }}
-          onClick={() => {
-            deleteQuotation(selectedRow?.quotation_guid);
-            closeMenu();
-          }}
-        >
-          <DeleteIcon sx={{ mr: 1 }} /> Delete
-        </MenuItem>
-      </Menu>
-
-      {/* PAGINATION */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) => setCurrentPage(page)}
-      />
+      {/* Pagination Container */}
+      <Box sx={{ mt: 4 }}>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      </Box>
 
 
-
-      {/* BULK ACTION BAR */}
-      {/* <Box mt={4} display="flex" alignItems="center">
-        <Box
-          display="flex"
-          alignItems="center"
-          sx={{
-            backgroundColor: "rgba(249, 115, 22, 0.9)",
-            borderRadius: "4px",
-            px: 2,
-            py: 1.5,
-            cursor: "pointer",
-          }}
-          onClick={() =>
-            setSelectedIds(
-              selectedIds.length === quotations.length
-                ? []
-                : quotations.map((q) => q.quotation_guid)
-            )
-          }
-        >
-          <Checkbox
-            checked={
-              selectedIds.length === quotations.length &&
-              quotations.length > 0
-            }
-            sx={{
-              padding: 0,
-              color: "white",
-              "&.Mui-checked": { color: "white" },
-            }}
-          />
-          <Typography color="white">Select All</Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-                   sx={{
-            bgcolor: "red",
-            "&:hover": { bgcolor: "darkred" },
-            px: 2,
-            py: 1.7,
-            ml: 1,
-            borderRadius: "4px",
-            color: "white",
-          }}
-          disabled={selectedIds.length === 0}
-          onClick={() => {
-            selectedIds.forEach((id) => deleteQuotation(id));
-            setSelectedIds([]);
-          }}
-        >
-           <Delete fontSize="small" />
-        </Button>
-      </Box> */}
-
-      {/* CONFIRM POPUP */}
+      {/* Confirm Move to Invoice Dialog */}
       <Dialog
         open={confirmPopup.open}
         onClose={() => setConfirmPopup({ open: false, quotation: null })}
+        PaperProps={{ sx: { borderRadius: "20px", p: 1 } }}
       >
-        <DialogTitle>Move to Invoice?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: "20px" }}>Convert to Invoice?</DialogTitle>
         <DialogContent>
-          <Typography>
-            This quotation is marked as <b>Completed</b>.
-            <br />
-            Do you want to convert it into an invoice?
+          <Typography sx={{ color: "#64748B" }}>
+            This quotation is marked as <b>Completed</b>. 
+            Would you like to generate an invoice for this quote now?
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button variant="contained"
-            sx={{ color: "#f97316", backgroundColor: "white", "&:hover": { color: "#ea580c" } }}
+        <DialogActions sx={{ pb: 3, px: 3 }}>
+          <Button 
             onClick={async () => {
-              await updateStatusAPI(
-                confirmPopup.quotation.quotation_guid,
-                "Completed"
-              );
+              await updateStatusAPI(confirmPopup.quotation.quotation_guid, "Completed");
               setConfirmPopup({ open: false, quotation: null });
             }}
+            sx={{ fontWeight: 600, color: "#64748B" }}
           >
-            No
+            Just Mark Completed
           </Button>
           <Button
             variant="contained"
-            sx={{
-              backgroundColor: "#f97316",
-              "&:hover": { backgroundColor: "#ea580c" },
-            }}
             onClick={async () => {
               const q = confirmPopup.quotation;
               await updateStatusAPI(q.quotation_guid, "Completed");
@@ -488,6 +514,13 @@ export default function QuotationList() {
               if (full) {
                 navigate("/add-invoice", { state: { quotation: full } });
               }
+            }}
+            sx={{ 
+              borderRadius: "10px", 
+              backgroundColor: "#10B981", 
+              "&:hover": { backgroundColor: "#059669" },
+              fontWeight: 600,
+              textTransform: "none"
             }}
           >
             Yes, Create Invoice
@@ -503,3 +536,19 @@ export default function QuotationList() {
     </Box>
   );
 }
+
+// Styling Constants
+const tableHeadStyle = {
+  textAlign: "left",
+  padding: "16px 24px",
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "#64748B",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const tableCellStyle = {
+  padding: "16px 24px",
+  verticalAlign: "middle",
+};

@@ -197,7 +197,7 @@ function getStandardTemplate(data) {
   const css = `
     /* Reset and base */
 :root {
-  --primary: #f97316;
+  --primary: #8B5CF6;
   --muted: #666;
   --paper: #fff;
 }

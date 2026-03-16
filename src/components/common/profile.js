@@ -50,7 +50,7 @@ const ProfilePage = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   // Color scheme
-  const primaryColor = "rgba(249, 115, 22, 1)";
+  const primaryColor = "rgba(139, 92, 246, 1)";
   const primaryLight = "rgba(254, 215, 170, 0.2)";
   const primaryDark = "rgba(194, 65, 12, 1)";
   const gradient = `linear-gradient(135deg, ${primaryColor}, ${primaryDark})`;

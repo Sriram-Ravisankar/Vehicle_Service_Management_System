@@ -25,7 +25,11 @@ const apiEndpoints = {
   workerManagement: `${API_BASE_URL}/worker_management.php`,
   dashboard: `${API_BASE_URL}/dashboard.php`,
   Quotation: `${API_BASE_URL}/quotation.php`,
-  Invoice: `${API_BASE_URL}/invoice.php`
+  Invoice: `${API_BASE_URL}/invoice.php`,
+  taxRates: `${API_BASE_URL}/accounting.php?type=tax_rates`,
+  paymentMethods: `${API_BASE_URL}/accounting.php?type=payment_methods`,
+  income: `${API_BASE_URL}/accounting.php?type=income`,
+  expenses: `${API_BASE_URL}/accounting.php?type=expenses`,
 };
 
 export default apiEndpoints;

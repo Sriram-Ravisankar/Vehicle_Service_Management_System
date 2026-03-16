@@ -17,6 +17,8 @@ import { FaTrash } from "react-icons/fa";
 import SectionHeader from '../common/Header';
 
 
+import apiEndpoints from '../../apiconfig';
+
 const TaxRates = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -36,11 +38,21 @@ const TaxRates = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    useEffect(() => {
-        const stored = sessionStorage.getItem('taxRates');
-        if (stored) {
-            setRows(JSON.parse(stored));
+    const fetchTaxRates = async () => {
+        try {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(apiEndpoints.taxRates, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setRows(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch tax rates:", err);
         }
+    };
+
+    useEffect(() => {
+        fetchTaxRates();
     }, []);
 
 
@@ -51,11 +63,16 @@ const TaxRates = () => {
     };
 
 
-    const handleDeleteSelected = () => {
-        const updatedRows = rows.filter((row) => !selected.includes(row.id));
-        setRows(updatedRows);
+    const handleDeleteSelected = async () => {
+        const token = sessionStorage.getItem("token");
+        for (const id of selected) {
+            await fetch(`${apiEndpoints.taxRates}&id=${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        }
         setSelected([]);
-        sessionStorage.setItem('taxRates', JSON.stringify(updatedRows));
+        fetchTaxRates();
     };
 
 
@@ -107,10 +124,13 @@ const TaxRates = () => {
         setEditRowId(null);
     };
 
-    const handleDelete = (id) => {
-        const updated = rows.filter((row) => row.id !== id);
-        setRows(updated);
-        sessionStorage.setItem('taxRates', JSON.stringify(updated));
+    const handleDelete = async (id) => {
+        const token = sessionStorage.getItem("token");
+        await fetch(`${apiEndpoints.taxRates}&id=${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchTaxRates();
         handleMenuClose();
     };
 
@@ -272,8 +292,8 @@ const TaxRates = () => {
                             variant="contained"
                             onClick={handleSelectAll}
                             sx={{
-                                bgcolor: "rgba(249, 115, 22, 0.9)",
-                                "&:hover": { bgcolor: "#rgba(249, 115, 22, 0.9)" },
+                                bgcolor: "rgba(139, 92, 246, 0.9)",
+                                "&:hover": { bgcolor: "#rgba(139, 92, 246, 0.9)" },
                                 display: "flex",
                                 alignItems: "center",
                                 px: 2,

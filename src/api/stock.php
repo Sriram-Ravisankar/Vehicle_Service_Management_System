@@ -162,8 +162,8 @@ function handlePost($conn) {
         FROM purchase_items pi
         JOIN products p ON pi.product_id = p.id
         JOIN purchases pu ON pi.purchase_id = pu.purchase_id
-        JOIN suppliers s ON pu.supplier = s.supplier_id
-        JOIN units_of_measurement u ON p.unit = u.id
+        LEFT JOIN suppliers s ON pu.supplier = s.supplier_id
+        LEFT JOIN units_of_measurement u ON p.unit = u.id
         WHERE pi.purchase_id = ? AND pi.product_id = ?
         LIMIT 1
     ";
@@ -197,9 +197,9 @@ if (isset($data["purchase_id"])) {
         UPDATE stock s
         JOIN purchase_items pi ON pi.purchase_id = s.purchase_id AND pi.product_id = s.product_id
         JOIN products p ON p.id = pi.product_id
-        JOIN suppliers sup ON sup.supplier_id = s.supplier_id
+        LEFT JOIN suppliers sup ON sup.supplier_id = s.supplier_id
         JOIN purchases pu ON pu.purchase_id = s.purchase_id
-        JOIN units_of_measurement u ON u.id = p.unit
+        LEFT JOIN units_of_measurement u ON u.id = p.unit
         SET
             s.product_number = p.product_number,
             s.product_name = p.product_name,

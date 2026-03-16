@@ -279,7 +279,7 @@ const styles = {
   }),
 
   activeTab: {
-    color: "rgba(249, 115, 22, 0.9)",
+    color: "rgba(139, 92, 246, 0.9)",
     background: "rgba(249, 115, 22, 0.15)",
   },
 
@@ -319,7 +319,7 @@ const styles = {
     margin: "0",
     fontSize: "18px",
     fontWeight: "700",
-    color: "rgba(249, 115, 22, 0.9)",
+    color: "rgba(139, 92, 246, 0.9)",
     textAlign: "center",
   },
 
@@ -406,9 +406,9 @@ const styles = {
   clearButton: (isMobile) => ({
     padding: isMobile ? "14px 16px" : "10px 20px",
     borderRadius: "10px",
-    border: "1.5px solid rgba(249, 115, 22, 0.9)",
+    border: "1.5px solid rgba(139, 92, 246, 0.9)",
     background: "transparent",
-    color: "rgba(249, 115, 22, 0.9)",
+    color: "rgba(139, 92, 246, 0.9)",
     fontWeight: "600",
     fontSize: isMobile ? "15px" : "14px",
     cursor: "pointer",
@@ -421,12 +421,12 @@ const styles = {
     padding: isMobile ? "14px 16px" : "10px 20px",
     borderRadius: "10px",
     border: "none",
-    background: "rgba(249, 115, 22, 0.9)",
+    background: "rgba(139, 92, 246, 0.9)",
     color: "#fff",
     fontWeight: "600",
     fontSize: isMobile ? "15px" : "14px",
     cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(249, 115, 22, 0.4)",
+    boxShadow: "0 4px 12px rgba(139, 92, 246, 0.4)",
     flex: isMobile ? "1" : "none",
     width: isMobile ? "100%" : "auto",
   }),

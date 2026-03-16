@@ -119,14 +119,14 @@ function AppContent() {
         />
         <Route path="/invoicedetails" element={<InvoiceDetails />} />
         <Route path="/jobqueue" element={<JobQueue />} />
-        <Route path="/Product" element={<Product />} />
-        <Route path="/Purchase" element={<Purchase />} />
-        <Route path="/Supplier" element={<Supplier />} />
-        <Route path="/Stock" element={<Stock />} />
-        <Route path="/add-stock" element={<AddStock />} />
-        <Route path="/add-purchase" element={<AddPurchase />} />
-        <Route path="/add-supplier" element={<AddSupplier />} />
-        <Route path="/add-product" element={<AddProduct />} />
+        <Route path="/product" element={<Product products={data.products} fetchData={fetchData} />} />
+        <Route path="/purchase" element={<Purchase purchases={data.purchases} fetchData={fetchData} />} />
+        <Route path="/supplier" element={<Supplier suppliers={data.suppliers} fetchData={fetchData} />} />
+        <Route path="/stock" element={<Stock stock={data.stock} fetchData={fetchData} />} />
+        <Route path="/add-stock" element={<AddStock fetchData={fetchData} />} />
+        <Route path="/add-purchase" element={<AddPurchase fetchData={fetchData} />} />
+        <Route path="/add-supplier" element={<AddSupplier fetchData={fetchData} />} />
+        <Route path="/add-product" element={<AddProduct fetchData={fetchData} />} />
         <Route path="/supplier-view" element={<UserProfile />} />
         <Route path="/purchase-view" element={<PurchaseViewModal />} />
         <Route path="/reports" element={<ReportsTabs />} />

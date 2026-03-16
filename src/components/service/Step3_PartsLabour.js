@@ -1,18 +1,51 @@
 import React from "react";
-import {
+import { 
   Box,
-  Grid,
-  TextField,
-  Typography,
-  IconButton,
-  Button,
-  Stack,
-  Checkbox,
-  FormControlLabel,
-  MenuItem,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { 
+  Package, 
+  Wrench, 
+  Plus, 
+  Trash2, 
+  Wallet, 
+  Tag, 
+  Percent, 
+  DollarSign, 
+  FileText,
+  IndianRupee,
+  CheckCircle2,
+  Circle
+} from "lucide-react";
+
+// ── tiny helpers ─────────────────────────────────────────────────────────────
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+});
 
 const currency = (v) =>
   Number(v || 0).toLocaleString(undefined, {
@@ -31,35 +64,16 @@ export default function Step3_PartsLabour({
 }) {
 
   React.useEffect(() => {
-    // Default 1 part row
     if (!form.parts || form.parts.length === 0) {
       setForm((f) => ({
         ...f,
-        parts: [
-          {
-            id: Date.now(),
-            name: "",
-            qty: 1,
-            rate: 0,
-            amount: 0,
-          },
-        ],
+        parts: [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
       }));
     }
-
-    // Default 1 labour row
     if (!form.labour || form.labour.length === 0) {
       setForm((f) => ({
         ...f,
-        labour: [
-          {
-            id: Date.now() + 1,
-            title: "",
-            hours: 1,
-            rate: 0,
-            amount: 0,
-          },
-        ],
+        labour: [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }],
       }));
     }
   }, []);
@@ -81,10 +95,8 @@ export default function Step3_PartsLabour({
         p.id === id
           ? {
             ...p,
-            [key]: val, // keep as string
-            amount:
-              Number(key === "qty" ? val : p.qty) *
-              Number(key === "rate" ? val : p.rate),
+            [key]: val,
+            amount: Number(key === "qty" ? val : p.qty) * Number(key === "rate" ? val : p.rate),
           }
           : p
       ),
@@ -98,10 +110,8 @@ export default function Step3_PartsLabour({
         l.id === id
           ? {
             ...l,
-            [key]: val, // keep as string
-            amount:
-              Number(key === "hours" ? val : l.hours) *
-              Number(key === "rate" ? val : l.rate),
+            [key]: val,
+            amount: Number(key === "hours" ? val : l.hours) * Number(key === "rate" ? val : l.rate),
           }
           : l
       ),
@@ -115,391 +125,168 @@ export default function Step3_PartsLabour({
     setForm((f) => ({ ...f, labour: f.labour.filter((l) => l.id !== id) }));
 
   React.useEffect(() => {
-    const partsTotal = (form.parts || []).reduce(
-      (s, p) => s + Number(p.amount || 0),
-      0
-    );
-
-    const labourTotal = (form.labour || []).reduce(
-      (s, l) => s + Number(l.amount || 0),
-      0
-    );
-
-    // New Rule: Subtotal = PARTS only
+    const partsTotal = (form.parts || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const labourTotal = (form.labour || []).reduce((s, l) => s + Number(l.amount || 0), 0);
     const subtotal = partsTotal;
-
     const discountType = form.totals?.discountType || "percent";
     const discountValue = Number(form.totals?.discountValue || 0);
-
-    const afterDiscount =
-      discountType === "percent"
-        ? subtotal - (subtotal * discountValue) / 100
-        : subtotal - discountValue;
-
+    const afterDiscount = discountType === "percent" ? subtotal - (subtotal * discountValue) / 100 : subtotal - discountValue;
     const gstRate = Number(form.totals?.gstRate ?? 18);
     const includeGST = form.totals?.includeGST ?? false;
-
     const gst = includeGST ? (afterDiscount * gstRate) / 100 : 0;
-
-    // Labour added at the final stage (your requirement)
     const beforeRoundTotal = afterDiscount + gst + labourTotal;
-
-    const grandTotal = Math.round(beforeRoundTotal); // rounded final total
+    const grandTotal = Math.round(beforeRoundTotal);
 
     setForm((f) => ({
       ...f,
       totals: {
-        partsTotal,
-        labourTotal,
-        subtotal,
-        discountType,
-        discountValue,
-        discountAmount: subtotal - afterDiscount,
-        gstRate,
-        includeGST,
-        gst,
-        grandTotal,
+        partsTotal, labourTotal, subtotal, discountType, discountValue,
+        discountAmount: subtotal - afterDiscount, gstRate, includeGST, gst, grandTotal,
       },
     }));
-  }, [
-    form.parts,
-    form.labour,
-    form.totals?.discountType,
-    form.totals?.discountValue,
-    form.totals?.gstRate,
-    form.totals?.includeGST,
-  ]);
-
+  }, [form.parts, form.labour, form.totals?.discountType, form.totals?.discountValue, form.totals?.gstRate, form.totals?.includeGST]);
 
   return (
-    <Box sx={{ width: "100%" }}>
-      <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-        Parts & Labour
-      </Typography>
+    <div>
+      <SectionCard title="Parts Inventory" icon={Package}>
+        <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+            {form.parts?.map((p, idx) => (
+              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+                <input placeholder="Part Name..." value={p.name} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
+                <input type="number" placeholder="Qty" value={p.qty} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
+                <input type="number" placeholder="Rate" value={p.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(p.amount)}</div>
+                {!isView && (
+                  <button onClick={() => removePart(p.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!isView && (
+              <button onClick={addPart} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1.5px dashed #E5E7EB", background: "#F9FAFB", color: "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+                <Plus size={16} /> Add Part Row
+              </button>
+            )}
+          </div>
+        </Box>
+      </SectionCard>
 
-      <Stack spacing={4}>
-        {/* ====================== PARTS ====================== */}
-        <Box>
-          <Typography sx={{ fontWeight: 600, mb: 2 }}>Parts</Typography>
+      <SectionCard title="Labour Services" icon={Wrench}>
+        <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+            {form.labour?.map((l) => (
+              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+                <input placeholder="Labour Title..." value={l.title} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
+                <input type="number" placeholder="Hours" value={l.hours} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
+                <input type="number" placeholder="Rate" value={l.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
+                {!isView && (
+                  <button onClick={() => removeLabour(l.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!isView && (
+              <button onClick={addLabour} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1.5px dashed #E5E7EB", background: "#F9FAFB", color: "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+                <Plus size={16} /> Add Labour Row
+              </button>
+            )}
+          </div>
+        </Box>
+      </SectionCard>
 
-          {(form.parts || []).map((p) => (
-            <Grid
-              container
-              spacing={2}
-              key={p.id}
-              alignItems="center"
-              sx={{ mb: 1 }}
-              width={"100%"}
-            >
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
-                width={{ xs: "100%", sm: "25%" }}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 24, alignItems: "start" }}>
+        <div>
+          <SectionCard title="Pricing & Notes" icon={Wallet}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
+                  <select disabled={isView} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 }}))}>
+                    <option value="percent">Percentage (%)</option>
+                    <option value="amount">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
+                  <input type="number" disabled={isView} value={form.totals.discountValue || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Number(e.target.value) }}))} />
+                </div>
+              </div>
+
+              <div 
+                onClick={() => !isView && setForm(f => ({ ...f, totals: { ...f.totals, includeGST: !f.totals.includeGST }}))}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 12, 
+                  padding: "12px", 
+                  background: form.totals.includeGST ? "#F5F3FF" : "#F9FAFB", 
+                  borderRadius: 10,
+                  cursor: isView ? "default" : "pointer",
+                  border: `1px solid ${form.totals.includeGST ? "#DDD6FE" : "transparent"}`,
+                  transition: "all 0.2s"
+                }}
               >
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Part Name"
-                  value={p.name}
-                  disabled={isView}
-                  onChange={(e) => updatePart(p.id, "name", e.target.value)}
-                />
-              </Grid>
+                <div style={{ color: form.totals.includeGST ? "#8B5CF6" : "#D1D5DB" }}>
+                  {form.totals.includeGST ? <CheckCircle2 size={20} fill="#8B5CF6" color="#fff" /> : <Circle size={20} />}
+                </div>
+                <label style={{ fontSize: 14, fontWeight: 600, color: form.totals.includeGST ? "#111827" : "#374151", cursor: "pointer" }}>Apply GST (18%)</label>
+                {form.totals.includeGST && (
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: "auto" }}>
+                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 80 }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                  </div>
+                )}
+              </div>
 
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "25%" }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Qty"
-                  value={p.qty}
-                  disabled={isView}
-                  onChange={(e) => updatePart(p.id, "qty", e.target.value)}
-                />
-              </Grid>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Internal Notes</label>
+                <textarea placeholder="Add private notes or reminders..." value={form.notes || ""} disabled={isView} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} style={{ ...inputSx(false), minHeight: 80, resize: "vertical" }} />
+              </div>
+            </div>
+          </SectionCard>
+        </div>
 
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "25%" }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Rate"
-                  value={p.rate}
-                  disabled={isView}
-                  onChange={(e) =>
-                    updatePart(p.id, "rate", Number(e.target.value))
-                  }
-                />
-              </Grid>
+        <div style={{ background: "#1F2937", borderRadius: 20, padding: "32px", color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
+          <h4 style={{ margin: "0 0 24px 0", fontSize: 16, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Service Summary</h4>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>Parts Subtotal</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.partsTotal)}</span>
+            </div>
+            
+            {Number(form.totals?.discountAmount) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                <span style={{ color: "#10B981" }}>Discount ({form.totals.discountType})</span>
+                <span style={{ color: "#10B981", fontWeight: 600 }}>- ₹ {currency(form.totals?.discountAmount)}</span>
+              </div>
+            )}
 
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "10%" }}>
-                <Typography sx={{ fontWeight: 600, mt: 1 }}>
-                  ₹ {currency(p.amount)}
-                </Typography>
-              </Grid>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>GST Amount</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.gst)}</span>
+            </div>
 
-              <Grid item xs={6} sm={3} md={2}>
-                <IconButton color="error" onClick={() => removePart(p.id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </Grid>
-            </Grid>
-          ))}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>Labour Total</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.labourTotal)}</span>
+            </div>
 
-          <Button
-            startIcon={<AddIcon />}
-            onClick={addPart}
-            sx={{
-              mt: 1,
-              color: "rgba(249, 115, 22, 0.9)",
-              textTransform: "none",
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
 
-              "&:hover": {
-                backgroundColor: "rgba(249, 115, 22, 0.08)",
-              },
-            }}
-          >
-            Add Part
-          </Button>
-
-        </Box>
-
-        {/* ====================== LABOUR ====================== */}
-        <Box>
-          <Typography sx={{ fontWeight: 600, mb: 2 }}>Labour</Typography>
-
-          {(form.labour || []).map((l) => (
-            <Grid
-              container
-              spacing={2}
-              key={l.id}
-              alignItems="center"
-              sx={{ mb: 1 }}
-            >
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
-                width={{ xs: "100%", sm: "25%" }}
-              >
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Labour Title"
-                  disabled={isView}
-                  value={l.title}
-                  onChange={(e) => updateLabour(l.id, "title", e.target.value)}
-                />
-              </Grid>
-
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "25%" }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Hours"
-                  value={l.hours}
-                  disabled={isView}
-                  onChange={(e) =>
-                    updateLabour(l.id, "hours", Number(e.target.value))
-                  }
-                />
-              </Grid>
-
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "25%" }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Rate"
-                  value={l.rate}
-                  disabled={isView}
-                  onChange={(e) =>
-                    updateLabour(l.id, "rate", Number(e.target.value))
-                  }
-                />
-              </Grid>
-
-              <Grid item xs={6} sm={3} md={2} width={{ xs: "100%", sm: "10%" }}>
-                <Typography sx={{ fontWeight: 600, mt: 1 }}>
-                  ₹ {currency(l.amount)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6} sm={3} md={2}>
-                <IconButton color="error" onClick={() => removeLabour(l.id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </Grid>
-            </Grid>
-          ))}
-
-          <Button startIcon={<AddIcon />} onClick={addLabour}
-            sx={{
-              mt: 1,
-              color: "rgba(249, 115, 22, 0.9)",
-              textTransform: "none",
-
-              "&:hover": {
-                backgroundColor: "rgba(249, 115, 22, 0.08)",
-              },
-            }}>
-            Add Labour
-          </Button>
-        </Box>
-
-        {/* ====================== PRICING OPTIONS ====================== */}
-        <Box>
-          <Typography sx={{ fontWeight: 600, mb: 2 }}>
-            Pricing Options
-          </Typography>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3} width={{ xs: "100%", sm: "23%", md: "25%" }}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                label="Discount Type"
-                value={form.totals?.discountType || "percent"}   // ✅ FIX
-                disabled={isView}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    totals: {
-                      ...f.totals,
-                      discountType: e.target.value,
-                      discountValue: 0, // 🔥 reset value when switching type
-                    },
-                  }))
-                }
-              >
-                <MenuItem value="percent">Percent</MenuItem>
-                <MenuItem value="amount">Amount</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} width={{ xs: "100%", sm: "23%", md: "25%" }}>
-              <TextField
-                fullWidth
-                size="small"
-                type="text"
-                label="Discount Value"
-                value={form.totals.discountValue || 0}
-                disabled={isView}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    totals: {
-                      ...f.totals,
-                      discountValue: Number(e.target.value),
-                    },
-                  }))
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} width={{ xs: "100%", sm: "23%", md: "20%" }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.totals.includeGST || false}
-                    disabled={isView}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        totals: { ...f.totals, includeGST: e.target.checked },
-                      }))
-                    }
-                  />
-                }
-                label="Include GST"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3} width={{ xs: "100%", sm: "23%", md: "25%" }}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="GST %"
-                value={form.totals.gstRate || 0}
-                disabled={isView}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    totals: { ...f.totals, gstRate: Number(e.target.value) },
-                  }))
-                }
-              />
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* ====================== SUMMARY ====================== */}
-        <Box sx={{ mt: 4 }}>
-          <Typography sx={{ fontWeight: 700, mb: 1, fontSize: "18px" }}>
-            Summary
-          </Typography>
-
-          <Stack spacing={1} sx={{ pl: 1 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography color="text.secondary">Parts Total</Typography>
-              <Typography>₹ {currency(form.totals?.partsTotal)}</Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography color="text.secondary">Discount</Typography>
-              <Typography>
-                - ₹ {currency(form.totals?.discountAmount)}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography color="text.secondary">Subtotal</Typography>
-              <Typography>₹ {currency(form.totals?.subtotal)}</Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography color="text.secondary">GST</Typography>
-              <Typography>₹ {currency(form.totals?.gst)}</Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography color="text.secondary">Labour Total</Typography>
-              <Typography>₹ {currency(form.totals?.labourTotal)}</Typography>
-            </Box>
-
-            {/* Divider before grand total */}
-            <Box sx={{ mt: 1, borderTop: "1px solid #ddd", pt: 1 }} />
-
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography sx={{ fontWeight: 700, fontSize: "17px" }}>
-                Grand Total
-              </Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: "17px" }}>
-                ₹ {currency(form.totals?.grandTotal)}
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-
-        {/* ====================== NOTES ====================== */}
-        <Box>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="Notes"
-            value={form.notes || ""}
-            disabled={isView}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-          />
-        </Box>
-      </Stack>
-    </Box>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 18, fontWeight: 700 }}>Total Payable</span>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 32, fontWeight: 800, color: "#8B5CF6" }}>₹ {currency(form.totals?.grandTotal)}</span>
+                <p style={{ margin: 0, fontSize: 11, color: "#9CA3AF" }}>Inclusive of all taxes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -110,7 +110,6 @@ const DynamicHeader = ({
       sx={{
         width: "100%",
         position: "relative",
-        left: "-10px",
       }}
     >
       {/* Left Section - Back Button and Title */}
@@ -129,7 +128,7 @@ const DynamicHeader = ({
               p: 0,
               marginLeft: 0,
               minWidth: "auto",
-              color: "rgba(249, 115, 22, 0.9)",
+              color: "rgba(139, 92, 246, 0.9)",
               "&:hover": {
                 backgroundColor: "transparent",
                 opacity: 0.8,

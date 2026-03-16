@@ -1,4 +1,4 @@
-// src/components/BranchForm.js
+// src/components/branch/BranchForm.js
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -7,14 +7,68 @@ import {
   Typography,
   Button,
   Avatar,
+  IconButton,
+  Stack,
+  FormControlLabel,
+  Switch,
+  CircularProgress,
+  Paper,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { 
+  Building2, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Image as ImageIcon,
+  Save,
+  Globe,
+  Codesandbox,
+  Plus
+} from "lucide-react";
 import apiEndpoints from "../../apiconfig";
-import DynamicHeader from "../common/Dynamicheader";
+import SectionHeader from "../common/Header";
 import { Snackbar, Alert } from "@mui/material";
+
+const SectionCard = ({ title, children, icon: Icon, action, style = {} }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+    ...style
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+      </div>
+      {action}
+    </div>
+    {children}
+  </div>
+);
+
+const inputSx = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "10px",
+    backgroundColor: "#F9FAFB",
+    transition: "0.2s",
+    "&:hover": { backgroundColor: "#F3F4F6" },
+    "&.Mui-focused": { backgroundColor: "#fff" }
+  }
+};
+
+const labelStyle = { fontSize: 13, fontWeight: 600, color: "#475569", mb: 1 };
 
 const BranchForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const editId = searchParams.get("id");
+  const token = sessionStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     branchName: "",
@@ -30,85 +84,19 @@ const BranchForm = () => {
     imagePreview: "",
   });
 
-  const [errors, setErrors] = useState({});   // ✅ ADDED
+  const [loading, setLoading] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  // ✅ FIELD VALIDATION FUNCTION
-  const validateField = (name, value) => {
-    let error = "";
-    if (name === "branchName" && !value.trim()) error = "Branch name is required.";
-    if (name === "contactNumber") {
-      if (!value.trim()) error = "Contact number is required.";
-      else if (!/^[0-9]{10}$/.test(value)) error = "Contact must be 10 digits.";
-    }
-    if (name === "email") {
-      if (!value.trim()) error = "Email is required.";
-      else if (!/^\S+@\S+\.\S+$/.test(value)) error = "Invalid email format.";
-    }
-    if (name === "address" && !value.trim()) error = "Address is required.";
-    return error;
-  };
-
-  // ✅ UPDATED HANDLE CHANGE WITH LIVE VALIDATION
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const fieldValue = type === "checkbox" ? checked : value;
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: validateField(name, fieldValue),
-    }));
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: fieldValue,
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({
-        ...prev,
-        image: file,
-        imagePreview: reader.result,
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const editId = searchParams.get("id");
-
-  const validators = {
-    required: (val) => val != null && String(val).trim().length > 0,
-    email: (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val || "").trim()),
-    phone: (val) => /^[\d +\-\(\)]{6,20}$/.test(String(val || "").trim()),
-  };
-
-  // ❗ NOT USED anymore but kept to avoid breaking logic
-  const validateAll = () => null;
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
     if (!editId) return;
-
-    const fetchBranchDetails = async () => {
+    const fetchBranch = async () => {
+      setLoading(true);
       try {
-        const resp = await fetch(`${apiEndpoints.branches}?id=${editId}`,{
-          headers:{
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`
-          }
+        const resp = await fetch(`${apiEndpoints.branches}?id=${editId}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
         const json = await resp.json();
         if (json.success && json.data) {
@@ -124,321 +112,197 @@ const BranchForm = () => {
             country: b.country || "",
             isHeadOffice: b.is_head_office == 1,
             image: null,
-            imagePreview: b.image_path
-              ? apiEndpoints.branches.replace("branches.php", "") + b.image_path
-              : "",
+            imagePreview: b.image_path ? apiEndpoints.branches.replace("branches.php", "") + b.image_path : "",
           });
         }
       } catch (err) {
-        setSnackbar({
-          open: true,
-          message: "Failed to load branch details",
-          severity: "error",
-        });
-      }
+        console.error(err);
+      } finally { setLoading(false); }
     };
+    fetchBranch();
+  }, [editId, token]);
 
-    fetchBranchDetails();
-  }, [editId]);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
+  };
 
-  // ✅ UPDATED SUBMIT WITH FIELD VALIDATION
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, image: file, imagePreview: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    let newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const err = validateField(key, formData[key]);
-      if (err) newErrors[key] = err;
-    });
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      setSnackbar({
-        open: true,
-        message: "Please Fill the details before submitting",
-        severity: "error",
-      });
+    if (!formData.branchName || !formData.email || !formData.contactNumber) {
+      setSnackbar({ open: true, message: "Please fill required fields", severity: "error" });
       return;
     }
 
+    setWorking(true);
     const body = new FormData();
     if (editId) body.append("branch_id", editId);
-    body.append("branch_name", (formData.branchName || "").trim());
-    body.append("branch_code", (formData.branchCode || "").trim());
-    body.append("contact_number", (formData.contactNumber || "").trim());
-    body.append("email", (formData.email || "").trim());
-    body.append("address", (formData.address || "").trim());
-    body.append("city", (formData.city || "").trim());
-    body.append("state", (formData.state || "").trim());
-    body.append("country", (formData.country || "").trim());
+    body.append("branch_name", formData.branchName);
+    body.append("branch_code", formData.branchCode);
+    body.append("contact_number", formData.contactNumber);
+    body.append("email", formData.email);
+    body.append("address", formData.address);
+    body.append("city", formData.city);
+    body.append("state", formData.state);
+    body.append("country", formData.country);
     body.append("is_head_office", formData.isHeadOffice ? 1 : 0);
     if (formData.image) body.append("image", formData.image);
 
     try {
-      const resp = await fetch(apiEndpoints.branches, { method: "POST", headers:{
-        Authorization: `Bearer ${sessionStorage.getItem("token")}`
-      } ,body });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`HTTP ${resp.status} — ${text}`);
-      }
-
+      const resp = await fetch(apiEndpoints.branches, { 
+        method: "POST", 
+        headers: { Authorization: `Bearer ${token}` },
+        body 
+      });
       const result = await resp.json();
       if (result.success) {
-        setSnackbar({
-          open: true,
-          message: editId ? "Branch updated successfully" : "Branch added successfully",
-          severity: "success",
-        });
-        setTimeout(() => navigate("/branches"), 1000);
-      } else {
-        setSnackbar({
-          open: true,
-          message: "Faild to submit branch",
-          severity: "error",
-        });
+        setSnackbar({ open: true, message: editId ? "Branch updated!" : "Branch added!", severity: "success" });
+        setTimeout(() => navigate("/branches"), 1200);
       }
     } catch (err) {
-      console.error("Network/backend error:", err);
-      setSnackbar({
-        open: true,
-        message: "Error connecting to server",
-        severity: "error",
-      });
-    }
+      setSnackbar({ open: true, message: "Save failed", severity: "error" });
+    } finally { setWorking(false); }
   };
 
+  if (loading) return (
+    <Box sx={{ height: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <CircularProgress sx={{ color: "#8B5CF6" }} />
+    </Box>
+  );
+
   return (
-    <Box sx={{ px: { xs: 2, sm: 3, md: 6 }, py: { xs: 2, sm: 3 }, maxWidth: "100%" }}>
-      <DynamicHeader />
+    <Box sx={{ px: { xs: 1.5, md: 3 }, py: 3, backgroundColor: "#F9FAFB", minHeight: "100vh" }}>
+      <SectionHeader />
 
-      <style>{`
-        .bf-row {
-          display: flex;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        @media (max-width: 600px) {
-          .bf-row {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-          }
-        }
-      `}</style>
+      <Grid container spacing={3} sx={{ mt: 2 }}>
+        <Grid item xs={12}>
+          <SectionCard title="Core Identity & Branding" icon={Codesandbox}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography sx={labelStyle}>Branch Name *</Typography>
+                <TextField fullWidth size="small" name="branchName" value={formData.branchName} onChange={handleChange} sx={inputSx} />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography sx={labelStyle}>Branch Code</Typography>
+                <TextField fullWidth size="small" name="branchCode" value={formData.branchCode} onChange={handleChange} sx={inputSx} />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography sx={labelStyle}>Contact Number *</Typography>
+                <TextField fullWidth size="small" name="contactNumber" value={formData.contactNumber} onChange={handleChange} sx={inputSx} />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography sx={labelStyle}>Email Address *</Typography>
+                <TextField fullWidth size="small" name="email" value={formData.email} onChange={handleChange} sx={inputSx} />
+              </Grid>
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{
-          background: "#fff",
-          borderRadius: 2,
-          p: { xs: 2, sm: 3 },
-          boxShadow: { xs: "none", sm: "0 6px 18px rgba(2,6,23,0.04)" },
-        }}
-      >
-        <Grid container spacing={2} width={"100%"}>
-          
-          {/* LEFT COLUMN */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "47%" }}>
-
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Branch Name<span style={{ color: "red" }}>*</span>
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="branchName"
-                value={formData.branchName}
-                onChange={handleChange}
-                error={Boolean(errors.branchName)}
-                helperText={errors.branchName}
-                placeholder="Enter branch name"
-              />
-            </Box>
-
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Email<span style={{ color: "red" }}>*</span>
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={Boolean(errors.email)}
-                helperText={errors.email}
-                placeholder="Enter email"
-              />
-            </Box>
-
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Country<span style={{ color: "red" }}>*</span>
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                placeholder="Enter country"
-              />
-            </Box>
-
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Town/City
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                placeholder="Enter city"
-              />
-            </Box>
-
-          </Grid>
-
-          {/* RIGHT COLUMN */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "47%" }}>
-
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Contact Number<span style={{ color: "red" }}>*</span>
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                name="contactNumber"
-                value={formData.contactNumber}
-                onChange={handleChange}
-                error={Boolean(errors.contactNumber)}
-                helperText={errors.contactNumber}
-                placeholder="Enter 10-digit contact number"
-                inputProps={{ maxLength: 10, pattern: "[0-9]*" }}
-              />
-            </Box>
-
-            <Box className="bf-row" sx={{ alignItems: "flex-start" }}>
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                Image
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-  <Button
-    variant="outlined"
-    component="label"
-    size="small"
-    sx={{
-      color: "rgba(249, 115, 22, 0.9)",
-      borderColor: "rgba(249, 115, 22, 0.9)",
-      textTransform: "none",
-
-      "&:hover": {
-        borderColor: "rgba(249, 115, 22, 1)",
-        backgroundColor: "rgba(249, 115, 22, 0.08)",
-        color: "rgba(249, 115, 22, 1)",
-      },
-    }}
-  >
-    Choose File
-    <input
-      type="file"
-      hidden
-      accept="image/*"
-      onChange={handleImageChange}
-    />
-  </Button>
-</Box>
-
-
-                {formData.imagePreview && (
-                  <Avatar
-                    src={formData.imagePreview}
-                    alt="Preview"
-                    sx={{ width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}
+              <Grid item xs={12} md={6}>
+                <Box sx={{ 
+                  p: 2, bgcolor: "#F9FAFB", border: "1px solid #F3F4F6", borderRadius: "12px", 
+                  height: "100%", display: "flex", alignItems: "center" 
+                }}>
+                  <FormControlLabel
+                    control={<Switch checked={formData.isHeadOffice} onChange={(e) => setFormData(prev => ({ ...prev, isHeadOffice: e.target.checked }))} color="primary" />}
+                    label={
+                      <Box>
+                        <Typography sx={{ fontWeight: 600, fontSize: 14 }}>Primary Head Office</Typography>
+                        <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>Master location for billing & reports</Typography>
+                      </Box>
+                    }
                   />
-                )}
-              </Box>
-            </Box>
+                </Box>
+              </Grid>
 
-            <Box className="bf-row">
-              <Typography sx={{ minWidth: 120, fontWeight: 500 }}>
-                State
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                placeholder="Enter state"
-              />
-            </Box>
-
-            <Box className="bf-row" sx={{ alignItems: "flex-start" }}>
-              <Typography sx={{ minWidth: 120, fontWeight: 500, mt: 1 }}>
-                Address<span style={{ color: "red" }}>*</span>
-              </Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                size="small"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                error={Boolean(errors.address)}
-                helperText={errors.address}
-                placeholder="Enter address"
-              />
-            </Box>
-
-          </Grid>
-
+              <Grid item xs={12} md={6}>
+                <Box sx={{ 
+                  border: "1px solid #F3F4F6", borderRadius: "12px", p: 2, 
+                  display: "flex", alignItems: "center", gap: 3, backgroundColor: "#fff"
+                }}>
+                  <Box sx={{ position: "relative" }}>
+                    {formData.imagePreview ? (
+                      <Avatar src={formData.imagePreview} sx={{ width: 64, height: 64, borderRadius: "10px" }} />
+                    ) : (
+                      <Box sx={{ width: 64, height: 64, borderRadius: "10px", bgcolor: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8" }}>
+                        <ImageIcon size={24} />
+                      </Box>
+                    )}
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1E293B", mb: 0.5 }}>Branch Profile Image</Typography>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      size="small"
+                      sx={{ textTransform: "none", borderRadius: "6px", color: "#8B5CF6", borderColor: "#8B5CF6", fontSize: 12 }}
+                    >
+                      Change Photo
+                      <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                    </Button>
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+          </SectionCard>
         </Grid>
 
-        <Box mt={4}>
+        <Grid item xs={12}>
+          <SectionCard title="Location & Access" icon={MapPin}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography sx={labelStyle}>Street Address *</Typography>
+                <TextField fullWidth multiline rows={3} name="address" value={formData.address} onChange={handleChange} placeholder="Full street address..." sx={inputSx} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <Typography sx={labelStyle}>City</Typography>
+                    <TextField fullWidth size="small" name="city" value={formData.city} onChange={handleChange} sx={inputSx} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Typography sx={labelStyle}>State</Typography>
+                    <TextField fullWidth size="small" name="state" value={formData.state} onChange={handleChange} sx={inputSx} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Typography sx={labelStyle}>Country</Typography>
+                    <TextField fullWidth size="small" name="country" value={formData.country} onChange={handleChange} sx={inputSx} />
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+          </SectionCard>
+        </Grid>
+      </Grid>
+
+      {!loading && (
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
           <Button
-            type="submit"
             variant="contained"
-            fullWidth
-            sx={{
-              backgroundColor: "rgba(249, 115, 22, 0.9)",
-              "&:hover": { backgroundColor: "rgba(249, 115, 22, 0.9)" },
-              color: "white",
-              height: "45px",
-              fontWeight: "bold",
+            disabled={working}
+            onClick={handleSubmit}
+            sx={{ 
+              borderRadius: "12px", textTransform: "none", fontWeight: 700, px: 6, py: 1.5,
+              bgcolor: "rgba(139, 92, 246, 0.9)", boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.2)",
+              "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" }
             }}
           >
-            SUBMIT
+            {working ? "Saving..." : editId ? "Update Branch" : "Save Branch"}
           </Button>
         </Box>
-      </Box>
+      )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({...snackbar, open: false})} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "12px" }}>{snackbar.message}</Alert>
       </Snackbar>
-
     </Box>
   );
 };

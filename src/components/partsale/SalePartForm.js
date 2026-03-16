@@ -252,7 +252,7 @@ const SalePartForm = () => {
       <Button
                 variant="contained"
                 sx={{
-                  backgroundColor: "rgba(249, 115, 22, 0.9)",
+                  backgroundColor: "rgba(139, 92, 246, 0.9)",
                   textTransform: "none",
                   px: 32,
                   borderRadius: 0,

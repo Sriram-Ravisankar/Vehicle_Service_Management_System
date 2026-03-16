@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiEndpoints from '../../apiconfig';
 
 const AddTax = () => {
   const navigate = useNavigate();
@@ -36,28 +37,32 @@ const AddTax = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    const existing = JSON.parse(sessionStorage.getItem('taxRates')) || [];
-  
-    const newEntry = {
-      id: editData?.id || Date.now(),
+  const handleSubmit = async () => {
+    const token = sessionStorage.getItem("token");
+    const payload = {
+      id: editData?.id,
       accountTaxName: form.taxName,
       taxRate: parseFloat(form.taxRate),
-      taxNumber: parseInt(form.taxNumber),
+      taxNumber: form.taxNumber,
     };
-  
-    let updated;
-  
-    if (editData) {
-      updated = existing.map((item) =>
-        item.id === editData.id ? newEntry : item
-      );
-    } else {
-      updated = [...existing, newEntry];
+
+    try {
+      const res = await fetch(apiEndpoints.taxRates, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        navigate("/taxrates");
+      }
+    } catch (err) {
+      console.error("Save tax rate failed:", err);
     }
-  
-    sessionStorage.setItem('taxRates', JSON.stringify(updated));
-    navigate('/taxrates');
   };
   
   const handleBack = () => {
@@ -65,7 +70,13 @@ const AddTax = () => {
   };
 
   return (
-    <Box sx={{ px: 2, pt: 2 }}>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      width: "100%",
+      maxWidth: "100%",
+      overflowX: "hidden"
+    }}>
       {/* Top left back button with title */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <IconButton onClick={handleBack} size="large">

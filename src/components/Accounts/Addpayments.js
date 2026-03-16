@@ -13,6 +13,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiEndpoints from '../../apiconfig';
 
 const AddPaymentMethod = () => {
   const [paymentType, setPaymentType] = useState('');
@@ -23,13 +24,12 @@ const AddPaymentMethod = () => {
 
   // If editing, populate the form with existing data
   useEffect(() => {
-    const editData = JSON.parse(sessionStorage.getItem('editPaymentMethod'));
-    if (editData?.isEdit) {
-      setPaymentType(editData.paymentType || '');
+    if (location.state?.isEdit) {
+      setPaymentType(location.state.toEdit.paymentType || '');
     }
-  }, []);
+  }, [location.state]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
   
     if (!paymentType.trim()) {
@@ -37,19 +37,29 @@ const AddPaymentMethod = () => {
       setOpenSnackbar(true);
       return;
     }
-    const updatedData = {
-        id: JSON.parse(sessionStorage.getItem('editPaymentMethod'))?.id || Date.now(),
+
+    const token = sessionStorage.getItem("token");
+    const payload = {
+        id: location.state?.toEdit?.id,
         paymentType,
-      };
+    };
     
-      if (JSON.parse(sessionStorage.getItem('editPaymentMethod'))?.isEdit) {
-        sessionStorage.setItem('updatePaymentMethod', JSON.stringify({ ...updatedData, isUpdate: true }));
-      } else {
-        sessionStorage.setItem('newPaymentMethod', JSON.stringify({ ...updatedData, isNew: true }));
+    try {
+      const res = await fetch(apiEndpoints.paymentMethods, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (result.success) {
+          navigate('/payment-methods');
       }
-    
-      sessionStorage.removeItem('editPaymentMethod');
-      navigate('/payment-methods');
+    } catch (err) {
+        console.error("Save payment method failed:", err);
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -57,7 +67,13 @@ const AddPaymentMethod = () => {
   };
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      width: '100%',
+      maxWidth: '100%',
+      overflowX: 'hidden'
+    }}>
       <Paper sx={{ width: '100%', p: 3, boxShadow: 'none' }}>
         {/* Header */}
         <Box sx={{

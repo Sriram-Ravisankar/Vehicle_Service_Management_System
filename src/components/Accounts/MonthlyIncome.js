@@ -14,6 +14,7 @@ import {
   InputAdornment
 } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import apiEndpoints from '../../apiconfig';
 
 const MonthlyIncomeReport = () => {
   const [formData, setFormData] = useState({
@@ -31,24 +32,32 @@ const MonthlyIncomeReport = () => {
     }));
   };
 
-  const filterData = () => {
-    const incomeData = JSON.parse(sessionStorage.getItem('incomeData')) || [];
-    const filtered = incomeData.filter((entry) => {
-      const entryDate = new Date(entry.date);
-      const startDate = new Date(formData.startDate);
-      const endDate = new Date(formData.endDate);
-      return entryDate >= startDate && entryDate <= endDate;
-    });
-    setFilteredData(filtered);
+  const fetchFilteredData = async () => {
+    const token = sessionStorage.getItem("token");
+    try {
+        const res = await fetch(apiEndpoints.income, { headers: { Authorization: `Bearer ${token}` } });
+        const incomeData = await res.json();
+        
+        const filtered = incomeData.filter((entry) => {
+            if (!formData.startDate || !formData.endDate) return true;
+            const entryDate = new Date(entry.date);
+            const startDate = new Date(formData.startDate);
+            const endDate = new Date(formData.endDate);
+            return entryDate >= startDate && entryDate <= endDate;
+        });
+        setFilteredData(filtered);
+    } catch (err) {
+        console.error("Filter income failed:", err);
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    filterData();
+    fetchFilteredData();
   };
 
   useEffect(() => {
-    filterData();
+    fetchFilteredData();
   }, []); // Run on component mount
 
   return (

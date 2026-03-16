@@ -119,7 +119,7 @@ export default function TemplateSelectionModal({ open, onClose, onSelect }) {
                                     "&:hover": {
                                         transform: "translateY(-4px)",
                                         boxShadow: 4,
-                                        borderColor: "#f97316",
+                                        borderColor: "#8B5CF6",
                                     },
                                 }}
                             >

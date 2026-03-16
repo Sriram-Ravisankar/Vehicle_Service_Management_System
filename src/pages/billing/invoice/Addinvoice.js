@@ -372,7 +372,7 @@ export default function AddInvoice() {
       {/* HEADER */}
       <Box display="flex" alignItems="center" mb={2}>
         <IconButton onClick={() => navigate(-1)}>
-          <CgArrowLeft size={30} color="rgba(249, 115, 22, 0.9)" />
+          <CgArrowLeft size={30} color="rgba(139, 92, 246, 0.9)" />
         </IconButton>
 
         <Typography variant="h5" fontWeight="bold" sx={{ ml: 1 }}>
@@ -510,9 +510,9 @@ export default function AddInvoice() {
                 }))
               }
               sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
+                backgroundColor: "rgba(139, 92, 246, 0.9)",
                 "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 1)",
+                  backgroundColor: "rgba(139, 92, 246, 1)",
                 },
                 color: "#fff",
                 textTransform: "none",
@@ -581,9 +581,9 @@ export default function AddInvoice() {
                 }))
               }
               sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
+                backgroundColor: "rgba(139, 92, 246, 0.9)",
                 "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 1)",
+                  backgroundColor: "rgba(139, 92, 246, 1)",
                 },
                 color: "#fff",
                 textTransform: "none",
@@ -693,9 +693,9 @@ export default function AddInvoice() {
             fullWidth
             sx={{
               height: "45px",
-              backgroundColor: "rgba(249, 115, 22, 0.9)",
+              backgroundColor: "rgba(139, 92, 246, 0.9)",
               "&:hover": {
-                backgroundColor: "rgba(249, 115, 22, 1)",
+                backgroundColor: "rgba(139, 92, 246, 1)",
               },
               color: "#fff",
               textTransform: "none",

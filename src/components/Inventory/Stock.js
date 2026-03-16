@@ -1,389 +1,337 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Checkbox,
-  FormControlLabel,
-  Grid,
-  useTheme,
-  useMediaQuery,
-  Menu,
-  MenuItem
-} from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
-import FilterListIcon from "@mui/icons-material/FilterList";
+import { Search, Filter, RefreshCw, Package, Truck, AlertTriangle, Plus } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
-const Stock = () => {
-  const theme = useTheme();
+import SectionHeader from "../common/Header";
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+function getStatus(row) {
+  const qty = Number(row.available_quantity ?? 0);
+  const total = Number(row.quantity_purchased ?? qty);
+  
+  if (qty === 0) return "Out of Stock";
+  if (qty <= (total * 0.3) || qty <= 5) return "Low Stock"; // Red
+  return "In Stock"; // Green
+}
+
+const statusStyle = {
+  "In Stock":    "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  "Low Stock":   "bg-rose-50 text-rose-700 border border-rose-200",
+  "Out of Stock":"bg-slate-100 text-slate-600 border border-slate-300",
+};
+
+// ─── sub-components ──────────────────────────────────────────────────────────
+const StatCard = ({ label, value, valueClass = "text-gray-900" }) => (
+  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <p className="text-sm text-gray-500 mb-1">{label}</p>
+    <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+  </div>
+);
+
+const StockBar = ({ qty, max }) => {
+  const pct = Math.min((qty / Math.max(max, 1)) * 100, 100);
+  const color = pct <= 30 ? "bg-red-500" : "bg-green-500";
+  return (
+    <div className="h-1.5 w-24 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+};
+
+// ─── main component ───────────────────────────────────────────────────────────
+const Stock = ({ stock = [], fetchData }) => {
   const { show, hide } = useLoading();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-const [allRows, setAllRows] = useState([]);
-const [gridLoading, setGridLoading] = useState(false);
 
-  /* ================= FILTER STATE ================= */
-  const [filters, setFilters] = useState({
-    purchaseFrom: "",
-    purchaseTo: "",
-    supplier: "",
-    product: "",
-    branch: "",
-  });
-const [suppliers, setSuppliers] = useState([]);
-const [products, setProducts] = useState([]);
+  // ── state ──
+  const [activeTab, setActiveTab]   = useState("items");
+  const [allRows, setAllRows]       = useState([]);
+  const [suppliers, setSuppliers]   = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSupId, setSelectedSupId] = useState("");
+  const [loading, setLoading]       = useState(false);
 
-  /* ================= DATA STATE ================= */
-  const [rows, setRows] = useState([]);
- 
-
-  /* ================= COLUMN CONFIG ================= */
-  const allColumns = [
-    { field: "purchase_no", headerName: "Purchase No" },
-    { field: "product_number", headerName: "Product No" },
-    { field: "product_name", headerName: "Product Name" },
-    { field: "supplier_name", headerName: "Supplier" },
-    { field: "quantity_purchased", headerName: "Purchased Qty" },
-    { field: "quantity_sold", headerName: "Sold Qty" },
-    { field: "available_quantity", headerName: "Available Stock" },
-    { field: "price", headerName: "Rate" },
-    { field: "amount", headerName: "Amount" },
-    { field: "unit_name", headerName: "Unit" },
-    { field: "purchase_date", headerName: "Purchase Date" },
-    { field: "invoice_no", headerName: "Invoice No" },
-    { field: "branch_id", headerName: "Branch" },
-  ];
-
-  const [selectedColumns, setSelectedColumns] = useState([
-    "purchase_no",
-    "product_name",
-    "available_quantity",
-    "price",
-    "supplier_name",
-  ]);
-
-  const handleColumnToggle = (field) => {
-    setSelectedColumns((prev) =>
-      prev.includes(field) ? prev.filter((c) => c !== field) : [...prev, field]
-    );
-  };
-
-  const visibleColumns = allColumns
-    .filter((c) => selectedColumns.includes(c.field))
-    .map((c) => ({
-      ...c,
-      flex: 1,
-      minWidth: isMobile ? 120 : 180,
-    }));
-const fetchDropdowns = async () => {
-  try {
-    const [supplierRes, productRes] = await Promise.all([
-      fetch(apiEndpoints.supplier, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }),
-      fetch(apiEndpoints.product, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }),
-    ]);
-
-    const supplierData = await supplierRes.json();
-    const productData = await productRes.json();
-
-    if (supplierData.success) setSuppliers(supplierData.data);
-    if (productData.success) setProducts(productData.data);
-  } catch (err) {
-    console.error("Dropdown fetch error", err);
-  }
-};
-useEffect(() => {
-  fetchStock();
-  fetchDropdowns();
-}, []);
-
-  /* ================= FETCH STOCK ================= */
-  const fetchStock = async () => {
-    try {
-      show();
-      setGridLoading(true);
-      const response = await fetch(apiEndpoints.stock, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const formatted = result.data.map((row) => ({
-          ...row,
-          id: row.stock_id,
-        }));
-
-        setAllRows(formatted); // 🔑 keep original
-        setRows(formatted); // 🔑 show data
-      }
-
-    } catch (error) {
-      console.error("Stock fetch error:", error);
-    } finally {
-      setGridLoading(false);
-      hide();
+  useEffect(() => {
+    if (stock.length > 0) {
+      setAllRows(stock);
     }
+  }, [stock]);
+
+  useEffect(() => {
+    if (fetchData) fetchData();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const res = await fetch(apiEndpoints.supplier, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuppliers(data.data);
+        if (data.data.length > 0) setSelectedSupId(String(data.data[0].supplier_id));
+      }
+    } catch (e) { console.error("Supplier fetch error:", e); }
   };
 
-  /* ================= APPLY FILTER (UI SIDE) ================= */
-const applyFilter = () => {
-  let filtered = [...allRows];
+  useEffect(() => { fetchSuppliers(); }, []);
 
-  // Supplier filter
-  if (filters.supplier) {
-    filtered = filtered.filter((r) =>
-      r.supplier_name?.toLowerCase().includes(filters.supplier.toLowerCase())
-    );
-  }
+  // ── derived ──
+  const filtered = allRows.filter((r) =>
+    r.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.product_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Product filter
-  if (filters.product) {
-    filtered = filtered.filter((r) =>
-      r.product_name?.toLowerCase().includes(filters.product.toLowerCase())
-    );
-  }
+  const totalValue    = allRows.reduce((s, r) => s + Number(r.amount ?? 0), 0);
+  const lowStockCount = allRows.filter((r) => ["Low Stock","Critical"].includes(getStatus(r))).length;
+  const outOfStock    = allRows.filter((r) => getStatus(r) === "Out of Stock").length;
 
-  // Purchase date from
-  if (filters.purchaseFrom) {
-    filtered = filtered.filter((r) => r.purchase_date >= filters.purchaseFrom);
-  }
+  const selectedSupplier    = suppliers.find((s) => String(s.supplier_id) === selectedSupId);
+  const supplierItems       = allRows.filter((r) => String(r.supplier_id) === selectedSupId);
 
-  // Purchase date to
-  if (filters.purchaseTo) {
-    filtered = filtered.filter((r) => r.purchase_date <= filters.purchaseTo);
-  }
-
-  setRows(filtered);
-};
-// useEffect(() => {
-//   fetchStock();
-// }, []);
-
+  // ── tab button style ──
+  const tabCls = (tab) =>
+    `py-3 px-6 font-medium text-sm transition-colors flex items-center gap-2 border-b-2 ${
+      activeTab === tab
+        ? "border-[#3B82F6] text-[#3B82F6]"
+        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+    }`;
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 3, md: 4 },
-        width: "100%",
-        maxWidth: "100%",
-        overflowX: "hidden",
-      }}
-    >
-      <Typography variant="h4" fontWeight={600} mb={3}>
-        Stock
-      </Typography>
+    <div style={{ padding: "24px", fontFamily: "inherit" }}>
+      <SectionHeader title="Stock" />
 
-      {/* FILTER CARD */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-<Box display="flex" alignItems="center" gap={1} mb={2}>
-  <FilterListIcon 
-    sx={{ 
-      color: "rgba(249, 115, 22, 0.9)", 
-      fontSize: 28 
-    }} 
-  />
-  <Typography variant="h6" fontWeight={600}>
-    Filters
-  </Typography>
-</Box>
-
-
-          <Grid container spacing={2}>
-            {/* FILTER ROW */}
-            <Grid container spacing={2} width={"100%"}>
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={3}
-                width={{ xs: "100%", sm: "20%" }}
-              >
-                <TextField
-                  label="Purchase From"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  value={filters.purchaseFrom}
-                  onChange={(e) =>
-                    setFilters({ ...filters, purchaseFrom: e.target.value })
-                  }
-                />
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={3}
-                width={{ xs: "100%", sm: "20%" }}
-              >
-                <TextField
-                  label="Purchase To"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  value={filters.purchaseTo}
-                  onChange={(e) =>
-                    setFilters({ ...filters, purchaseTo: e.target.value })
-                  }
-                />
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={3}
-                width={{ xs: "100%", sm: "20%" }}
-              >
-                <TextField
-                  select
-                  label="Supplier"
-                  fullWidth
-                  value={filters.supplier}
-                  onChange={(e) =>
-                    setFilters({ ...filters, supplier: e.target.value })
-                  }
-                >
-                  <MenuItem value="">All</MenuItem>
-                  {suppliers.map((s) => (
-                    <MenuItem key={s.supplier_id} value={s.supplier_name}>
-                      {s.supplier_name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={3}
-                width={{ xs: "100%", sm: "20%" }}
-              >
-                <TextField
-                  select
-                  label="Product"
-                  fullWidth
-                  value={filters.product}
-                  onChange={(e) =>
-                    setFilters({ ...filters, product: e.target.value })
-                  }
-                >
-                  <MenuItem value="">All</MenuItem>
-                  {products.map((p) => (
-                    <MenuItem key={p.id} value={p.product_name}>
-                      {p.product_name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </Grid>
-
-            {/* COLUMN SELECTOR */}
-            <Box mt={3}>
-              <Typography fontWeight={600} mb={1}>
-                Select Columns
-              </Typography>
-
-              <Box
-                sx={{
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 1,
-                  p: 2,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 2,
-                  backgroundColor: "#fafafa",
-                }}
-              >
-                {allColumns.map((col) => (
-                  <FormControlLabel
-                    key={col.field}
-                    control={
-<Checkbox
-  checked={selectedColumns.includes(col.field)}
-  size="small"
-  onChange={() => handleColumnToggle(col.field)}
-  sx={{
-    color: "rgba(249, 115, 22, 0.9)",
-    "&.Mui-checked": {
-      color: "rgba(249, 115, 22, 0.9)",
-    },
-  }}
-/>
-
-                    }
-                    label={col.headerName}
-                  />
-                ))}
-              </Box>
-            </Box>
-
-            <Box mt={3} display="flex" justifyContent="flex-end">
-<Button
-  variant="contained"
-  sx={{
-    px: 4,
-    py: 1,
-    fontWeight: 600,
-    textTransform: "uppercase",
-    backgroundColor: "rgba(249, 115, 22, 0.9)",
-    "&:hover": {
-      backgroundColor: "rgba(249, 115, 22, 1)",
-    },
-  }}
-  onClick={applyFilter}
->
-  Apply Filter
-</Button>
-
-            </Box>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* TABLE */}
-      <Card sx={{ mt: 3 }}>
-        <Box
-          sx={{
-            height: { xs: 400, sm: 300 },
-            width: "100%",
-            overflowX: "auto",
-          }}
-        >
-          <DataGrid
-            rows={rows}
-            columns={visibleColumns}
-            loading={gridLoading}
-            pageSize={10}
-            rowsPerPageOptions={[10, 25, 50]}
-            disableRowSelectionOnClick
-            sx={{
-              minWidth: 800,
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: "#f5f5f5",
-                fontWeight: "bold",
-              },
+      <div className="space-y-6" style={{ marginTop: 16 }}>
+        {/* ── page header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* <p className="text-gray-500">Track parts, stock levels, and supplier information.</p> */}
+          <button
+            onClick={() => fetchData?.()}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 16px", fontSize: 14, fontWeight: 500,
+              color: "#374151", background: "#fff",
+              border: "1px solid #E5E7EB", borderRadius: 8,
+              cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
             }}
-          />
-        </Box>
-      </Card>
-    </Box>
+          >
+            <RefreshCw size={16} /> Refresh
+          </button>
+        </div>
+
+        {/* ── tabs ── */}
+        <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB" }}>
+          <button className={tabCls("items")}  onClick={() => setActiveTab("items")}>
+            <Package size={18} /> Items & Stock
+          </button>
+          <button className={tabCls("suppliers")} onClick={() => setActiveTab("suppliers")}>
+            <Truck size={18} /> Suppliers
+          </button>
+        </div>
+
+        {/* ══════════════ ITEMS TAB ══════════════ */}
+        {activeTab === "items" && (
+          <>
+            {/* stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 16 }}>
+              <StatCard label="Total Items"    value={allRows.length} />
+              <StatCard label="Total Value"    value={`₹${totalValue.toLocaleString()}`} />
+              <StatCard label="Low Stock Items" value={lowStockCount} valueClass="text-blue-600" />
+              <StatCard label="Out of Stock"   value={outOfStock}    valueClass="text-red-600" />
+            </div>
+
+            {/* table card */}
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #F3F4F6", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+              {/* search bar */}
+              <div style={{ padding: "16px", borderBottom: "1px solid #F3F4F6", display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 420 }}>
+                  <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
+                  <input
+                    type="text"
+                    placeholder="Search by product, SKU or supplier..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      width: "100%", paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
+                      border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* table */}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, textAlign: "left", minWidth: 800 }}>
+                  <thead>
+                    <tr style={{ background: "#F9FAFB", color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      <th style={{ padding: "12px 16px", fontWeight: 600 }}>Item Details</th>
+                      <th style={{ padding: "12px 16px", fontWeight: 600 }}>Supplier</th>
+                      <th style={{ padding: "12px 16px", fontWeight: 600 }}>Stock (Available / Total)</th>
+                      <th style={{ padding: "12px 16px", fontWeight: 600 }}>Unit Price</th>
+                      <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={5} style={{ textAlign: "center", padding: 40, color: "#6B7280" }}>Loading...</td></tr>
+                    ) : filtered.length === 0 ? (
+                      <tr><td colSpan={5} style={{ textAlign: "center", padding: 40, color: "#6B7280" }}>No stock items found.</td></tr>
+                    ) : filtered.map((row, i) => {
+                      const status = getStatus(row);
+                      const qty    = Number(row.available_quantity ?? 0);
+                      const total  = Number(row.quantity_purchased ?? qty);
+                      const maxQty = Math.max(total, qty, 1);
+                      return (
+                        <tr key={row.stock_id ?? i} style={{ borderTop: "1px solid #F3F4F6" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "#FAFAFA"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = ""}
+                        >
+                          <td style={{ padding: "12px 16px" }}>
+                            <p style={{ fontWeight: 600, color: "#111827", marginBottom: 2 }}>{row.product_name}</p>
+                            <p style={{ fontSize: 12, color: "#6B7280" }}>{row.product_number}</p>
+                          </td>
+                          <td style={{ padding: "12px 16px", color: "#4B5563" }}>{row.supplier_name ?? "—"}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontWeight: 700, color: qty <= (total * 0.3) ? "#DC2626" : "#111827" }}>{qty}</span>
+                              <span style={{ fontSize: 12, color: "#9CA3AF" }}>/ {total} units</span>
+                            </div>
+                            <StockBar qty={qty} max={maxQty} />
+                          </td>
+                          <td style={{ padding: "12px 16px", fontWeight: 500, color: "#111827" }}>
+                            ₹{Number(row.price ?? 0).toLocaleString()}
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              padding: "6px 14px", borderRadius: 12, fontSize: 12, fontWeight: 600,
+                            }} className={statusStyle[status]}>
+                              {(status === "Low Stock" || status === "Critical") && <AlertTriangle size={12} />}
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ══════════════ SUPPLIERS TAB ══════════════ */}
+        {activeTab === "suppliers" && (
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #F3F4F6", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", padding: 24 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+              {/* left: supplier picker */}
+              <div style={{ flex: "0 0 260px", borderRight: "1px solid #F3F4F6", paddingRight: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 16 }}>Select Supplier</h2>
+                <select
+                  value={selectedSupId}
+                  onChange={(e) => setSelectedSupId(e.target.value)}
+                  style={{
+                    width: "100%", padding: "10px 14px", fontSize: 14,
+                    border: "1px solid #E5E7EB", borderRadius: 8,
+                    background: "#fff", color: "#374151", outline: "none",
+                  }}
+                >
+                  {suppliers.map((s) => (
+                    <option key={s.supplier_id} value={s.supplier_id}>{s.supplier_name}</option>
+                  ))}
+                </select>
+
+                {selectedSupplier && (
+                  <div style={{ marginTop: 24, background: "#F9FAFB", borderRadius: 10, padding: 20, border: "1px solid #F3F4F6" }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 12 }}>Supplier Details</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
+                      <div>
+                        <p style={{ color: "#6B7280" }}>Company</p>
+                        <p style={{ fontWeight: 500, color: "#111827", marginTop: 2 }}>{selectedSupplier.company_name ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: "#6B7280" }}>Email</p>
+                        <p style={{ fontWeight: 500, color: "#111827", marginTop: 2 }}>{selectedSupplier.email ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: "#6B7280" }}>Mobile</p>
+                        <p style={{ fontWeight: 500, color: "#111827", marginTop: 2 }}>{selectedSupplier.mobile_no ?? "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* right: items by supplier */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>
+                    Items Supplied by {selectedSupplier?.supplier_name}
+                  </h2>
+                  <span style={{ background: "#F3F4F6", color: "#6B7280", fontSize: 12, fontWeight: 500, padding: "4px 10px", borderRadius: 9999 }}>
+                    {supplierItems.length} items
+                  </span>
+                </div>
+
+                {supplierItems.length > 0 ? (
+                  <div style={{ border: "1px solid #F3F4F6", borderRadius: 10, overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, textAlign: "left", minWidth: 600 }}>
+                      <thead>
+                        <tr style={{ background: "#F9FAFB", color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        <th style={{ padding: "12px 16px", fontWeight: 600 }}>Item Details</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 600 }}>Stock (Available / Total)</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Status</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                        {supplierItems.map((row, i) => {
+                          const status = getStatus(row);
+                          const qty    = Number(row.available_quantity ?? 0);
+                          const total  = Number(row.quantity_purchased ?? qty);
+                          return (
+                            <tr key={row.stock_id ?? i} style={{ borderTop: "1px solid #F3F4F6" }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "#FAFAFA"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = ""}
+                            >
+                              <td style={{ padding: "12px 16px" }}>
+                                <p style={{ fontWeight: 600, color: "#111827", marginBottom: 2 }}>{row.product_name}</p>
+                                <p style={{ fontSize: 12, color: "#6B7280" }}>{row.product_number}</p>
+                              </td>
+                              <td style={{ padding: "12px 16px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ fontWeight: 700, color: qty <= (total * 0.3) ? "#DC2626" : "#111827" }}>{qty}</span>
+                                  <span style={{ fontSize: 12, color: "#9CA3AF" }}>/ {total} units</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                                <span style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  padding: "6px 14px", borderRadius: 12, fontSize: 12, fontWeight: 600,
+                                }} className={statusStyle[status]}>
+                                  {(status === "Low Stock" || status === "Critical") && <AlertTriangle size={12} />}
+                                  {status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "48px 0", background: "#F9FAFB", borderRadius: 10, border: "1px dashed #E5E7EB", marginTop: 8 }}>
+                    <Package size={48} style={{ color: "#D1D5DB", margin: "0 auto 12px" }} />
+                    <h3 style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>No items found</h3>
+                    <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>This supplier hasn't provided any items yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

@@ -182,7 +182,7 @@ function getStandardTemplate(data) {
 
   const css = `
     :root {
-      --primary: #f97316;
+      --primary: #8B5CF6;
       --text-muted: #555;
     }
 

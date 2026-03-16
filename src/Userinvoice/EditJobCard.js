@@ -67,7 +67,16 @@ const EditJobCard = () => {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: '900px', mx: 'auto', mt: 3, bgcolor: 'background.paper', boxShadow: 3, borderRadius: 2 }}>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      maxWidth: '900px', 
+      mx: 'auto', 
+      mt: 3, 
+      bgcolor: 'background.paper', 
+      boxShadow: 3, 
+      borderRadius: 2 
+    }}>
       <Typography variant="h4" component="h2" align="center" sx={{ mb: 3 }}>
         Job Cards
       </Typography>
@@ -420,7 +429,7 @@ const EditJobCard = () => {
             color="primary"
             size="large"
             sx={{ px: 4, py: 1.5 }}
-            bgcolor="rgba(249, 115, 22, 0.9)"
+            bgcolor="rgba(139, 92, 246, 0.9)"
           >
             Update Job Card
           </Button>

@@ -111,7 +111,7 @@ if (filters.status && filters.status !== "All") {
       return { ...base, background: "linear-gradient(90deg,#10B981,#059669)" };
     if (status === "Work In Progress")
       return { ...base, background: "linear-gradient(90deg,#3B82F6,#2563EB)" };
-    return { ...base, background: "linear-gradient(90deg,#F59E0B,#F97316)" };
+    return { ...base, background: "linear-gradient(90deg,#F59E0B,#8B5CF6)" };
   };
 
   // Badge node for table and cards

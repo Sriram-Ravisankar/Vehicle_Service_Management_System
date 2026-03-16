@@ -9,6 +9,10 @@ export default function useAppData() {
     accountants: JSON.parse(localStorage.getItem("accountants")) || [],
     quotations: JSON.parse(localStorage.getItem("quotations")) || [],
     invoices: JSON.parse(localStorage.getItem("invoices")) || [],
+    suppliers: JSON.parse(localStorage.getItem("suppliers")) || [],
+    products: JSON.parse(localStorage.getItem("products")) || [],
+    purchases: JSON.parse(localStorage.getItem("purchases")) || [],
+    stock: JSON.parse(localStorage.getItem("stock")) || [],
     isLoading: true,
     error: null,
   }));
@@ -33,8 +37,10 @@ export default function useAppData() {
           key: "accountants",
           url: `${apiEndpoints.usersdata}?user_type=accountant`,
         },
-        // { key: 'quotations', url: `${apiEndpoints.quotations}` },
-        // { key: 'invoices', url: `${apiEndpoints.invoices}` }
+        { key: "suppliers", url: apiEndpoints.supplier },
+        { key: "products", url: apiEndpoints.product },
+        { key: "purchases", url: apiEndpoints.purchase },
+        { key: "stock", url: apiEndpoints.stock },
       ];
 
       const results = await Promise.all(

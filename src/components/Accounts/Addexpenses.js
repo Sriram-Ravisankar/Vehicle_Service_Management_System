@@ -16,6 +16,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiEndpoints from '../../apiconfig';
 
 const AddExpense = () => {
   const navigate = useNavigate();
@@ -33,7 +34,22 @@ const AddExpense = () => {
     { expenseAmount: '', expenseLabel: '' }
   ]);
 
+  const [branches, setBranches] = useState([]);
+
   useEffect(() => {
+    const fetchBranches = async () => {
+        const token = sessionStorage.getItem("token");
+        try {
+            const res = await fetch(apiEndpoints.branches, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            const branchList = data.data || data;
+            setBranches(Array.isArray(branchList) ? branchList : []);
+        } catch (err) {
+            console.error("Fetch branches failed:", err);
+        }
+    };
+    fetchBranches();
+
     if (rowToEdit) {
       setFormData({
         mainLabel: rowToEdit.mainLabel || '',
@@ -60,29 +76,41 @@ const AddExpense = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = sessionStorage.getItem("token");
+    const payload = {
+        ...formData,
+        expenses: expenseFields,
+        id: rowToEdit?.id
+    };
 
-    const expenseData = JSON.parse(sessionStorage.getItem('expenseData')) || [];
-
-    if (rowToEdit) {
-      const updatedEntry = { ...formData, expenses: expenseFields, id: rowToEdit.id };
-      const updatedData = expenseData.map((row) =>
-        row.id === rowToEdit.id ? updatedEntry : row
-      );
-      sessionStorage.setItem('expenseData', JSON.stringify(updatedData));
-    } else {
-      const newId = Date.now();
-      const newEntry = { ...formData, expenses: expenseFields, id: newId };
-      expenseData.push(newEntry);
-      sessionStorage.setItem('expenseData', JSON.stringify(expenseData));
+    try {
+        const res = await fetch(apiEndpoints.expenses, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+            navigate('/expenses');
+        }
+    } catch (err) {
+        console.error("Save expense failed:", err);
     }
-
-    navigate('/expenses');
   };
 
   return (
-    <Container>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      width: "100%",
+      maxWidth: "100%",
+      overflowX: "hidden"
+    }}>
       <Box sx={{
         display: 'flex',
         alignItems: 'center',
@@ -159,8 +187,9 @@ const AddExpense = () => {
               onChange={handleChange}
             >
               <MenuItem value="">Select Branch</MenuItem>
-              <MenuItem value="Main Branch">Main Branch</MenuItem>
-              <MenuItem value="Sub Branch">Sub Branch</MenuItem>
+              {branches.map((br) => (
+                    <MenuItem key={br.branch_guid} value={br.branch_name}>{br.branch_name}</MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Box>
@@ -209,18 +238,18 @@ const AddExpense = () => {
           fullWidth
           variant="contained"
           sx={{
-            backgroundColor: 'rgba(249, 115, 22, 0.9)',
+            backgroundColor: 'rgba(139, 92, 246, 0.9)',
             color: 'FFFFFF',
             py: 1.5,
             '&:hover': {
-              backgroundColor: 'rgba(249, 115, 22, 0.9)'
+              backgroundColor: 'rgba(139, 92, 246, 0.9)'
             }
           }}
         >
           {rowToEdit ? "UPDATE" : "SUBMIT"}
         </Button>
       </Box>
-    </Container>
+    </Box>
   );
 };
 

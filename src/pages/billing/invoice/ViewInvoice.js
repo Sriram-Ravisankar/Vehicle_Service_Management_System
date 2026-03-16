@@ -72,7 +72,7 @@ export default function ViewInvoice() {
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
           sx={{
-            color: "rgba(249, 115, 22, 0.9)",
+            color: "rgba(139, 92, 246, 0.9)",
           }}
         >
           Back
@@ -82,7 +82,7 @@ export default function ViewInvoice() {
           variant="contained"
           onClick={() => setOpenTemplateModal(true)}
           sx={{
-            bgcolor: "#f97316",
+            bgcolor: "#8B5CF6",
             "&:hover": { bgcolor: "#ea580c" },
           }}
         >

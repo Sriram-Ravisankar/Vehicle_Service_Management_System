@@ -24,8 +24,8 @@ import backgroundImage from "../../assets/bgimage.png";
 import spanner from "../../assets/spanner.png";
 
 // NEW PRIMARY COLORS
-const primaryColor = "rgba(249, 115, 22, 0.9)";
-const primaryHover = "rgba(249, 115, 22, 1)";
+const primaryColor = "rgba(139, 92, 246, 0.9)";
+const primaryHover = "rgba(139, 92, 246, 1)";
 
 // HD GARAGE BACKGROUND IMAGE
 const garageBackground = backgroundImage;

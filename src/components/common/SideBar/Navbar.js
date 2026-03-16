@@ -9,6 +9,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { IconButton } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
 
 export default function Navbar({
@@ -19,15 +20,16 @@ export default function Navbar({
   isDesktop,
   rightActions,
 }) {
+  const navigate = useNavigate();
   const ref = useRef(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notificationCount] = useState(3);
   const [user, setUser] = useState(null);
 
 
-  const AMBER = "rgba(249, 115, 22, 0.9)";
-  const AMBER_HOVER = "rgba(249, 115, 22, 0.18)";
-  const AMBER_BORDER = "rgba(249, 115, 22, 0.28)";
+  const AMBER = "rgba(139, 92, 246, 0.9)";
+  const AMBER_HOVER = "rgba(139, 92, 246, 0.18)";
+  const AMBER_BORDER = "rgba(139, 92, 246, 0.28)";
   const GRAPHITE_BG =
     "linear-gradient(180deg, #1a1a1a 0%, #2b2b2b 60%, #1a1a1a 100%)";
 
@@ -56,14 +58,19 @@ export default function Navbar({
   {
     icon: UserIcon,
     label: "My Profile",
-    action: () => (window.location.href = "/profile-settings"),
+    action: () => {
+      navigate("/profile-settings");
+      setShowProfileMenu(false);
+    }
   },
   {
     icon: LogOut,
     label: "Logout",
     action: () => {
       sessionStorage.setItem("logoutMessage", "true");
-      window.location.href = "/";
+      sessionStorage.removeItem("token");
+      navigate("/");
+      setShowProfileMenu(false);
     },
   },
 ];
@@ -269,7 +276,7 @@ export default function Navbar({
 
                 </div>
                 <div style={{ fontSize: 11, opacity: 0.9, lineHeight: 1.2 }}>
-                  Administrator
+                  {localStorage.getItem("role_name") || "Administrator"}
                 </div>
               </div>
 

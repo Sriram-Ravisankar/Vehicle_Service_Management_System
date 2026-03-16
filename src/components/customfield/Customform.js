@@ -184,10 +184,10 @@ const CustomerFieldForm = () => {
             type="submit"
             variant="contained"
             sx={{
-              backgroundColor: "rgba(249, 115, 22, 0.9)",
+              backgroundColor: "rgba(139, 92, 246, 0.9)",
               color: "white",
               width: { xs: "100%", sm: 120 },
-              "&:hover": { backgroundColor: "rgba(249, 115, 22, 0.9)" },
+              "&:hover": { backgroundColor: "rgba(139, 92, 246, 0.9)" },
             }}
           >
             {isEditMode ? "Update" : "Save"}

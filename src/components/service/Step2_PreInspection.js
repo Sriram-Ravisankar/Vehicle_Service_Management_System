@@ -1,49 +1,85 @@
 import React from "react";
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-  Card,
-  CardContent,
-  Collapse,
-  IconButton,
-} from "@mui/material";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import apiEndpoints from "../../apiconfig";
-const DEFAULT_CHECKLIST = [
-  { key: "engine_noise", label: "Engine Noise", icon: "info" },
-  { key: "oil_leak", label: "Oil Leakage", icon: "info" },
-  { key: "body_damage", label: "Body Damage", icon: "info" },
-  { key: "electrical", label: "Electrical Issue", icon: "info" },
-  { key: "brake", label: "Brake Issue", icon: "info" },
-  { key: "clutch", label: "Clutch Issue", icon: "info" },
-  { key: "ac", label: "AC Not Cooling", icon: "info" },
-  { key: "suspension", label: "Suspension Issues", icon: "info" },
-  { key: "steering", label: "Steering Issues", icon: "info" },
-  { key: "tyre", label: "Tyre Condition", icon: "info" },
-  { key: "lights", label: "Lights Not Working", icon: "info" },
-];
-const renderIcon = () => <InfoOutlinedIcon fontSize="small" />;
+import { 
+  Activity, 
+  Droplets, 
+  ShieldAlert, 
+  Zap, 
+  Disc, 
+  Settings2, 
+  Wind, 
+  Layers, 
+  Target, 
+  CircleDot, 
+  Sun,
+  AlertCircle,
+  MessageSquare,
+  RefreshCw,
+  CheckCircle2,
+  Circle
+} from "lucide-react";
 
-export default function Step2_PreInspection({ form, setForm,isView, showSnackbar }) {
+// ── tiny helpers ─────────────────────────────────────────────────────────────
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+});
+
+const ICON_MAP = {
+  engine_noise: Activity,
+  oil_leak: Droplets,
+  body_damage: ShieldAlert,
+  electrical: Zap,
+  brake: Disc,
+  clutch: RefreshCw,
+  ac: Wind,
+  suspension: Layers,
+  steering: Target,
+  tyre: CircleDot,
+  lights: Sun,
+};
+
+
+
+export default function Step2_PreInspection({ form, setForm, isView, showSnackbar }) {
   React.useEffect(() => {
     if (!form.inspection || form.inspection.length === 0) {
-      const init = DEFAULT_CHECKLIST.map((i) => ({
-        ...i,
+      const init = Object.entries(ICON_MAP).map(([key, icon]) => ({
+        key,
+        label: key.split("_").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
         checked: false,
         note: "",
-        photos: [], // can store File objects or {name,url} for existing
+        photos: [],
       }));
       setForm((f) => ({ ...f, inspection: init }));
     }
-    // eslint-disable-next-line
   }, []);
 
   const toggleCheck = (key) => {
+    if (isView) return;
     setForm((f) => ({
       ...f,
       inspection: f.inspection.map((it) =>
@@ -53,6 +89,7 @@ export default function Step2_PreInspection({ form, setForm,isView, showSnackbar
   };
 
   const updateNote = (key, text) => {
+    if (isView) return;
     setForm((f) => ({
       ...f,
       inspection: f.inspection.map((it) =>
@@ -61,206 +98,91 @@ export default function Step2_PreInspection({ form, setForm,isView, showSnackbar
     }));
   };
 
-  // Convert file to Base64
-
-  // const addPhotos = (key, files) => {
-  //   const list = Array.from(files).map((file) => ({
-  //     file,
-  //     url: URL.createObjectURL(file),
-  //     name: file.name,
-  //     isNew: true,
-  //   }));
-
-  //   setForm((f) => ({
-  //     ...f,
-  //     inspection: f.inspection.map((item) =>
-  //       item.key === key
-  //         ? { ...item, photos: [...(item.photos || []), ...list] }
-  //         : item
-  //     ),
-  //   }));
-  // };
-
   return (
-    <Box>
-      <Typography variant="h6" fontWeight={700} mb={3}>
-        Pre-Inspection Checklist
-      </Typography>
+    <div>
+      <SectionCard title="Pre-Inspection Checklist" icon={Activity}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+          gap: 16 
+        }}>
+          {form.inspection?.map((item) => {
+            const IconComp = item.icon || Activity;
+            return (
+              <div
+                key={item.key}
+                onClick={() => toggleCheck(item.key)}
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: `1.5px solid ${item.checked ? "#8B5CF6" : "#F3F4F6"}`,
+                  background: item.checked ? "#F5F3FF" : "#fff",
+                  cursor: isView ? "default" : "pointer",
+                  transition: "all 0.2s ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: item.checked ? "#EFEEFF" : "#F9FAFB",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: item.checked ? "#7C3AED" : "#9CA3AF",
+                      border: `1px solid ${item.checked ? "#DDD6FE" : "#E5E7EB"}`,
+                    }}>
+                      {(() => {
+                        const IconComp = ICON_MAP[item.key] || Activity;
+                        return <IconComp size={20} />;
+                      })()}
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: item.checked ? "#111827" : "#4B5563" }}>
+                      {item.label}
+                    </span>
+                  </div>
+                  <div style={{ color: item.checked ? "#8B5CF6" : "#E5E7EB" }}>
+                    {item.checked ? <CheckCircle2 size={22} fill="#8B5CF6" color="#fff" /> : <Circle size={22} />}
+                  </div>
+                </div>
 
-      <Grid container spacing={3}>
-        {form.inspection?.map((item) => (
-          <Grid
-            key={item.key}
-            item
-            xs={12}
-            sm={6}
-            md={4}
-            width={{ xs: "100%", sm: "30%" }}
-          >
-            <Card
-              sx={{
-                borderRadius: 2,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                overflow: "hidden",
-                border: item.checked ? "2px solid #0A84FF" : "1px solid #ddd",
-                transition: "0.2s",
-              }}
-            >
-              <CardContent>
-                {/* Header Row */}
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                >
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {renderIcon()}
-                    <Typography fontWeight={600}>{item.label}</Typography>
-                  </Box>
-
-                  <Checkbox
-                    checked={item.checked}
-                    onChange={() => toggleCheck(item.key)}
-                    disabled={isView}
-                    sx={{
-                      transform: "scale(1.3)",
-
-                      color: "rgba(249, 115, 22, 0.9)", // unchecked icon color
-
-                      "&.Mui-checked": {
-                        color: "rgba(249, 115, 22, 0.9)", // checked icon color
-                      },
-
-                      "&.Mui-disabled": {
-                        color: "rgba(249, 115, 22, 0.4)", // optional disabled color
-                      },
-                    }}
-                  />
-                </Box>
-
-                {/* Collapse Area */}
-                <Collapse in={item.checked}>
-                  <Box mt={2}>
-                    {/* Notes */}
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Notes"
-                      value={item.note}
+                {item.checked && (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <input
+                      placeholder="Add observation note..."
+                      value={item.note || ""}
                       onChange={(e) => updateNote(item.key, e.target.value)}
                       disabled={isView}
-                    />
-                    {/* Upload Box – Full Clickable Area */}
-                    {/* <Box
-                      component="label"
-                      sx={{
-                        display: "block", // <-- FIXES label inline behavior
-                        width: "100%", // <-- Ensures full width
-                        border: "1px dashed #bbb",
-                        borderRadius: 2,
-                        p: 2,
-                        textAlign: "center",
-                        cursor: "pointer",
-                        "&:hover": { borderColor: "#0A84FF" },
+                      style={{
+                        ...inputSx(false),
+                        padding: "7px 10px",
+                        fontSize: 13,
+                        background: "#fff"
                       }}
-                      mt={2}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        Click to Upload
-                      </Typography>
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
 
-                      <input
-                        type="file"
-                        multiple
-                        hidden
-                        onChange={(e) => addPhotos(item.key, e.target.files)}
-                      />
-                    </Box> */}
-                    {/* Photo Preview Section */}
-                    {/* {item.photos && item.photos.length > 0 && (
-                      <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
-                        {item.photos.map((p, idx) => {
-                          let src = "";
-
-                          // Case 1: New uploaded file
-                          if (p.url) {
-                            src = p.url;
-                          }
-
-                          // Case 2: Backend string filename
-                          else if (typeof p === "string") {
-                            src = `${apiEndpoints.baseUrl}/uploads/jobcards/${form.job_guid}/inspection/${item.key}/${p}`;
-                          }
-
-                          // Case 3: Backend mapped object
-                          else if (p && p.url) {
-                            src = p.url;
-                          }
-
-                          return (
-                            <Box
-                              key={idx}
-                              sx={{
-                                width: 60,
-                                height: 60,
-                                position: "relative",
-                                borderRadius: 1,
-                                overflow: "hidden",
-                                border: "1px solid #ddd",
-                              }}
-                            >
-                              <img
-                                src={src}
-                                alt={p.name || p.file?.name || "photo"}
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-
-                              <Typography
-                                sx={{
-                                  position: "absolute",
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  background: "rgba(0,0,0,0.4)",
-                                  color: "#fff",
-                                  fontSize: "10px",
-                                  textAlign: "center",
-                                  p: "2px",
-                                }}
-                              >
-                                {p.name || p.file?.name || "image"}
-                              </Typography>
-                            </Box>
-                          );
-                        })}
-                      </Box>
-                    )} */}
-                  </Box>
-                </Collapse>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-
-        {/* Complaint Section */}
-        <Grid item xs={12} width={{ xs: "100%", sm: "30%" }}>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            label="Customer Complaint / Description"
-            value={form.complaint || ""}
-            disabled={isView}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, complaint: e.target.value }))
-            }
-          />
-        </Grid>
-      </Grid>
-    </Box>
+      <SectionCard title="Customer Complaint" icon={MessageSquare}>
+        <textarea
+          placeholder="Enter detailed customer complaint or special instructions..."
+          value={form.complaint || ""}
+          disabled={isView}
+          onChange={(e) => setForm((f) => ({ ...f, complaint: e.target.value }))}
+          style={{
+            ...inputSx(false),
+            minHeight: 120,
+            resize: "vertical",
+            fontFamily: "inherit"
+          }}
+        />
+      </SectionCard>
+    </div>
   );
 }

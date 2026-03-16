@@ -198,7 +198,13 @@ const AddObservation = () => {
 
   if (showAddObservation) {
     return (
-      <Box p={isSmallScreen ? 2 : 4}>
+      <Box sx={{
+        px: { xs: 3, sm: 4, md: 6 },
+        py: { xs: 2.5, sm: 4 },
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden'
+      }}>
         <Box display="flex" alignItems="center" mb={4}>
           <ArrowBackIcon
             sx={{ mr: 1, cursor: "pointer" }}
@@ -402,12 +408,12 @@ const AddObservation = () => {
             fullWidth
             onClick={handleSubmit}
             sx={{
-              backgroundColor: "rgba(249, 115, 22, 0.9)",
+              backgroundColor: "rgba(139, 92, 246, 0.9)",
               color: "white",
               fontWeight: "bold",
               py: 1.5,
               ...fontStyle,
-              "&:hover": { backgroundColor: "rgba(249, 115, 22, 0.9)" },
+              "&:hover": { backgroundColor: "rgba(139, 92, 246, 0.9)" },
             }}
           >
             SUBMIT
@@ -458,12 +464,12 @@ const AddObservation = () => {
               fullWidth
               onClick={handleAddNewCategory}
               sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
+                backgroundColor: "rgba(139, 92, 246, 0.9)",
                 color: "white",
                 fontWeight: "bold",
                 py: 1.5,
                 ...fontStyle,
-                "&:hover": { backgroundColor: "rgba(249, 115, 22, 0.9)" },
+                "&:hover": { backgroundColor: "rgba(139, 92, 246, 0.9)" },
               }}
             >
               SUBMIT
@@ -475,7 +481,13 @@ const AddObservation = () => {
   }
 
   return (
-    <Box p={isSmallScreen ? 2 : 3}>
+    <Box sx={{
+      px: { xs: 3, sm: 4, md: 6 },
+      py: { xs: 2.5, sm: 4 },
+      width: '100%',
+      maxWidth: '100%',
+      overflowX: 'hidden'
+    }}>
       <Box
         display="flex"
         justifyContent="space-between"

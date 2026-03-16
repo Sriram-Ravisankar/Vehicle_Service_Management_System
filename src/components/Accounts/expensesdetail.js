@@ -14,6 +14,7 @@ import {
     InputAdornment
 } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import apiEndpoints from '../../apiconfig';
 
 const ExpensesForm = () => {
     const [formData, setFormData] = useState({
@@ -31,41 +32,46 @@ const ExpensesForm = () => {
         }));
     };
 
-    const filterExpenses = () => {
-        const rawExpenses = JSON.parse(sessionStorage.getItem('expenseData')) || [];
-    
-        const startDate = new Date(formData.startDate);
-        const endDate = new Date(formData.endDate);
-    
-        const filtered = [];
-    
-        rawExpenses.forEach((entry) => {
-            const entryDate = new Date(entry.date);
-            if (entryDate >= startDate && entryDate <= endDate) {
-                entry.expenses.forEach((expense) => {
-                    filtered.push({
-                        ...expense,
-                        mainLabel: entry.mainLabel,
-                        status: entry.status,
-                        date: entry.date,
-                        branch: entry.branch
+    const fetchFilteredExpenses = async () => {
+        const token = sessionStorage.getItem("token");
+        try {
+            const res = await fetch(apiEndpoints.expenses, { headers: { Authorization: `Bearer ${token}` } });
+            const rawExpenses = await res.json();
+            
+            const startDate = new Date(formData.startDate);
+            const endDate = new Date(formData.endDate);
+        
+            const filtered = [];
+        
+            rawExpenses.forEach((entry) => {
+                const entryDate = new Date(entry.date);
+                if (!formData.startDate || !formData.endDate || (entryDate >= startDate && entryDate <= endDate)) {
+                    entry.expenses.forEach((expense) => {
+                        filtered.push({
+                            ...expense,
+                            mainLabel: entry.mainLabel,
+                            status: entry.status,
+                            date: entry.date,
+                            branch: entry.branch
+                        });
                     });
-                });
-            }
-        });
-    
-        setFilteredExpenses(filtered);
+                }
+            });
+            setFilteredExpenses(filtered);
+        } catch (err) {
+            console.error("Filter expenses failed:", err);
+        }
     };
     
 
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        filterExpenses();
+        fetchFilteredExpenses();
     };
 
     useEffect(() => {
-        filterExpenses();
+        fetchFilteredExpenses();
     }, []);
 
     return (

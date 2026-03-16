@@ -59,18 +59,27 @@ import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext"
 // Modern color palette
 const COLORS = {
-  primary: "#6366F1",
-  secondary: "#8B5CF6",
+  primary: "#3B82F6",
+  secondary: "#6366F1",
   success: "#10B981",
   warning: "#F59E0B",
   error: "#EF4444",
-  info: "#3B82F6",
+  info: "#8B5CF6",
   gradient: {
     primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     success: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     warning: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     purple: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
   }
+};
+
+// Map color names to solid hex for circle icons
+const COLOR_MAP = {
+  primary: "#3B82F6",
+  success: "#10B981",
+  warning: "#F59E0B",
+  error: "#EF4444",
+  info: "#8B5CF6",
 };
 
 const sampleAreaData = [
@@ -100,7 +109,7 @@ const donutData = [
   { name: "Remaining", value: 100000 - 65127 },
 ];
 
-// Modern KPI Component
+// Modern KPI Component — matches reference screenshot style
 const ModernKPICard = ({
   icon,
   value,
@@ -108,52 +117,72 @@ const ModernKPICard = ({
   change,
   trend,
   color = "primary",
-}) => (
-  <Card
-    sx={{
-      height: "100%",
-      background: "white",
-      borderRadius: 3,
-      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-      border: "1px solid rgba(0,0,0,0.04)",
-      position: "relative",
-      overflow: "hidden",
-      transition: "all 0.3s ease",
-    }}
-  >
-    <CardContent sx={{ p: 3 }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: "bold", mb: 0.5, color: "#1F2937" }}
-        >
-          {value}
-        </Typography>
-        <Avatar
-          sx={{
-            bgcolor: alpha(COLORS[color], 0.1),
-            width: 56,
-            height: 56,
-            color: COLORS[color],
-          }}
-        >
-          {icon}
-        </Avatar>
-      </Box>
-
-      <Typography variant="body2" sx={{ color: "#6B7280", fontWeight: 500 }}>
-        {label}
-      </Typography>
-    </CardContent>
-  </Card>
-);
+  route,
+}) => {
+  const navigate = useNavigate();
+  const iconBg = COLOR_MAP[color] || "#3B82F6";
+  return (
+    <Card
+      onClick={() => route && navigate(route)}
+      sx={{
+        height: "100%",
+        background: "#ffffff",
+        borderRadius: "16px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06)",
+        border: "1px solid #F3F4F6",
+        transition: "all 0.25s ease",
+        cursor: route ? "pointer" : "default",
+        "&:hover": { 
+            boxShadow: "0 6px 24px rgba(0,0,0,0.1)",
+            transform: route ? "translateY(-4px)" : "none"
+        },
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          {/* Left: value + label */}
+          <Box>
+            <Typography sx={{ fontSize: "13px", fontWeight: 500, color: "#6B7280", mb: 0.5 }}>
+              {label}
+            </Typography>
+            <Typography sx={{ fontSize: "28px", fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+              {value}
+            </Typography>
+            {change && (
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: trend === "up" ? "#10B981" : trend === "down" ? "#EF4444" : "#6B7280",
+                }}
+              >
+                {change}
+              </Typography>
+            )}
+          </Box>
+          {/* Right: colored circle icon */}
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: "50%",
+              bgcolor: iconBg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              flexShrink: 0,
+              ml: 2,
+            }}
+          >
+            {icon}
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
 
 ModernKPICard.propTypes = {
   icon: PropTypes.node,
@@ -342,50 +371,67 @@ export default function Dashboard({ data }) {
     {
       icon: <PeopleAlt />,
       value: Number(cfg.customers || 0).toLocaleString(),
-      label: "Customers",
+      label: "Total Customers",
+      change: "Registered customers",
+      trend: "up",
       color: "primary",
     },
     {
       icon: <LocalShipping />,
       value: Number(cfg.vehicles || 0).toLocaleString(),
-      label: "Vehicles",
-      color: "success",
+      label: "Total Vehicles",
+      change: "Tracked vehicles",
+      trend: "up",
+      color: "info",
     },
     {
       icon: <SupportAgent />,
       value: Number(cfg.totalEmployees || 0).toLocaleString(),
       label: "Total Employees",
+      change: "Active staff",
+      trend: "neutral",
       color: "warning",
     },
     {
       icon: <AccountBalanceWallet />,
-      value: `₹${Number(cfg.revenueFY || 0).toLocaleString()}`, // ₹ FIX
+      value: `₹${Number(cfg.revenueFY || 0).toLocaleString()}`,
       label: "Revenue FY",
-      color: "info",
+      change: "Financial year total",
+      trend: "up",
+      color: "success",
+      // route: "/income",
     },
     {
       icon: <Inventory2 />,
       value: Number(cfg.availableVehicles || 0).toLocaleString(),
       label: "Available Vehicles",
+      change: "Ready for service",
+      trend: "neutral",
       color: "primary",
     },
     {
       icon: <AccountTree />,
       value: Number(cfg.approvalPending || 0).toLocaleString(),
       label: "Approval Pending",
-      color: "success",
+      change: "Awaiting review",
+      trend: "down",
+      color: "warning",
     },
     {
       icon: <FormatListNumbered />,
       value: Number(cfg.workInProgress || 0).toLocaleString(),
       label: "Work In Progress",
-      color: "warning",
+      change: "Currently active",
+      trend: "neutral",
+      color: "info",
     },
     {
       icon: <CheckCircleOutline />,
       value: Number(cfg.workCompleted || 0).toLocaleString(),
       label: "Work Completed",
-      color: "info",
+      change: "Jobs finished",
+      trend: "up",
+      color: "success",
     },
   ];
 
@@ -406,24 +452,21 @@ export default function Dashboard({ data }) {
       <SectionHeader />
 
       <Box component="main" sx={sx.main}>
-        {/* Modern Header */}
+        {/* Header */}
         <Box sx={sx.header}>
-          <Box>
-            {/* <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: '#1F2937' }}>
-              Dashboard Overview
-            </Typography> */}
-            <Typography
-              variant="body1"
-              sx={{ color: "#6B7280", fontSize: "1.1rem" }}
-            >
-              Welcome back! Here's what's happening today.
+          {/* <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#111827", mb: 0.5 }}>
+              Dashboard
             </Typography>
-          </Box>
+            <Typography variant="body2" sx={{ color: "#6B7280" }}>
+              System overview and performance metrics.
+            </Typography>
+          </Box> */}
           <Button
             onClick={handleNewJob}
             variant="contained"
             startIcon={<Add />}
-            sx={sx.primaryButton}
+            sx={{ ...sx.primaryButton, ml: "auto" }}
           >
             New Job Card
           </Button>
@@ -604,45 +647,71 @@ export default function Dashboard({ data }) {
               <Card sx={sx.primaryCard}>
                 <CardContent>
                   <Box sx={sx.cardHeader}>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", color: "#1F2937" }}
-                      >
-                        Sales & Views Analytics
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        Monthly performance overview (Jan - Dec)
-                      </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: "bold", color: "#111827", fontSize: '1.125rem' }}
+                        >
+                          Sales & Views Analytics
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                          Annual summary of business reach and revenue
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.primary }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Sales</Typography>
+                         </Box>
+                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.secondary }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Views</Typography>
+                         </Box>
+                      </Box>
                     </Box>
                   </Box>
 
-                  <Box sx={{ height: getBarHeight(), mb: 3 }}>
+                  <Box sx={{ height: 320, mb: 1, position: 'relative' }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyAnalyticsData}>
+                      <BarChart 
+                        data={monthlyAnalyticsData}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
                         <XAxis
                           dataKey="name"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "#6B7280", fontSize: 12 }}
+                          tick={{ fill: "#9CA3AF", fontSize: 11, fontWeight: 500 }}
+                          dy={10}
                         />
                         <YAxis
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "#6B7280", fontSize: 12 }}
+                          tick={{ fill: "#9CA3AF", fontSize: 11, fontWeight: 500 }}
                         />
-                        <Tooltip contentStyle={sx.tooltip} />
+                        <Tooltip 
+                            cursor={{ fill: '#F3F4F6' }}
+                            contentStyle={{ 
+                                borderRadius: '12px', 
+                                border: 'none', 
+                                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                padding: '12px'
+                            }} 
+                        />
                         <Bar
                           dataKey="sales"
                           fill={COLORS.primary}
-                          barSize={20}
-                          radius={[4, 4, 0, 0]}
+                          stackId="a"
+                          barSize={24}
+                          radius={[0, 0, 0, 0]}
                         />
                         <Bar
                           dataKey="views"
                           fill={COLORS.secondary}
-                          barSize={20}
-                          radius={[4, 4, 0, 0]}
+                          stackId="a"
+                          barSize={24}
+                          radius={[6, 6, 0, 0]}
                         />
                       </BarChart>
                     </ResponsiveContainer>
@@ -660,38 +729,31 @@ export default function Dashboard({ data }) {
                         <CardContent
                           sx={{ display: "flex", alignItems: "center", gap: 2 }}
                         >
-                          <Box sx={{ width: 64, height: 64, flexShrink: 0 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={donutData}
-                                  dataKey="value"
-                                  innerRadius={20}
-                                  outerRadius={30}
-                                  startAngle={90}
-                                  endAngle={-270}
-                                >
-                                  <Cell fill={COLORS.primary} />
-                                  <Cell fill="#F3F4F6" />
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
+                          <Box 
+                            sx={{ 
+                                width: 48, 
+                                height: 48, 
+                                borderRadius: '12px', 
+                                bgcolor: alpha(COLORS.primary, 0.1),
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: COLORS.primary
+                            }}
+                          >
+                            <TrendingUp fontSize="medium" />
                           </Box>
                           <Box>
+                            <Typography variant="caption" sx={{ color: "#6B7280", fontWeight: 600, display: 'block', mb: 0.5 }}>
+                              MONTHLY REVENUE
+                            </Typography>
                             <Typography
                               variant="h5"
-                              sx={{ fontWeight: "bold", color: "#1F2937" }}
+                              sx={{ fontWeight: "800", color: "#111827", lineHeight: 1 }}
                             >
                               {analytics.monthlyAnalytics
                                 .reduce((sum, m) => sum + m.sales, 0)
                                 .toLocaleString()}
-                            </Typography>
-
-                            <Typography
-                              variant="body2"
-                              sx={{ color: COLORS.success, fontWeight: 600 }}
-                            >
-                              Monthly sales and views analytics
                             </Typography>
                           </Box>
                         </CardContent>
@@ -706,36 +768,29 @@ export default function Dashboard({ data }) {
                         <CardContent
                           sx={{ display: "flex", alignItems: "center", gap: 2 }}
                         >
-                          <Box sx={{ width: 64, height: 64, flexShrink: 0 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={[{ v: 984246 }, { v: 300000 }]}
-                                  dataKey="v"
-                                  innerRadius={20}
-                                  outerRadius={30}
-                                  startAngle={90}
-                                  endAngle={-270}
-                                >
-                                  <Cell fill={COLORS.secondary} />
-                                  <Cell fill="#F3F4F6" />
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
+                          <Box 
+                            sx={{ 
+                                width: 48, 
+                                height: 48, 
+                                borderRadius: '12px', 
+                                bgcolor: alpha(COLORS.info, 0.1),
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: COLORS.info
+                            }}
+                          >
+                            <Analytics fontSize="medium" />
                           </Box>
                           <Box>
+                            <Typography variant="caption" sx={{ color: "#6B7280", fontWeight: 600, display: 'block', mb: 0.5 }}>
+                              ANNUAL REACH
+                            </Typography>
                             <Typography
                               variant="h5"
-                              sx={{ fontWeight: "bold", color: "#1F2937" }}
+                              sx={{ fontWeight: "800", color: "#111827", lineHeight: 1 }}
                             >
                               {analytics.yearlySales.toLocaleString()}
-                            </Typography>
-
-                            <Typography
-                              variant="body2"
-                              sx={{ color: COLORS.success, fontWeight: 600 }}
-                            >
-                              Yearly sales and views analytics
                             </Typography>
                           </Box>
                         </CardContent>
@@ -828,7 +883,7 @@ Dashboard.propTypes = {
 const sx = {
   root: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+    background: "#F9FAFB",
     p: { xs: 1, sm: 2, md: 3 },
   },
   main: {
@@ -845,7 +900,7 @@ const sx = {
     mb: 4,
   },
   primaryButton: {
-    background: 'rgba(249, 115, 22, 0.9)',
+    background: 'rgba(139, 92, 246, 0.9)',
     color: 'white',
     textTransform: 'none',
     borderRadius: 3,
@@ -854,7 +909,7 @@ const sx = {
     fontWeight: 'bold',
     fontSize: '1rem',
     '&:hover': {
-      background: "rgba(249, 115, 22, 0.9)",
+      background: "rgba(139, 92, 246, 0.9)",
       transform: 'translateY(-2px)',
     },
     transition: 'all 0.3s ease',

@@ -1,34 +1,29 @@
 // AddQuotation.js
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Grid,
-  Paper,
   Typography,
-  TextField,
   Button,
   IconButton,
-  MenuItem,
   Stack,
-  Checkbox,
-  Select,
-  InputLabel,
-  FormControl,
-  Divider as MuiDivider,
   Snackbar,
   Alert,
   CircularProgress,
+  Divider as MuiDivider,
 } from "@mui/material";
 
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PreviewIcon from "@mui/icons-material/Visibility";
-import SaveAltIcon from "@mui/icons-material/CloudDownload";
-import PrintIcon from "@mui/icons-material/Print";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
-import { printQuotation } from "./QuotationPrint";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  FileText,
+  Package,
+  Wrench,
+  Wallet,
+} from "lucide-react";
+
 import apiEndpoints from "../../../apiconfig";
 
 /* utility */
@@ -38,84 +33,100 @@ const currency = (v) =>
     maximumFractionDigits: 2,
   });
 
-const makeEmptyItem = (defaults = {}) => ({
-  id: Date.now() + Math.random(),
-  category: "Product",
-  product: "",
-  qty: 1,
-  rate: 0,
-  discountPct: 0,
-  amount: 0,
-  ...defaults,
+const SectionCard = ({ title, children, icon: Icon, action, style = {} }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+    ...style
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+      </div>
+      {action}
+    </div>
+    {children}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
 });
 
+const labelStyle = {
+  fontSize: 13,
+  fontWeight: 500,
+  color: "#374151",
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  marginBottom: 6
+};
+
 export default function AddQuotation() {
-  const { quotation_guid: routeGuid } = useParams(); // will be undefined for create
+  const { quotation_guid: routeGuid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
-  // Detect mode from path + param
-  const isViewMode = Boolean(
-    routeGuid && location.pathname.includes("view-quotation")
-  );
-  const isEditMode = Boolean(
-    routeGuid && location.pathname.includes("edit-quotation")
-  );
+  const isViewMode = Boolean(routeGuid && location.pathname.includes("view-quotation"));
   const isCreateMode = !routeGuid;
   const [jobCards, setJobCards] = useState([]);
 
-  // From jobcard (when navigated from job card)
   const fromJob = location.state?.job_guid || null;
   const fromJobNo = location.state?.jobcardNo || null;
 
-  const [loading, setLoading] = useState(Boolean(routeGuid)); // load when fetching quotation
+  const [loading, setLoading] = useState(Boolean(routeGuid));
   const [working, setWorking] = useState(false);
 
-  const [snack, setSnack] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const showSnack = (msg, sev = "success") =>
-    setSnack({ open: true, message: msg, severity: sev });
+  const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
+  const showSnack = (msg, sev = "success") => setSnack({ open: true, message: msg, severity: sev });
   const closeSnack = () => setSnack((s) => ({ ...s, open: false }));
 
   const [form, setForm] = useState({
-    quotation_no: "", // keep original number on edit
+    quotation_no: "",
     quotationDate: new Date().toISOString().slice(0, 10),
     expiryDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
     job_guid: fromJob || "",
     jobcardNo: fromJobNo || "",
     customer_guid: "",
     vehicle_guid: "",
-    items: [makeEmptyItem()],
-    applyDiscount: false,
-    discountType: "percent",
-    discountValue: 0,
-    includeGST: true,
-    gstRate: 18,
+    parts: [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
+    labour: [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }],
+    totals: {
+      partsTotal: 0,
+      labourTotal: 0,
+      subtotal: 0,
+      discountType: "percent",
+      discountValue: 0,
+      discountAmount: 0,
+      gstRate: 18,
+      includeGST: true,
+      gst: 0,
+      grandTotal: 0,
+    },
     notes: "",
+    terms: "1. Quotation is valid for 7 days\n2. Estimation may vary during actual service\n3. GST applicable as per norms",
     status: "Approval Pending",
   });
 
-  const [totals, setTotals] = useState({
-    productTotal: 0,
-    subtotal: 0,
-    discountAmount: 0,
-    gstAmount: 0,
-    grandTotal: 0,
-  });
-
-  // safe parse helper
   const safeParse = (v, fallback = []) => {
     if (!v) return fallback;
     if (typeof v !== "string") return v;
-    try {
-      return JSON.parse(v);
-    } catch {
-      return fallback;
-    }
+    try { return JSON.parse(v); } catch { return fallback; }
   };
 
   useEffect(() => {
@@ -126,17 +137,11 @@ export default function AddQuotation() {
         });
         const data = await res.json();
         setJobCards(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("fetch job cards error", err);
-      }
+      } catch (err) { console.error(err); }
     };
-
     fetchJobCards();
   }, [token]);
 
-
-
-  // Load job card if navigated from job card (create mode)
   useEffect(() => {
     if (!fromJob) return;
     const fetchJobCard = async () => {
@@ -146,66 +151,20 @@ export default function AddQuotation() {
         });
         const data = await res.json();
         const row = Array.isArray(data) ? data[0] : data;
-        if (!row) return;
-
-        const partsArr = safeParse(row.parts, []);
-        const labourArr = safeParse(row.labour, []);
-        const totalsData = safeParse(row.totals, {});
-
-        const items = [
-          ...(partsArr || []).map((p) => ({
-            id: Date.now() + Math.random(),
-            category: "Product",
-            product: p.name || p.product || "",
-            qty: Number(p.qty || 1),
-            rate: Number(p.rate || 0),
-            discountPct: Number(p.discount || 0),
-            amount: Number(p.amount || 0),
-          })),
-          ...(labourArr || []).map((l) => ({
-            id: Date.now() + Math.random(),
-            category: "Service",
-            product: l.title || l.name || "",
-            qty: 1,
-            rate: Number(l.amount || l.rate || 0),
-            discountPct: 0,
-            amount: Number(l.amount || 0),
-          })),
-        ];
-
-        setForm((f) => ({
-          ...f,
-          job_guid: row.job_guid,
-          jobcardNo: row.jobcardNo,
-          customer_guid: row.customer_guid || "",
-          vehicle_guid: row.vehicle_guid || "",
-          items: items.length ? items : f.items,
-          applyDiscount: totalsData.discountAmount > 0,
-          discountType: totalsData.discountType || "percent",
-          discountValue: totalsData.discountValue || 0,
-          includeGST: totalsData.includeGST ?? true,
-          gstRate: totalsData.gstRate || 18,
-        }));
-      } catch (err) {
-        console.error("fetch job card", err);
-      }
+        if (row) applyJobCardToForm(row);
+      } catch (err) { console.error(err); }
     };
     fetchJobCard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromJob]);
+  }, [fromJob, token]);
 
-  // Load quotation for edit / view
   useEffect(() => {
     if (!routeGuid) return;
     const fetchQuotation = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          apiEndpoints.Quotation + "?quotation_guid=" + routeGuid,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const res = await fetch(apiEndpoints.Quotation + "?quotation_guid=" + routeGuid, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await res.json();
         if (!data) {
           showSnack("Quotation not found", "error");
@@ -213,258 +172,157 @@ export default function AddQuotation() {
           return;
         }
 
-        // backend returns parts/labour/totals as JSON strings
-        const parts = safeParse(data.parts, []);
-        const labour = safeParse(data.labour, []);
+        const partsData = safeParse(data.parts, []);
+        const labourData = safeParse(data.labour, []);
         const totalsData = safeParse(data.totals, {});
-
-        // map to UI items
-        const items = [
-          ...(parts || []).map((p) => ({
-            id: Date.now() + Math.random(),
-            category: "Product",
-            product: p.name || p.product || "",
-            qty: Number(p.qty || 1),
-            rate: Number(p.rate || 0),
-            discountPct: Number(p.discount || 0),
-            amount: Number(p.amount || 0),
-          })),
-          ...(labour || []).map((l) => ({
-            id: Date.now() + Math.random(),
-            category: "Service",
-            product: l.title || l.name || "",
-            qty: 1,
-            rate: Number(l.amount || l.rate || 0),
-            discountPct: 0,
-            amount: Number(l.amount || 0),
-          })),
-        ];
 
         setForm((f) => ({
           ...f,
           quotation_no: data.quotation_no || "",
-          quotationDate:
-            (data.created_on || "").slice(0, 10) || f.quotationDate,
+          quotationDate: (data.created_on || "").slice(0, 10) || f.quotationDate,
           expiryDate: data.expiry_date || f.expiryDate,
           jobcardNo: data.jobcardNo || f.jobcardNo,
           job_guid: data.job_guid || f.job_guid,
           customer_guid: data.customer_guid || f.customer_guid,
           vehicle_guid: data.vehicle_guid || f.vehicle_guid,
-          items: items.length ? items : f.items,
-          applyDiscount: totalsData.discountAmount > 0,
-          discountType: totalsData.discountType || "percent",
-          discountValue: totalsData.discountValue || 0,
-          includeGST: totalsData.includeGST ?? true,
-          gstRate: totalsData.gstRate || 18,
+          parts: partsData.length ? partsData.map(p => ({ ...p, id: p.id || Math.random() })) : f.parts,
+          labour: labourData.length ? labourData.map(l => ({ ...l, id: l.id || Math.random() })) : f.labour,
+          totals: {
+            ...f.totals,
+            ...totalsData,
+            includeGST: totalsData.includeGST ?? true,
+            gstRate: totalsData.gstRate ?? 18,
+          },
           notes: data.notes || "",
           status: data.status || f.status,
         }));
       } catch (err) {
-        console.error("fetch quotation", err);
+        console.error(err);
         showSnack("Failed to load quotation", "error");
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
-
     fetchQuotation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeGuid]);
+  }, [routeGuid, token]);
 
-  // totals calculation (derived)
+  // Totals Calculation
   useEffect(() => {
-    const itemsWithAmount = form.items.map((it) => {
-      const qty = Number(it.qty || 0);
-      const rate = Number(it.rate || 0);
-      const disc = Number(it.discountPct || 0);
-      const base = qty * rate;
-      const discounted = disc > 0 ? base - (base * disc) / 100 : base;
-      return { ...it, amount: Number(discounted) };
-    });
-
-    const parts = itemsWithAmount.filter((x) => x.category === "Product");
-    const labour = itemsWithAmount.filter((x) => x.category === "Service");
-
-    const productTotal = parts.reduce((s, it) => s + Number(it.amount || 0), 0);
-    const labourTotal = labour.reduce((s, it) => s + Number(it.amount || 0), 0);
-
+    const partsTotal = (form.parts || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const labourTotal = (form.labour || []).reduce((s, l) => s + Number(l.amount || 0), 0);
+    const subtotal = partsTotal;
+    const discountType = form.totals?.discountType || "percent";
+    const discountValue = Number(form.totals?.discountValue || 0);
+    
     let discountAmount = 0;
-    if (form.applyDiscount) {
-      if (form.discountType === "percent") {
-        discountAmount = (productTotal * Number(form.discountValue || 0)) / 100;
-      } else {
-        discountAmount = Number(form.discountValue || 0);
-      }
+    if (discountType === "percent") {
+      discountAmount = (subtotal * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
     }
 
-    const subtotal = productTotal - discountAmount;
+    const afterDiscount = subtotal - discountAmount;
+    const gstRate = Number(form.totals?.gstRate ?? 18);
+    const includeGST = form.totals?.includeGST ?? true;
+    const gst = includeGST ? (afterDiscount * gstRate) / 100 : 0;
+    const grandTotal = Math.round(afterDiscount + gst + labourTotal);
 
-    const gstAmount = form.includeGST
-      ? (subtotal * Number(form.gstRate || 0)) / 100
-      : 0;
-
-    const grandTotal = Math.round(subtotal + gstAmount + labourTotal);
-
-    setTotals({
-      productTotal,
-      subtotal,
-      discountAmount,
-      gstAmount,
-      grandTotal,
-    });
-  }, [
-    JSON.stringify(form.items),
-    form.applyDiscount,
-    form.discountType,
-    form.discountValue,
-    form.includeGST,
-    form.gstRate,
-  ]);
-
-
-  // CRUD helpers
-  const addItem = () =>
-    setForm((f) => ({ ...f, items: [...(f.items || []), makeEmptyItem()] }));
-  const removeItem = (id) =>
-    setForm((f) => ({ ...f, items: f.items.filter((i) => i.id !== id) }));
-  const updateItem = (id, key, val) =>
     setForm((f) => ({
       ...f,
-      items: f.items.map((i) => {
-        if (i.id === id) {
-          const updated = { ...i, [key]: val };
-          // Recalculate amount if qty, rate, or discountPct changed
-          const qty = Number(updated.qty || 0);
-          const rate = Number(updated.rate || 0);
-          const disc = Number(updated.discountPct || 0);
-          const base = qty * rate;
-          const discounted = disc > 0 ? base - (base * disc) / 100 : base;
-          updated.amount = Number(discounted);
-          return updated;
-        }
-        return i;
-      }),
+      totals: {
+        ...f.totals,
+        partsTotal,
+        labourTotal,
+        subtotal,
+        discountAmount,
+        gst,
+        grandTotal,
+      },
     }));
+  }, [form.parts, form.labour, form.totals?.discountType, form.totals?.discountValue, form.totals?.gstRate, form.totals?.includeGST]);
 
-  // Validate before save
-  const validateBeforeSave = () => {
-    if (!form.job_guid) {
-      showSnack("Job card is required (link a job card).", "error");
-      return false;
-    }
-    // additional validations can be added
-    return true;
+  const addPart = () => {
+    const item = { id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 };
+    setForm((f) => ({ ...f, parts: [...(f.parts || []), item] }));
   };
 
-  // Build parts & labour arrays to send to backend
-  const buildPartsLabour = () => {
-    const parts = (form.items || [])
-      .filter((it) => it.category === "Product")
-      .map((p) => ({
-        name: p.product,
-        qty: Number(p.qty || 0),
-        rate: Number(p.rate || 0),
-        discount: Number(p.discountPct || 0),
-        amount: Number(p.amount || 0),
-      }));
-    const labour = (form.items || [])
-      .filter((it) => it.category === "Service")
-      .map((l) => ({
-        title: l.product,
-        hours: Number(l.qty || 1),
-        rate: Number(l.rate || 0),
-        amount: Number(l.amount || 0),
-      }));
-
-    const totalsPayload = {
-      partsTotal: totals.productTotal,
-      subtotal: totals.subtotal,
-      discountType: form.discountType,
-      discountValue: Number(form.discountValue || 0),
-      discountAmount: totals.discountAmount,
-      gstRate: Number(form.gstRate || 0),
-      includeGST: Boolean(form.includeGST),
-      gst: totals.gstAmount,
-      grandTotal: totals.grandTotal,
-      itemsCount: (parts?.length || 0) + (labour?.length || 0),
-    };
-
-    return { parts, labour, totalsPayload };
+  const addLabour = () => {
+    const item = { id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 };
+    setForm((f) => ({ ...f, labour: [...(f.labour || []), item] }));
   };
+
+  const updatePart = (id, key, val) => {
+    setForm((f) => ({
+      ...f,
+      parts: f.parts.map((p) =>
+        p.id === id
+          ? {
+            ...p,
+            [key]: val,
+            amount: Number(key === "qty" ? val : p.qty) * Number(key === "rate" ? val : p.rate),
+          }
+          : p
+      ),
+    }));
+  };
+
+  const updateLabour = (id, key, val) => {
+    setForm((f) => ({
+      ...f,
+      labour: f.labour.map((l) =>
+        l.id === id
+          ? {
+            ...l,
+            [key]: val,
+            amount: Number(key === "hours" ? val : l.hours) * Number(key === "rate" ? val : l.rate),
+          }
+          : l
+      ),
+    }));
+  };
+
+  const removePart = (id) => setForm((f) => ({ ...f, parts: f.parts.filter((p) => p.id !== id) }));
+  const removeLabour = (id) => setForm((f) => ({ ...f, labour: f.labour.filter((l) => l.id !== id) }));
 
   const applyJobCardToForm = (row) => {
     const partsArr = safeParse(row.parts, []);
     const labourArr = safeParse(row.labour, []);
-    const totalsData = safeParse(row.totals, {});
-
-    const items = [
-      ...(partsArr || []).map((p) => {
-        const qty = Number(p.qty || 1);
-        const rate = Number(p.rate || 0);
-        const disc = Number(p.discount || p.discountPct || 0);
-        const base = qty * rate;
-        const amount = disc > 0 ? base - (base * disc) / 100 : base;
-        return {
-          id: Date.now() + Math.random(),
-          category: "Product",
-          product: p.name || p.product || "",
-          qty,
-          rate,
-          discountPct: disc,
-          amount: Number(p.amount || amount),
-        };
-      }),
-      ...(labourArr || []).map((l) => {
-        const qty = 1;
-        const rate = Number(l.amount || l.rate || 0);
-        const disc = 0;
-        const amount = rate;
-        return {
-          id: Date.now() + Math.random(),
-          category: "Service",
-          product: l.title || l.name || "",
-          qty,
-          rate,
-          discountPct: disc,
-          amount: Number(l.amount || amount),
-        };
-      }),
-    ];
-
-    setForm((f) => ({
+    
+    setForm(f => ({
       ...f,
       job_guid: row.job_guid,
       jobcardNo: row.jobcardNo,
       customer_guid: row.customer_guid || "",
       vehicle_guid: row.vehicle_guid || "",
-      items: items.length ? items : f.items,
-      applyDiscount: totalsData.discountAmount > 0,
-      discountType: totalsData.discountType || "percent",
-      discountValue: totalsData.discountValue || 0,
-      includeGST: totalsData.includeGST ?? true,
-      gstRate: totalsData.gstRate || 18,
+      parts: partsArr.length ? partsArr.map(p => ({
+        id: Math.random(),
+        name: p.name || p.product || "",
+        qty: Number(p.qty || 1),
+        rate: Number(p.rate || 0),
+        amount: Number(p.amount || 0)
+      })) : [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
+      labour: labourArr.length ? labourArr.map(l => ({
+        id: Math.random(),
+        title: l.title || l.name || "",
+        hours: 1,
+        rate: Number(l.amount || l.rate || 0),
+        amount: Number(l.amount || 0)
+      })) : [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }]
     }));
   };
 
   const handleJobCardChange = async (job_guid) => {
-    console.log("JOB SELECTED:", job_guid);
-
     try {
+      showSnack("Linking job card...", "info");
       const resCheck = await fetch(
         apiEndpoints.Quotation + "?job_guid=" + job_guid,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const existing = await resCheck.json();
-      console.log("EXISTING QUOTATION:", existing);
-
       if (existing?.quotation_guid) {
-        console.log("REDIRECTING TO EDIT:", existing.quotation_guid);
-        navigate("/edit-quotation/" + existing.quotation_guid);
+        showSnack("Existing quotation found. Redirecting...", "info");
+        navigate("/edit-quotation/" + existing.quotation_guid, { replace: true });
         return;
       }
-
-      console.log("NO QUOTATION FOUND — FETCHING JOB CARD");
 
       const res = await fetch(apiEndpoints.JobCard + "?job_guid=" + job_guid, {
         headers: { Authorization: `Bearer ${token}` },
@@ -473,903 +331,295 @@ export default function AddQuotation() {
       const data = await res.json();
       const row = Array.isArray(data) ? data[0] : data;
 
-      if (row) applyJobCardToForm(row);
-    } catch (err) {
-      console.error("job card change error", err);
-    }
+      if (row) {
+        applyJobCardToForm(row);
+        showSnack("Job card items imported.", "success");
+      }
+    } catch (err) { showSnack("Failed to link job card.", "error"); }
   };
 
-
-  const checkQuotationExists = async (job_guid) => {
-    const res = await fetch(apiEndpoints.Quotation + "?job_guid=" + job_guid, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return await res.json(); // { quotation_guid } OR {}
-  };
-
-
-  // Save handler (create or edit)
   const handleSave = async () => {
     if (isViewMode) return;
-    if (!validateBeforeSave()) return;
-
-    setWorking(true);
-    try {
-      const { parts, labour, totalsPayload } = buildPartsLabour();
-
-      // Prepare quotation form data
-      const qForm = new FormData();
-      // if creating, we let backend generate quotation_no
-      qForm.append("job_guid", form.job_guid);
-      qForm.append("customer_guid", form.customer_guid || "");
-      qForm.append("vehicle_guid", form.vehicle_guid || "");
-      qForm.append("parts", JSON.stringify(parts));
-      qForm.append("labour", JSON.stringify(labour));
-      qForm.append("totals", JSON.stringify(totalsPayload));
-      qForm.append("notes", form.notes || "");
-      qForm.append("status", form.status || "Approval Pending");
-
-      let qRes, qData;
-
-      if (isCreateMode) {
-        // create new quotation
-        qRes = await fetch(apiEndpoints.Quotation, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: qForm,
-        });
-        qData = await qRes.json();
-        if (!qData || qData.success !== true) {
-          showSnack(qData?.message || "Failed to create quotation", "error");
-          setWorking(false);
-          return;
-        }
-        if (qData.mode === "edit" && qData.quotation_guid) {
-          navigate("/edit-quotation/" + qData.quotation_guid);
-          return;
-        }
-      } else {
-        // EDIT existing - do NOT change quotation_no. Send update to existing GUID.
-        const editForm = new FormData();
-        editForm.append("parts", JSON.stringify(parts));
-        editForm.append("labour", JSON.stringify(labour));
-        editForm.append("totals", JSON.stringify(totalsPayload));
-        editForm.append("notes", form.notes || "");
-        editForm.append("status", form.status || "Approval Pending");
-
-        qRes = await fetch(
-          apiEndpoints.Quotation +
-          "?quotation_guid=" +
-          encodeURIComponent(routeGuid),
-          {
-            method: "POST", // backend accepts POST + GUID to update
-            headers: { Authorization: `Bearer ${token}` },
-            body: editForm,
-          }
-        );
-        qData = await qRes.json();
-        if (!qData || qData.success !== true) {
-          showSnack(qData?.message || "Failed to update quotation", "error");
-          setWorking(false);
-          return;
-        }
-      }
-
-      // Update job card with new parts/labour/totals (PUT via _method)
-      const jcForm = new FormData();
-      jcForm.append("_method", "PUT");
-      jcForm.append("parts", JSON.stringify(parts));
-      jcForm.append("labour", JSON.stringify(labour));
-      jcForm.append("totals", JSON.stringify(totalsPayload));
-      jcForm.append("notes", form.notes || "");
-
-      await fetch(
-        apiEndpoints.JobCard + "?job_guid=" + encodeURIComponent(form.job_guid),
-        {
-          method: "POST", // using _method=PUT
-          headers: { Authorization: `Bearer ${token}` },
-          body: jcForm,
-        }
-      );
-
-      showSnack(
-        isCreateMode ? "Quotation created" : "Quotation updated",
-        "success"
-      );
-      navigate("/quotations");
-    } catch (err) {
-      console.error("save error", err);
-      showSnack("Unexpected error: " + (err.message || err), "error");
-    } finally {
-      setWorking(false);
-    }
-  };
-
-  // Cancel/back
-  const handleCancel = () => navigate("/quotations");
-  function convertFormToBackendFormat() {
-    const safeParts = form.items
-      .filter((i) => i.category === "Product")
-      .map((p) => ({
-        name: p.product,
-        qty: p.qty,
-        rate: p.rate,
-        discount: p.discountPct,
-        amount: p.amount,
-      }));
-
-    const safeLabour = form.items
-      .filter((i) => i.category === "Service")
-      .map((l) => ({
-        title: l.product,
-        hours: 1,
-        rate: l.rate,
-        amount: l.amount,
-      }));
-
-    const totalsPayload = {
-      partsTotal: totals.productTotal,
-      subtotal: totals.subtotal,
-      discountAmount: totals.discountAmount,
-      discountType: form.discountType,
-      discountValue: form.discountValue,
-      gstRate: form.gstRate,
-      includeGST: form.includeGST,
-      gstAmount: totals.gstAmount,
-      grandTotal: totals.grandTotal,
-    };
-
-    return {
-      quotation_no: form.quotation_no || "N/A",
-      created_on: form.quotationDate,
-      expiryDate: form.expiryDate,
-      customer_name: form.customer_name,
-      customer: {}, // leave empty (or fetch if needed)
-      parts: safeParts,
-      labour: safeLabour,
-      totals: totalsPayload,
-      items: [...safeParts, ...safeLabour],
-      notes: form.notes,
-      status: form.status,
-    };
-  }
-
-  // Print / PDF
-  const handlePrint = async () => {
-    // If editing an existing quotation → fetch full data
-    if (routeGuid) {
-      const full = await fetch(
-        apiEndpoints.Quotation + "?quotation_guid=" + routeGuid,
-        { headers: { Authorization: `Bearer ${token}` } }
-      ).then((res) => res.json());
-
-      const data = Array.isArray(full) ? full[0] : full;
-      printQuotation(data);
+    if (!form.job_guid) {
+      showSnack("Job card is required.", "error");
       return;
     }
 
-    // If creating → convert AddQuotation form into backend-like structure
-    const payload = convertFormToBackendFormat();
-    printQuotation(payload);
+    setWorking(true);
+    try {
+      const qForm = new FormData();
+      qForm.append("job_guid", form.job_guid);
+      qForm.append("customer_guid", form.customer_guid || "");
+      qForm.append("vehicle_guid", form.vehicle_guid || "");
+      qForm.append("parts", JSON.stringify(form.parts));
+      qForm.append("labour", JSON.stringify(form.labour));
+      qForm.append("totals", JSON.stringify(form.totals));
+      qForm.append("notes", form.notes || "");
+      qForm.append("status", form.status || "Approval Pending");
+
+      const res = await fetch(apiEndpoints.Quotation + (isCreateMode ? "" : "?quotation_guid=" + encodeURIComponent(routeGuid)), {
+        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: qForm
+      });
+      const data = await res.json();
+      if (data.success) {
+        showSnack(isCreateMode ? "Quotation created!" : "Quotation updated!", "success");
+        setTimeout(() => navigate("/quotations"), 1500);
+      } else { showSnack(data.message || "Failed to save", "error"); }
+    } catch (err) { showSnack("Unexpected error.", "error"); } finally { setWorking(false); }
   };
 
-  const handlePdf = handlePrint; // same function, browser can save as PDF
-
-  // Memoized values
-  const itemsCount = useMemo(() => (form.items || []).length, [form.items]);
-
-  // Loading UI for fetching quotation
-  if (loading) {
-    return (
-      <Box p={3} textAlign="center">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // Form disabled when view mode
-  const readOnly = isViewMode;
+  if (loading) return (
+    <Box sx={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+      <CircularProgress sx={{ color: "rgba(139, 92, 246, 0.9)" }} />
+    </Box>
+  );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }} width={"100%"}>
-      {/* HEADER */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", sm: "center" }}
-        >
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            flexWrap="wrap"
-          >
-            <IconButton
-              onClick={() => navigate(-1)}
-              size="small"
-              sx={{
-                mr: 0,
-                color: "rgba(249, 115, 22, 0.9)",
-                "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 0.08)",
-                },
-                "&.Mui-disabled": {
-                  color: "rgba(249, 115, 22, 0.4)",
-                },
-              }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ mr: 1 }}>
-              {isCreateMode
-                ? "Create Quotation"
-                : isViewMode
-                  ? "View Quotation"
-                  : "Edit Quotation"}
-            </Typography>
-            {form.quotation_no && (
-              <Typography
-                sx={{ ml: { xs: 0, sm: 2 }, color: "text.secondary" }}
-              >
-                No: {form.quotation_no}
-              </Typography>
-            )}
-            {form.jobcardNo && (
-              <Typography
-                sx={{ ml: { xs: 0, sm: 2 }, color: "text.secondary" }}
-              >
-                Job: {form.jobcardNo}
-              </Typography>
-            )}
-          </Stack>
-
-          {/* <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            width={{ xs: "100%", sm: "auto" }}
-            alignItems="center"
-          >
-            <Button
-              startIcon={<PreviewIcon />}
-              variant="outlined"
-              disabled
-              fullWidth={{ xs: true, sm: false }}
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              Preview
-            </Button>
-
-            <Button
-              startIcon={<PrintIcon />}
-              variant="outlined"
-              onClick={handlePrint}
-              fullWidth={{ xs: true, sm: false }}
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              Print
-            </Button>
-
-            <Button
-              startIcon={<PictureAsPdfIcon />}
-              variant="outlined"
-              onClick={handlePdf}
-              fullWidth={{ xs: true, sm: false }}
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              PDF
-            </Button>
-
-            {!isViewMode && (
-              <Button
-                variant="text"
-                onClick={handleCancel}
-                fullWidth={{ xs: true, sm: false }}
-                sx={{ whiteSpace: "nowrap" }}
-              >
-                Cancel
-              </Button>
-            )}
-
-            {!isViewMode && (
-              <Button
-                variant="contained"
-                startIcon={
-                  working ? <CircularProgress color="inherit" size={18} /> : <SaveAltIcon />
-                }
-                onClick={handleSave}
-                disabled={working}
-                fullWidth={{ xs: true, sm: false }}
-              >
-                {working ? (
-                  "Saving..."
-                ) : isCreateMode ? (
-                  "Save & Continue"
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            )}
-          </Stack> */}
+    <Box sx={{ px: { xs: 2, md: 3 }, py: 3, background: "#fff", minHeight: "100vh" }}>
+      {/* Header */}
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <IconButton onClick={() => navigate("/quotations")}>
+            <ArrowLeft size={28} style={{ color: "rgba(139, 92, 246, 0.9)" }} />
+          </IconButton>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "#111827" }}>
+            {isCreateMode ? "Create Quotation" : isViewMode ? "View Quotation" : "Edit Quotation"}
+          </Typography>
         </Stack>
-      </Paper>
+      </Box>
 
-      <Grid container spacing={2} width={"100%"}>
-        {/* LEFT */}
-        <Grid item xs={12} md={8} width={"100%"}>
-          <Paper sx={{ p: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4} width={{ xs: "100%", sm: "auto" }}>
-                <TextField
-                  label="Quotation Date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={form.quotationDate}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, quotationDate: e.target.value }))
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{ readOnly }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={4} width={{ xs: "100%", sm: "auto" }}>
-                <TextField
-                  label="Expiry Date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={form.expiryDate}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, expiryDate: e.target.value }))
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{ readOnly }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={4} width={{ xs: "100%", sm: "auto" }}>
-                <FormControl
-                  sx={{ width: { xs: "100%", sm: 220 } }}
-                  size="small"
-                >
-                  <InputLabel>Job Card</InputLabel>
-                  <Select
-                    label="Job Card"
-                    value={form.job_guid}
-                    disabled={readOnly}
-                    onChange={(e) => handleJobCardChange(e.target.value)}
-                  >
-                    {jobCards.map((jc) => (
-                      <MenuItem key={jc.job_guid} value={jc.job_guid}>
-                        {jc.jobcardNo}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-
-            {/* ITEMS */}
-            <Box sx={{ mt: 2 }}>
-              <Typography sx={{ fontWeight: 700 }}>Items</Typography>
-
-              <Box
-                sx={{
-                  overflowX: { xs: "auto", sm: "auto" },
-                  whiteSpace: "nowrap",
-                  borderRadius: 2,
-                  p: 1.5,
-                  mb: 2,
-                }}
+      {/* Basic Details */}
+      <SectionCard title="Quotation Details" icon={FileText}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Job Card</Typography>
+              <select
+                disabled={isViewMode}
+                value={form.job_guid}
+                style={inputSx()}
+                onChange={(e) => handleJobCardChange(e.target.value)}
               >
-                {(form.items || [])
-                  .filter((it) => it.category === "Product")
-                  .map((it) => (
-                    <Box
-                      key={it.id}
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "flex-start",
-                        gap: 2,
-                        p: 2,
-                        mb: 1.5,
-                        border: "1px solid #e5e5e5",
-                        borderRadius: 2,
-                        background: "#fafafa",
-                        minWidth: { xs: "100%", sm: "700px" },
-                      }}
-                    >
-                      <FormControl
-                        size="small"
-                        sx={{ width: { xs: "100%", sm: 130 } }}
-                      >
-                        <InputLabel>Category</InputLabel>
-                        <Select
-                          label="Category"
-                          value={it.category}
-                          onChange={(e) =>
-                            updateItem(it.id, "category", e.target.value)
-                          }
-                          disabled={readOnly}
-                        >
-                          <MenuItem value="Product">Product</MenuItem>
-                          <MenuItem value="Service">Service</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <TextField
-                        label="Item"
-                        size="small"
-                        sx={{ width: { xs: "100%", sm: 200 } }}
-                        value={it.product}
-                        onChange={(e) =>
-                          updateItem(it.id, "product", e.target.value)
-                        }
-                        InputProps={{ readOnly }}
-                      />
-
-                      <TextField
-                        label="Qty"
-                        size="small"
-                        type="number"
-                        sx={{ width: { xs: "100%", sm: 90 } }}
-                        value={it.qty}
-                        onChange={(e) =>
-                          updateItem(it.id, "qty", Number(e.target.value))
-                        }
-                        InputProps={{ readOnly }}
-                      />
-
-                      <TextField
-                        label="Rate"
-                        size="small"
-                        type="number"
-                        sx={{ width: { xs: "100%", sm: 110 } }}
-                        value={it.rate}
-                        onChange={(e) =>
-                          updateItem(it.id, "rate", Number(e.target.value))
-                        }
-                        InputProps={{ readOnly }}
-                      />
-
-                      <TextField
-                        label="Amount"
-                        size="small"
-                        sx={{ width: { xs: "100%", sm: 140 } }}
-                        value={currency(it.amount)}
-                        InputProps={{ readOnly: true }}
-                      />
-
-                      {!readOnly && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => removeItem(it.id)}
-                          sx={{ alignSelf: { xs: "flex-end", sm: "center" } }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-              </Box>
-
-              {!readOnly && (
-                <Button
-                  startIcon={<AddIcon />}
-                  variant="contained"
-                  sx={{
-                    mt: 2,
-                    backgroundColor: "rgba(249, 115, 22, 0.9)",
-                    "&:hover": {
-                      backgroundColor: "rgba(249, 115, 22, 1)",
-                    },
-                    color: "#fff",
-                    textTransform: "none",
-                  }}
-                  onClick={addItem}
-                >
-                  Add Item
-                </Button>
-              )}
-
-              <Box sx={{ mt: 4 }}>
-                <Typography sx={{ fontWeight: 700 }}>Labour Charges</Typography>
-
-                {(form.items || [])
-                  .filter((l) => l.category === "Service")
-                  .map((lb) => (
-                    <Box
-                      key={lb.id}
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "flex-start",
-                        gap: 2,
-                        p: 2,
-                        mb: 1.5,
-                        border: "1px solid #e5e5e5",
-                        borderRadius: 2,
-                        background: "#fffbea",
-                        minWidth: { xs: "100%", sm: "600px" },
-                      }}
-                    >
-                      <TextField
-                        label="Labour Title"
-                        size="small"
-                        sx={{ width: { xs: "100%", sm: 220 } }}
-                        value={lb.product}
-                        onChange={(e) =>
-                          updateItem(lb.id, "product", e.target.value)
-                        }
-                        InputProps={{ readOnly }}
-                      />
-
-                      <TextField
-                        label="Rate"
-                        size="small"
-                        type="number"
-                        sx={{ width: { xs: "100%", sm: 120 } }}
-                        value={lb.rate}
-                        onChange={(e) =>
-                          updateItem(lb.id, "rate", Number(e.target.value))
-                        }
-                        InputProps={{ readOnly }}
-                      />
-
-                      <TextField
-                        label="Amount"
-                        size="small"
-                        sx={{ width: { xs: "100%", sm: 140 } }}
-                        value={currency(lb.amount)}
-                        InputProps={{ readOnly: true }}
-                      />
-
-                      {!readOnly && (
-                        <IconButton
-                          color="error"
-                          onClick={() => removeItem(lb.id)}
-                          sx={{ alignSelf: { xs: "flex-end", sm: "center" } }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-
-                {!readOnly && (
-                  <Button
-                    startIcon={<AddIcon />}
-                    variant="contained"
-                    sx={{
-                      mt: 2,
-                      backgroundColor: "rgba(249, 115, 22, 0.9)",
-                      "&:hover": {
-                        backgroundColor: "rgba(249, 115, 22, 1)",
-                      },
-                      color: "#fff",
-                      textTransform: "none",
-                    }}
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        items: [...f.items, makeEmptyItem({ category: "Service" })],
-                      }))
-                    }
-                  >
-                    Add Labour
-                  </Button>
-                )}
-              </Box>
-
-              <Typography sx={{ fontWeight: 700, mt: 3 }}>Notes</Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                value={form.notes}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, notes: e.target.value }))
-                }
-                sx={{ mt: 1 }}
-                InputProps={{ readOnly }}
+                <option value="">-- Select Job Card --</option>
+                {jobCards.map(jc => <option key={jc.job_guid} value={jc.job_guid}>{jc.jobcardNo}</option>)}
+              </select>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Quotation Date</Typography>
+              <input
+                type="date"
+                disabled={isViewMode}
+                value={form.quotationDate}
+                style={inputSx()}
+                onChange={(e) => setForm(s => ({ ...s, quotationDate: e.target.value }))}
               />
             </Box>
-
-            {/* RIGHT */}
-            <Grid item xs={12} md={4} width={"100%"} mt={2}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Pricing
-              </Typography>
-
-              {/* TWO COLUMNS inside right card */}
-              <Grid
-                container
-                spacing={2}
-                justifyContent="space-between"
-                alignItems="flex-start"
-              >
-                {/* editable fields */}
-                <Grid item xs={12} sm={4} width={{ xs: "100%", sm: "auto" }}>
-                  <Stack spacing={2}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Checkbox
-                        checked={form.applyDiscount}
-                        onChange={(e) =>
-                          setForm((s) => ({
-                            ...s,
-                            applyDiscount: e.target.checked,
-                          }))
-                        }
-                        sx={{
-                          color: "rgba(249, 115, 22, 0.9)",
-                          "&.Mui-checked": {
-                            color: "rgba(249, 115, 22, 0.9)",
-                          },
-                          "&.Mui-disabled": {
-                            color: "rgba(249, 115, 22, 0.4)",
-                          },
-                        }}
-                        disabled={readOnly}
-                      />
-                      <Typography>Apply Discount</Typography>
-                    </Stack>
-
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Discount Type</InputLabel>
-                      <Select
-                        label="Discount Type"
-                        value={form.discountType}
-                        onChange={(e) =>
-                          setForm((s) => ({
-                            ...s,
-                            discountType: e.target.value,
-                          }))
-                        }
-                        disabled={!form.applyDiscount || readOnly}
-                      >
-                        <MenuItem value="percent">Percent</MenuItem>
-                        <MenuItem value="amount">Amount</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Discount Value"
-                      fullWidth
-                      value={form.discountValue}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          discountValue: Number(e.target.value),
-                        }))
-                      }
-                      disabled={!form.applyDiscount || readOnly}
-                    />
-
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Checkbox
-                        checked={form.includeGST}
-                        onChange={(e) =>
-                          setForm((s) => ({
-                            ...s,
-                            includeGST: e.target.checked,
-                          }))
-                        }
-                        sx={{
-                          color: "rgba(249, 115, 22, 0.9)",
-                          "&.Mui-checked": {
-                            color: "rgba(249, 115, 22, 0.9)",
-                          },
-                          "&.Mui-disabled": {
-                            color: "rgba(249, 115, 22, 0.4)",
-                          },
-                        }}
-                        disabled={readOnly}
-                      />
-                      <Typography>Include GST</Typography>
-                    </Stack>
-
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="GST %"
-                      fullWidth
-                      value={form.gstRate}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          gstRate: Number(e.target.value),
-                        }))
-                      }
-                      disabled={!form.includeGST || readOnly}
-                    />
-                  </Stack>
-
-                  <Box sx={{ mt: 2 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        label="Status"
-                        value={form.status}
-                        onChange={(e) =>
-                          setForm((s) => ({ ...s, status: e.target.value }))
-                        }
-                        disabled={readOnly}
-                      >
-                        <MenuItem value="Approval Pending">
-                          Approval Pending
-                        </MenuItem>
-                        <MenuItem value="Work In Progress">
-                          Work In Progress
-                        </MenuItem>
-                        <MenuItem value="Completed">Completed</MenuItem>
-                        <MenuItem value="Delivered">Delivered</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </Grid>
-
-                {/* summary */}
-                <Grid item xs={12} sm={6} width={{ xs: "100%", sm: "auto" }}>
-                  <Stack spacing={1.5}>
-                    {/* Product Total */}
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2">Product Total</Typography>
-                      <Typography variant="h6">
-                        ₹ {currency(totals.productTotal)}
-                      </Typography>
-                    </Stack>
-
-                    {/* Discount */}
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2">Discount</Typography>
-                      <Typography>
-                        - ₹ {currency(totals.discountAmount)}
-                      </Typography>
-                    </Stack>
-
-                    {/* GST */}
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2">
-                        GST ({form.gstRate}%)
-                      </Typography>
-                      <Typography>₹ {currency(totals.gstAmount)}</Typography>
-                    </Stack>
-
-                    {/* Labour Charges */}
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2">Labour Charges</Typography>
-                      <Typography>
-                        ₹{" "}
-                        {currency(
-                          (form.items || [])
-                            .filter((i) => i.category === "Service")
-                            .reduce((s, l) => s + Number(l.amount || 0), 0)
-                        )}
-                      </Typography>
-                    </Stack>
-
-                    <MuiDivider sx={{ my: 1 }} />
-
-                    {/* Grand Total */}
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="h6" fontWeight={700}>
-                        Grand Total (Rounded)
-                      </Typography>
-                      <Typography variant="h6" fontWeight={700}>
-                        ₹ {currency(totals.grandTotal)}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                </Grid>
-              </Grid>
-
-              {/* status only editable when not view */}
-              {/* <Box sx={{ mt: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    label="Status"
-                    value={form.status}
-                    onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
-                    disabled={readOnly}
-                  >
-                    <MenuItem value="Approval Pending">Approval Pending</MenuItem>
-                    <MenuItem value="Work In Progress">Work In Progress</MenuItem>
-                    <MenuItem value="Completed">Completed</MenuItem>
-                    <MenuItem value="Delivered">Delivered</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box> */}
-
-              {/* action buttons stretched */}
-              <Stack
-                spacing={1.5}
-                sx={{ mt: 2 }}
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-              >
-                {!isViewMode && (
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    onClick={handleSave}
-                    disabled={working}
-                    sx={{
-                      backgroundColor: "rgba(249, 115, 22, 0.9)",
-                      "&:hover": {
-                        backgroundColor: "rgba(249, 115, 22, 1)",
-                      },
-                      color: "#fff",
-                      textTransform: "none",
-                      "&.Mui-disabled": {
-                        backgroundColor: "rgba(249, 115, 22, 0.4)",
-                        color: "#fff",
-                      },
-                    }}
-                  >
-                    {working
-                      ? "Saving..."
-                      : isCreateMode
-                        ? "Save & Continue"
-                        : "Save Changes"}
-                  </Button>
-                )}
-
-                <Button
-                  variant="text"
-                  fullWidth
-                  onClick={handleCancel}
-                  disabled={working}
-                  sx={{
-                    color: "rgba(249, 115, 22, 0.9)",
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: "rgba(249, 115, 22, 0.08)",
-                    },
-                    "&.Mui-disabled": {
-                      color: "rgba(249, 115, 22, 0.4)",
-                    },
-                  }}
-                >
-                  Cancel
-                </Button>
-
-                {/* <Button variant="outlined" fullWidth onClick={handlePrint}>
-                  Print
-                </Button> */}
-
-                {/* <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<SaveAltIcon />}
-                  onClick={handlePdf}
-                >
-                  Save as PDF
-                </Button> */}
-              </Stack>
-            </Grid>
-          </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Expiry Date</Typography>
+              <input
+                type="date"
+                disabled={isViewMode}
+                value={form.expiryDate}
+                style={inputSx()}
+                onChange={(e) => setForm(s => ({ ...s, expiryDate: e.target.value }))}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Status</Typography>
+              <select disabled={isViewMode} value={form.status} style={inputSx()} onChange={(e) => setForm(s => ({ ...s, status: e.target.value }))}>
+                <option value="Approval Pending">Approval Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Work In Progress">Work In Progress</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </Box>
+          </Grid>
         </Grid>
-      </Grid>
+      </SectionCard>
 
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={5000}
-        onClose={closeSnack}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={closeSnack}
-          severity={snack.severity}
-          sx={{ width: "100%" }}
-        >
+      {/* Parts Inventory */}
+      <SectionCard title="Parts Inventory" icon={Package}>
+        <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+            {form.parts?.map((p) => (
+              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+                <input placeholder="Part Name..." value={p.name} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
+                <input type="number" placeholder="Qty" value={p.qty} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
+                <input type="number" placeholder="Rate" value={p.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(p.amount)}</div>
+                {!isViewMode && (
+                  <button onClick={() => removePart(p.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!isViewMode && (
+              <Button 
+                variant="contained" 
+                size="small" 
+                onClick={addPart}
+                startIcon={<Plus size={16} />}
+                sx={{ 
+                  bgcolor: "rgba(139, 92, 246, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  mt: 1,
+                  width: "fit-content"
+                }}
+              >
+                Add Part
+              </Button>
+            )}
+          </div>
+        </Box>
+      </SectionCard>
+
+      {/* Labour Services */}
+      <SectionCard title="Labour Services" icon={Wrench}>
+        <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+            {form.labour?.map((l) => (
+              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+                <input placeholder="Labour Title..." value={l.title} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
+                <input type="number" placeholder="Hours" value={l.hours} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
+                <input type="number" placeholder="Rate" value={l.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
+                {!isViewMode && (
+                  <button onClick={() => removeLabour(l.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!isViewMode && (
+              <Button 
+                variant="contained" 
+                size="small" 
+                onClick={addLabour}
+                startIcon={<Plus size={16} />}
+                sx={{ 
+                  bgcolor: "rgba(139, 92, 246, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  mt: 1,
+                  width: "fit-content"
+                }}
+              >
+                Add Labour
+              </Button>
+            )}
+          </div>
+        </Box>
+      </SectionCard>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 24, alignItems: "stretch" }}>
+        <div style={{ height: "100%" }}>
+          <SectionCard title="Pricing & Notes" icon={Wallet} style={{ height: "100%", marginBottom: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
+                  <select disabled={isViewMode} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 }}))}>
+                    <option value="percent">Percentage (%)</option>
+                    <option value="amount">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
+                  <input type="number" disabled={isViewMode} value={form.totals?.discountValue || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Number(e.target.value) }}))} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>GST Rate (%)</label>
+                  <input type="number" disabled={isViewMode} value={form.totals?.gstRate || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+
+        <div style={{ background: "#1F2937", borderRadius: 20, padding: "32px", color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+          <h4 style={{ margin: "0 0 24px 0", fontSize: 16, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Quotation Summary</h4>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>Parts Subtotal</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.partsTotal)}</span>
+            </div>
+            
+            {Number(form.totals?.discountAmount) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                <span style={{ color: "#10B981" }}>Discount ({form.totals.discountType})</span>
+                <span style={{ color: "#10B981", fontWeight: 600 }}>- ₹ {currency(form.totals?.discountAmount)}</span>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>GST Amount</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.gst)}</span>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span style={{ color: "#9CA3AF" }}>Labour Total</span>
+              <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.labourTotal)}</span>
+            </div>
+
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 18, fontWeight: 700 }}>Total Estimate</span>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 32, fontWeight: 800, color: "#8B5CF6" }}>₹ {currency(form.totals?.grandTotal)}</span>
+                <p style={{ margin: 0, fontSize: 11, color: "#9CA3AF" }}>Final amount may vary</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Action */}
+      {!isViewMode && (
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            disabled={working}
+            onClick={handleSave}
+            sx={{ 
+              borderRadius: "12px", 
+              textTransform: "none", 
+              fontWeight: 700, 
+              fontSize: 15,
+              px: 6, 
+              py: 1.5,
+              bgcolor: "rgba(139, 92, 246, 0.9)", 
+              boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.2)",
+              "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" }
+            }}
+          >
+            {working ? "Saving Quotation..." : "Save Quotation"}
+          </Button>
+        </Box>
+      )}
+
+
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity={snack.severity} sx={{ borderRadius: "12px", fontWeight: 700 }}>
           {snack.message}
         </Alert>
       </Snackbar>

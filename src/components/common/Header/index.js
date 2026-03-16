@@ -29,7 +29,7 @@ const ROUTE_TITLE_MAP = {
   "/edit-job-card": "Edit Job Card",
   "/jobcard": "Job Card",
 
-  "/workersmanagement": "Workers Management",
+  "/workersmanagement": "Workers",
 
   "/product": "Product",
   "/purchase": "Purchase",
@@ -140,7 +140,7 @@ const HIDE_SINGLE_ADD_PAGES = [
   "/tyres-services",
   "/details",
   "/stock",
-  "/invoices"
+  "/invoices",
 ];
 
 const isIdLike = (seg) => /^[0-9]+$/.test(seg) || /^[a-f0-9]{8,}$/i.test(seg);
@@ -177,12 +177,14 @@ const titleFromPath = (pathname) => {
 
 /* ------- Default Add menu; override via prop if needed ------- */
 const DEFAULT_ADD_MENU = [
-  { label: "+ JobCard", route: "/services-form" },
-  { label: "+ Suppliers", route: "/Supplier" },
-  { label: "+ Product", route: "/Product" },
-  { label: "+ Purchase", route: "/Purchase" },
-  { label: "+ Stock", route: "/Stock" },
-  { label: "+ Customers", route: "/customers" },
+  { label: "JobCard", route: "/services-form" },
+  { label: "Suppliers", route: "/supplier" },
+  { label: "Product", route: "/product" },
+  { label: "Purchase", route: "/purchase" },
+  { label: "Stock", route: "/stock" },
+  { label: "Customers", route: "/customers" },
+  // { label: 'Income', route: '/income' },
+  // { label: 'Expenses', route: '/expenses' },
 ];
 
 export default function SectionHeader({
@@ -318,13 +320,13 @@ export default function SectionHeader({
               <IconButton
                 onClick={handleSingleAddClick}
                 size="small"
-                sx={{
-                  bgcolor: "rgba(249, 115, 22, 0.9)",
-                  color: "#fff",
-                  "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
-                  width: 40,
-                  height: 40,
-                }}
+                  sx={{
+                    bgcolor: "#3B82F6",
+                    color: "#fff",
+                    "&:hover": { bgcolor: "#2563EB" },
+                    width: 40,
+                    height: 40,
+                  }}
                 aria-label={`Add ${screenTitle}`}
               >
                 <Add fontSize="small" />
@@ -343,8 +345,8 @@ export default function SectionHeader({
                   size="small"
                   sx={{
                     color: "#fff",
-                    bgcolor: "rgba(249, 115, 22, 0.9)",
-                    "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
+                    bgcolor: "#3B82F6",
+                    "&:hover": { bgcolor: "#2563EB" },
                     width: 45,
                     height: 45,
                   }}

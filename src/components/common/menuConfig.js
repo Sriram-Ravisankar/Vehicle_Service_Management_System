@@ -52,7 +52,7 @@ const menuItems = [
       },
       {
         label: "Purchase",
-        route: "/Purchase",
+        route: "/purchase",
         icon: SupportIcon,
         permissions: ["manage_purchase"],
       },
@@ -131,6 +131,35 @@ const menuItems = [
     route: "/branches",
     permissions: ["view_branches"],
   },
+
+/*
+  {
+    label: "Accounts",
+    icon: MonetizationOnIcon,
+    subItems: [
+      {
+        label: "Income",
+        route: "/income",
+        icon: TrendingUpIcon,
+      },
+      {
+        label: "Expenses",
+        route: "/expenses",
+        icon: TrendingDownIcon,
+      },
+      {
+        label: "Tax Rates",
+        route: "/taxrates",
+        icon: ReceiptIcon,
+      },
+      {
+        label: "Payment Methods",
+        route: "/payment-methods",
+        icon: PaymentIcon,
+      },
+    ],
+  },
+*/
 
   {
     label: "WorkersManagement",

@@ -231,8 +231,8 @@ const CustomerList = ({ title = "Custom Fields" }) => {
             variant="contained"
             onClick={handleSelectAll}
             sx={{
-              bgcolor: "rgba(249, 115, 22, 0.9)",
-              "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
+              bgcolor: "rgba(139, 92, 246, 0.9)",
+              "&:hover": { bgcolor: "rgba(139, 92, 246, 0.9)" },
               display: "flex",
               alignItems: "center",
               px: 2,

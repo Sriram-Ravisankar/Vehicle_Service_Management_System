@@ -20,16 +20,20 @@ import EditIcon from '@mui/icons-material/Edit';
 import apiEndpoints from '../../apiconfig';
 
 const getStatusStyle = (status) => {
-  switch (status) {
-    case 'Approval Pending':
-      return { backgroundColor: '#FFF8E1', color: '#FBC02D' };
-    case 'Work In Progress':
-      return { backgroundColor: '#E8F5E9', color: '#4CAF50' };
-    case 'Delivered':
-      return { backgroundColor: '#38B038', color: '#fff' };
-    default:
-      return { backgroundColor: '#EEEEEE', color: '#000' };
+  const s = status?.trim() || '';
+  if (s.includes('Pending') || s.includes('Approval')) {
+    return { backgroundColor: '#FFF7ED', color: '#C2410C' }; // Orange
   }
+  if (s.includes('Progress') || s.includes('In')) {
+    return { backgroundColor: '#EFF6FF', color: '#1D4ED8' }; // Blue
+  }
+  if (s.includes('Delivered') || s.includes('Completed') || s.includes('Done')) {
+    return { backgroundColor: '#F0FDF4', color: '#15803D' }; // Green
+  }
+  if (s.includes('Cancelled') || s.includes('Reject')) {
+    return { backgroundColor: '#FEF2F2', color: '#B91C1C' }; // Red
+  }
+  return { backgroundColor: '#F3F4F6', color: '#4B5563' }; // Gray
 };
 
 const JobCardTable = ({ jobCards, handleEdit, formatDate, onStatusUpdate }) => {
@@ -73,25 +77,24 @@ const JobCardTable = ({ jobCards, handleEdit, formatDate, onStatusUpdate }) => {
 
   // Responsive table cell styling
   const tableCellStyles = {
-    minWidth: isSmallMobile ? '100px' : isMobile ? '120px' : '160px',
-    maxWidth: isSmallMobile ? '120px' : isMobile ? '150px' : '215px',
+    fontSize: isSmallMobile ? '0.75rem' : '0.875rem',
+    color: '#374151',
+    px: 3,
+    py: 2,
+    borderBottom: '1px solid #F3F4F6',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    fontSize: isSmallMobile ? '0.7rem' : isMobile ? '0.75rem' : '0.875rem',
-    px: isSmallMobile ? 0.5 : isMobile ? 1 : 2,
-    py: isSmallMobile ? 0.75 : 1,
-    lineHeight: 1.2,
   };
 
-const headerCellStyles = {
-  ...tableCellStyles,
-  fontWeight: 600,
-  color: "#374151",
-  backgroundColor: "#F9FAFB",
-  fontSize: isSmallMobile ? "0.65rem" : "0.75rem",
-  borderBottom: "1px solid #E5E7EB",
-};
+  const headerCellStyles = {
+    ...tableCellStyles,
+    fontWeight: 700,
+    color: "#6B7280",
+    backgroundColor: "#F9FAFB",
+    fontSize: "0.75rem",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    borderBottom: "2px solid #E5E7EB",
+  };
 
 
   // Simplified column headers for mobile
@@ -117,20 +120,21 @@ const headerCellStyles = {
   };
   
   const StatusPill = ({ status }) => {
-    const styles = getStatusStyle(status);
+    const config = getStatusStyle(status);
     return (
       <Box
         sx={{
           px: 1.5,
           py: 0.5,
-          borderRadius: 999,
-          fontSize: "0.7rem",
-          fontWeight: 600,
-          backgroundColor: styles.backgroundColor,
-          color: styles.color,
+          borderRadius: "6px",
+          fontSize: "0.6875rem",
+          fontWeight: 700, // Balanced weight
+          backgroundColor: config.backgroundColor,
+          color: config.color,
           display: "inline-flex",
           alignItems: "center",
-          whiteSpace: "nowrap",
+          textTransform: "uppercase",
+          letterSpacing: "0.02em",
         }}
       >
         {status}
@@ -143,41 +147,31 @@ const headerCellStyles = {
     <Box
       sx={{
         width: "100%",
-        // Always enable horizontal scrolling regardless of screen size
         overflowX: "auto",
-        // Hide scrollbar completely but maintain functionality
-        scrollbarWidth: "none", // Firefox
-        msOverflowStyle: "none", // IE and Edge
         "&::-webkit-scrollbar": {
-          display: "none", // Chrome, Safari, Edge
+          height: "6px",
         },
-        WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
-        border: "1px solid #e0e0e0",
-        borderRadius: 1,
-        // Add visual cue for scrolling
-        cursor: "grab",
-        "&:active": {
-          cursor: "grabbing",
+        "&::-webkit-scrollbar-track": {
+          background: "#F1F1F1",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: "#8B5CF6",
+          borderRadius: "10px",
         },
       }}
     >
       <Table
-        stickyHeader
-        size="small"
         sx={{
-          // Set minimum width to ensure table is wider than container on all screens
-          minWidth: isSmallMobile ? "700px" : isMobile ? "800px" : "100%",
-          width: "auto",
-          tableLayout: "fixed",
+          minWidth: 800,
+          borderCollapse: "separate",
+          borderSpacing: 0,
           "& .MuiTableRow-root": {
+            transition: "all 0.2s ease",
             "&:hover": {
-              backgroundColor: "#F5F5F5",
-            },
-          },
-          "& .MuiTableCell-root": {
-            borderRight: "1px solid #f0f0f0",
-            "&:last-child": {
-              borderRight: "none",
+              backgroundColor: "#F9FAFB",
+              "& .MuiTableCell-root": {
+                color: "#111827",
+              }
             },
           },
         }}
@@ -201,27 +195,20 @@ const headerCellStyles = {
         </TableHead>
         <TableBody>
           {jobCards.map((card, idx) => (
-            <TableRow
-              key={idx}
-              hover
-              sx={{
-                fontSize: "0.875rem",
-                "&:nth-of-type(even)": {
-                  backgroundColor: "#fafafa",
-                },
-              }}
-            >
-              <TableCell sx={tableCellStyles} title={card.jobCardNo}>
-                {truncateText(card.jobCardNo, 12)}
+            <TableRow key={idx}>
+              <TableCell sx={{ ...tableCellStyles, fontWeight: 600, color: "#111827" }}>
+                {card.jobCardNo}
               </TableCell>
-              <TableCell sx={tableCellStyles} title={card.customerName}>
-                {truncateText(card.customerName, 8)}
+              <TableCell sx={tableCellStyles}>
+                {card.customerName}
               </TableCell>
-              <TableCell sx={tableCellStyles} title={card.mobile}>
-                {truncateText(card.mobile, 10)}
+              <TableCell sx={tableCellStyles}>
+                {card.mobile}
               </TableCell>
-              <TableCell sx={tableCellStyles} title={card.vehicleNo}>
-                {truncateText(card.vehicleNo, 12)}
+              <TableCell sx={tableCellStyles}>
+                <Box component="span" sx={{ px: 1, py: 0.5, bgcolor: '#F3F4F6', borderRadius: 1, fontSize: '0.75rem', fontWeight: 600 }}>
+                    {card.vehicleNo}
+                </Box>
               </TableCell>
               <TableCell sx={tableCellStyles}>
                 {formatDate(card.arrivalDate)}
@@ -229,7 +216,6 @@ const headerCellStyles = {
               <TableCell sx={tableCellStyles}>
                 <StatusPill status={card.status} />
               </TableCell>
-
               <TableCell sx={tableCellStyles}>
                 {formatDate(card.estimateDate)}
               </TableCell>

@@ -90,10 +90,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     ? 320
     : Math.min(windowWidth - 40, 300);
 
-  const AMBER = "rgba(249, 115, 22, 0.9)";
-  //  const AMBER = "rgba(22, 33, 249, 0.9)";
-  const AMBER_HOVER = "rgba(249, 115, 22, 0.18)";
-  const AMBER_BORDER = "rgba(249, 115, 22, 0.28)";
+  const AMBER = "rgba(139, 92, 246, 0.9)";   // purple
+  const AMBER_HOVER = "rgba(139, 92, 246, 0.18)";
+  const AMBER_BORDER = "rgba(139, 92, 246, 0.28)";
 
   const styles = {
     overlay: {
@@ -259,7 +258,7 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
       gap: "16px",
       padding: "14px 18px",
       borderRadius: "16px",
-      backgroundColor: "rgba(120, 45, 20, 0.9)",
+      backgroundColor: "rgba(76, 29, 149, 0.9)",
       color: "#ffffff",
       fontWeight: "600",
       fontSize: "15px",
@@ -271,18 +270,6 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     },
   };
 
-  const handleMouseEnter = (element, hoverStyle = {}) => {
-    const unifiedHover = {
-      backgroundColor: AMBER_HOVER,
-      color: "#fffaf2",
-      transform: "translateX(4px)",
-    };
-    Object.assign(element.style, { ...unifiedHover, ...hoverStyle });
-  };
-
-  const handleMouseLeave = (element, originalStyle) => {
-    Object.assign(element.style, originalStyle);
-  };
   const canAccess = (item) => {
     if (!item.permissions || item.permissions.length === 0) return true;
 
@@ -297,18 +284,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
         <div style={styles.closeButtonContainer}>
           <button
             style={styles.closeButton}
+            className="sb-close-btn"
             onClick={onClose}
             aria-label="Close sidebar"
-            onMouseEnter={(e) =>
-              handleMouseEnter(e.currentTarget, {
-                transform: "scale(1.05)",
-                backgroundColor: "rgba(255,255,255,0.06)",
-                color: "#fff",
-              })
-            }
-            onMouseLeave={(e) =>
-              handleMouseLeave(e.currentTarget, styles.closeButton)
-            }
           >
             <X size={20} />
           </button>
@@ -318,10 +296,10 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
           <div style={styles.logoContainer}>
             <img
               src="https://images.pexels.com/photos/3840441/pexels-photo-3840441.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop"
-              alt="ELC Garage Logo"
+              alt="Garage Logo"
               style={styles.logoImage}
             />
-            <h1 style={styles.brandText}>ELC Garage</h1>
+            <h1 style={styles.brandText}>Garage</h1>
           </div>
         </div>
 
@@ -345,19 +323,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
                     <div style={styles.menuItemWrapper}>
                       <button
                         style={styles.menuButton(hasActiveChild)}
+                        className={`sb-menu-btn${hasActiveChild ? " active" : ""}`}
                         onClick={() => toggleSubMenu(label)}
                         aria-expanded={isSubmenuOpen}
-                        onMouseEnter={(e) => {
-                          if (!hasActiveChild)
-                            handleMouseEnter(e.currentTarget);
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!hasActiveChild)
-                            handleMouseLeave(
-                              e.currentTarget,
-                              styles.menuButton(hasActiveChild)
-                            );
-                        }}
                       >
                         <Icon size={20} />
                         <span style={{ flex: 1 }}>{label}</span>
@@ -383,19 +351,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
                               <button
                                 key={subItem.label}
                                 style={styles.submenuButton(isSubItemActive)}
+                                className={`sb-sub-btn${isSubItemActive ? " active" : ""}`}
                                 onClick={() => handleNavigation(subItem.route)}
                                 aria-label={`Navigate to ${subItem.label}`}
-                                onMouseEnter={(e) => {
-                                  if (!isSubItemActive)
-                                    handleMouseEnter(e.currentTarget);
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!isSubItemActive)
-                                    handleMouseLeave(
-                                      e.currentTarget,
-                                      styles.submenuButton(isSubItemActive)
-                                    );
-                                }}
                               >
                                 <SubIcon size={16} />
                                 {subItem.label}
@@ -412,18 +370,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
                 <div key={label} style={styles.menuItemWrapper}>
                   <button
                     style={styles.menuButton(isActive)}
+                    className={`sb-menu-btn${isActive ? " active" : ""}`}
                     onClick={() => handleNavigation(route)}
                     aria-label={`Navigate to ${label}`}
-                    onMouseEnter={(e) => {
-                      if (!isActive) handleMouseEnter(e.currentTarget);
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive)
-                        handleMouseLeave(
-                          e.currentTarget,
-                          styles.menuButton(isActive)
-                        );
-                    }}
                   >
                     <Icon size={20} />
                     <span style={{ flex: 1 }}>{label}</span>
@@ -437,17 +386,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
           <div style={styles.logoutSection}>
             <button
               style={styles.logoutButton}
+              className="sb-logout-btn"
               onClick={handleLogout}
               aria-label="Logout"
-              onMouseEnter={(e) =>
-                handleMouseEnter(e.currentTarget, {
-                  backgroundColor: "rgba(120,45,20,0.95)",
-                  transform: "translateY(-2px)",
-                })
-              }
-              onMouseLeave={(e) =>
-                handleMouseLeave(e.currentTarget, styles.logoutButton)
-              }
             >
               {logoutItem.icon && <logoutItem.icon size={20} />}
               <span style={{ flex: 1 }}>{logoutItem.label}</span>
@@ -459,6 +400,33 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         nav::-webkit-scrollbar { display: none; }
+
+        /* ── menu item hover (non-active) ── */
+        .sb-menu-btn:not(.active):hover {
+          background-color: rgba(139, 92, 246, 0.18) !important;
+          color: #fffaf2 !important;
+          transform: translateX(4px);
+        }
+
+        /* ── submenu item hover (non-active) ── */
+        .sb-sub-btn:not(.active):hover {
+          background-color: rgba(139, 92, 246, 0.18) !important;
+          color: #fffaf2 !important;
+          transform: translateX(4px);
+        }
+
+        /* ── logout button hover ── */
+        .sb-logout-btn:hover {
+          background-color: rgba(76, 29, 149, 0.95) !important;
+          transform: translateY(-2px);
+        }
+
+        /* ── close button hover ── */
+        .sb-close-btn:hover {
+          transform: scale(1.05);
+          background-color: rgba(255,255,255,0.06) !important;
+          color: #fff !important;
+        }
       `}</style>
     </>
   );

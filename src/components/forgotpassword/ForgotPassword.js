@@ -18,8 +18,8 @@ import imagelock from "../../assets/forgot.png";
 import backgroundImage from "../../assets/bgimage.png";
 
 // NEW PRIMARY COLORS matching the login page
-const primaryColor = "rgba(249, 115, 22, 0.9)";
-const primaryHover = "rgba(249, 115, 22, 1)";
+const primaryColor = "rgba(139, 92, 246, 0.9)";
+const primaryHover = "rgba(139, 92, 246, 1)";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();

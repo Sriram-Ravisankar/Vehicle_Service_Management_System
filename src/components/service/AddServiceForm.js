@@ -15,12 +15,65 @@ import {
   Alert,
   Dialog,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
+import { useNavigate, useLocation } from "react-router-dom";
+import { 
+  ClipboardList, 
+  X, 
+  ChevronRight, 
+  ChevronLeft, 
+  Save, 
+  Edit2,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  Check
+} from "lucide-react";
+import apiEndpoints from "../../apiconfig";
 import Step1_ServiceDetails from "./Step1_ServiceDetails";
 import Step2_PreInspection from "./Step2_PreInspection";
 import Step3_PartsLabour from "./Step3_PartsLabour";
-import apiEndpoints from "../../apiconfig";
-import { useLocation, useNavigate } from "react-router-dom";
+
+// ── tiny helpers (consistent with other premium pages) ────────────────────────
+const Field = ({ label, icon: Icon, error, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
+      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {label}
+    </label>
+    {children}
+    {error && <span style={{ fontSize: 12, color: "#DC2626" }}>{error}</span>}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+});
+
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+    </div>
+    {children}
+  </div>
+);
 
 /**
  * AddServiceForm
@@ -442,85 +495,80 @@ export default function AddServiceForm({
   }
 
   return (
-    <Box p={{ xs: 2, md: 3 }}>
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems="center"
-          justifyContent="space-between"
-          spacing={2}
-        >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {form.jobcardNo
-                ? `Job Card — ${form.jobcardNo}`
-                : "Create Job Card"}
-            </Typography>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      width: '100%',
+      maxWidth: '100%',
+      overflowX: 'hidden'
+    }}>
+      <div style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "20px 24px",
+        marginBottom: 24,
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 16
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12, background: "#F5F3FF",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <ClipboardList size={24} color="#8B5CF6" />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
+              {form.jobcardNo ? `Job Card — ${form.jobcardNo}` : "Create Job Card"}
+            </h1>
             {form.createdOn && (
-              <Typography variant="caption" color="text.secondary">
-                Created: {new Date(form.createdOn).toLocaleString()}
-              </Typography>
+              <p style={{ margin: 0, fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                Generated on {new Date(form.createdOn).toLocaleDateString()} at {new Date(form.createdOn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
             )}
-          </Box>
+          </div>
+        </div>
 
-          <Stack direction="row" spacing={1}>
-            {/* If viewing existing and not editing — show Edit button */}
-            {routeGuid && !isEditing && (
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={enableEdit}
-                sx={{ textTransform: "none" }}
-              >
-                Edit
-              </Button>
-            )}
-
-            {/* When editing, show Cancel (revert) */}
-
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {routeGuid && !isEditing && (
             <Button
-              variant="text"
-              onClick={cancelEdit}
+              variant="outlined"
+              startIcon={<Edit2 size={16} />}
+              onClick={enableEdit}
               sx={{
-                color: "rgba(249, 115, 22, 0.9)",
-                textTransform: "none",
-
-                "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 0.08)",
-                },
+                borderRadius: "10px", borderColor: "#8B5CF6", color: "#8B5CF6",
+                textTransform: "none", fontWeight: 600,
+                "&:hover": { borderColor: "#7C3AED", bgcolor: "#F5F3FF" }
               }}
             >
-              Cancel
+              Edit Jobcard
             </Button>
+          )}
 
-            {/* <Button
-              variant="contained"
-              onClick={() => {
-                if (!isEditing && routeGuid) {
-                  navigate("/services"); // VIEW MODE → always go back
-                  return;
-                }
+          <Button
+            onClick={cancelEdit}
+            sx={{
+              color: "#6B7280", textTransform: "none", fontWeight: 600, fontSize: 14,
+              "&:hover": { color: "#111827", bgcolor: "transparent" }
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
 
-                // EDIT MODE BELOW
-                setPendingQuotationAction(() => () => handleSave(true));
-setOpenQuotationDialog(true);
-
-              // NEVER disable button in view mode
-              disabled={false}
-            >
-              {isSubmitting
-                ? "Saving..."
-                : routeGuid
-                ? isEditing
-                  ? "Save & Close"
-                  : "Back to List"
-                : "Create & Save"}
-            </Button> */}
-          </Stack>
-        </Stack>
-      </Paper>
-
-      <Paper sx={{ p: 2 }}>
+      <div style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "24px",
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+      }}>
         {/* Stepper */}
         <Box mb={2}>
           <Stepper
@@ -529,29 +577,29 @@ setOpenQuotationDialog(true);
             sx={{
               // Active step circle
               "& .MuiStepIcon-root.Mui-active": {
-                color: "rgba(249, 115, 22, 0.9)",
+                color: "rgba(139, 92, 246, 0.9)",
               },
 
               // Completed step circle
               "& .MuiStepIcon-root.Mui-completed": {
-                color: "rgba(249, 115, 22, 0.9)",
+                color: "rgba(139, 92, 246, 0.9)",
               },
 
               // Step label text (active)
               "& .MuiStepLabel-label.Mui-active": {
-                color: "rgba(249, 115, 22, 0.9)",
+                color: "rgba(139, 92, 246, 0.9)",
                 fontWeight: 600,
               },
 
               // Step label text (completed)
               "& .MuiStepLabel-label.Mui-completed": {
-                color: "rgba(249, 115, 22, 0.9)",
+                color: "rgba(139, 92, 246, 0.9)",
                 fontWeight: 600,
               },
 
               // Connector line (active & completed)
               "& .MuiStepConnector-line": {
-                borderColor: "rgba(249, 115, 22, 0.9)",
+                borderColor: "rgba(139, 92, 246, 0.9)",
               },
             }}
           >
@@ -622,85 +670,111 @@ setOpenQuotationDialog(true);
         </Box>
 
         {/* Bottom navigation for steps */}
-        <Box mt={3} display="flex" justifyContent="space-between">
-          <Button
+        <div style={{
+          marginTop: 32,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "20px 0",
+          borderTop: "1px solid #F3F4F6",
+          background: "transparent"
+        }}>
+          <button
             disabled={activeStep === 0}
             onClick={handleBack}
-            variant="outlined"
-            sx={{
-              color: "rgba(249, 115, 22, 0.9)",
-              borderColor: "rgba(249, 115, 22, 0.9)",
-              textTransform: "none",
-
-              "&:hover": {
-                borderColor: "rgba(249, 115, 22, 1)",
-                backgroundColor: "rgba(249, 115, 22, 0.08)",
-              },
+            style={{
+              padding: "10px 20px",
+              borderRadius: 10,
+              border: "1px solid #E5E7EB",
+              background: "#fff",
+              color: activeStep === 0 ? "#9CA3AF" : "#374151",
+              fontSize: 14,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: activeStep === 0 ? "not-allowed" : "pointer",
+              transition: "all 0.2s"
             }}
           >
+            <ArrowLeft size={18} />
             Back
-          </Button>
+          </button>
 
           {activeStep < steps.length - 1 ? (
-            <Button
-              variant="contained"
+            <button
               onClick={() => {
                 if (!isEditing && routeGuid) {
                   handleNext();
                   return;
                 }
-
                 if (activeStep === 0) {
                   const valid = step1Ref.current?.validate();
                   if (!valid) return;
                 }
-
                 handleSave(false);
                 setTimeout(() => handleNext(), 200);
               }}
-              sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
-                "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 1)",
-                },
+              style={{
+                padding: "10px 24px",
+                borderRadius: 10,
+                border: "none",
+                background: "#8B5CF6",
                 color: "#fff",
-                textTransform: "none",
+                fontSize: 14,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(139, 92, 246, 0.25)",
+                transition: "all 0.2s"
               }}
             >
               Save & Continue
-            </Button>
-
+              <ArrowRight size={18} />
+            </button>
           ) : (
-            <Button
-              variant="contained"
+            <button
+              disabled={isSubmitting}
               onClick={() => {
                 if (!isEditing && routeGuid) {
                   navigate("/services");
                   return;
                 }
-
                 setPendingQuotationAction(() => () => handleSave(true));
                 setOpenQuotationDialog(true);
               }}
-              sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
-                "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 1)",
-                },
+              style={{
+                padding: "10px 28px",
+                borderRadius: 10,
+                border: "none",
+                background: isSubmitting ? "#9CA3AF" : "#7C3AED",
                 color: "#fff",
-                textTransform: "none",
+                fontSize: 14,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(124, 58, 237, 0.3)",
+                transition: "all 0.2s"
               }}
             >
-              {isSubmitting
-                ? "Saving..."
-                : routeGuid
-                  ? "Finish & Save"
-                  : "Create & Save"}
-            </Button>
-
+              {isSubmitting ? (
+                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                   Saving...
+                 </span>
+              ) : (
+                <>
+                  {routeGuid ? "Finish & Save" : "Create & Save"}
+                  <Check size={18} />
+                </>
+              )}
+            </button>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </div>
 
       {fetchError && (
         <Box mt={2}>
@@ -769,7 +843,7 @@ setOpenQuotationDialog(true);
                 setOpenQuotationDialog(false);
                 pendingQuotationAction?.();
               }}
-              sx={{ textTransform: "none", minWidth: 130, backgroundColor: "rgba(249, 115, 22, 0.9)" }}
+              sx={{ textTransform: "none", minWidth: 130, backgroundColor: "rgba(139, 92, 246, 0.9)" }}
             >
               Yes, Continue
             </Button>

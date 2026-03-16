@@ -3,6 +3,7 @@ import { Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
+import { Search, Pencil, Trash2, Shield, UserPlus, LogIn } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 
@@ -127,6 +128,18 @@ export default function WorkerManagement() {
         borderColor: theme.primary,
         boxShadow: `0 0 0 3px ${theme.primary}20`,
       },
+    },
+    searchWrapper: {
+      position: "relative",
+      width: isMobile ? "100%" : "300px",
+    },
+    searchIcon: {
+      position: "absolute",
+      left: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: theme.textSecondary,
+      pointerEvents: "none",
     },
     select: {
       padding: "10px 16px",
@@ -634,12 +647,15 @@ export default function WorkerManagement() {
         </div>
         <div style={styles.controls}>
           <div style={styles.filterGroup}>
-            <input
-              placeholder="Search workers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
+            <div style={styles.searchWrapper}>
+              <Search size={16} style={styles.searchIcon} />
+              <input
+                placeholder="Search workers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ ...styles.searchInput, paddingLeft: "40px", width: "100%" }}
+              />
+            </div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
@@ -822,12 +838,22 @@ export default function WorkerManagement() {
                     </td>
 
                     <td style={styles.td}>
-                      <button
-                        onClick={() => openEdit(u)}
-                        style={styles.actionButton}
-                      >
-                        Edit
-                      </button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => openEdit(u)}
+                          style={{
+                            width: 32, height: 32, borderRadius: 8, border: "none",
+                            background: "#F5F3FF", color: "#8B5CF6",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: "pointer", transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "#8B5CF6"; e.currentTarget.style.color = "#fff"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#8B5CF6"; }}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {/* If you wanted a delete button for workers you'd add it here */}
+                      </div>
                     </td>
                   </tr>
                 ))

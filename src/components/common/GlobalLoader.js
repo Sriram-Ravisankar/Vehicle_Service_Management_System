@@ -50,7 +50,7 @@ const spinner = {
   width: 48,
   height: 48,
   border: "4px solid #e5e7eb",
-  borderTop: "4px solid #f97316",
+  borderTop: "4px solid #8B5CF6",
   borderRadius: "50%",
   animation: "spin 1s linear infinite",
 };

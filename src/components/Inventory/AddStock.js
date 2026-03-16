@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import NotesSection from "../DynamicComponents/NotesSection";
 import DynamicHeader from "../common/Dynamicheader";
 
-const AddStock = () => {
+const AddStock = ({ fetchData }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -202,13 +202,13 @@ const AddStock = () => {
         Amount: purchaseDetails.length > 0 ? purchaseDetails[0].amount : ""
       };
 
-      const existingStock = JSON.parse(localStorage.getItem("stockData")) || [];
+      const existingStock = JSON.parse(localStorage.getItem("stock")) || [];
 
       const updatedStock = isEditMode
         ? existingStock.map((item) => (item.id === editId ? newStockEntry : item))
         : [...existingStock, newStockEntry];
 
-      localStorage.setItem("stockData", JSON.stringify(updatedStock));
+      localStorage.setItem("stock", JSON.stringify(updatedStock));
       localStorage.removeItem("stockEditData");
 
       setSnackbar({
@@ -217,6 +217,7 @@ const AddStock = () => {
         severity: "success"
       });
 
+      if (fetchData) fetchData();
       setTimeout(() => navigate("/stock"), 1500);
 
     } catch (error) {
@@ -285,7 +286,8 @@ const AddStock = () => {
 
   return (
     <Box sx={{
-      p: isMobile ? 2 : 4,
+      px: { xs: 3, sm: 4, md: 6 },
+      py: { xs: 2.5, sm: 4 },
       width: '100%',
       maxWidth: '100%',
       overflowX: 'hidden'
@@ -328,13 +330,13 @@ const AddStock = () => {
                       textTransform: "none",
                       minWidth: isMobile ? "100%" : "auto",
 
-                      color: "rgba(249, 115, 22, 0.9)",           // text & icon color
-                      borderColor: "rgba(249, 115, 22, 0.9)",    // outline color
+                      color: "rgba(139, 92, 246, 0.9)",           // text & icon color
+                      borderColor: "rgba(139, 92, 246, 0.9)",    // outline color
 
                       "&:hover": {
-                        borderColor: "rgba(249, 115, 22, 1)",
-                        backgroundColor: "rgba(249, 115, 22, 0.08)", // light hover fill
-                        color: "rgba(249, 115, 22, 1)",
+                        borderColor: "rgba(139, 92, 246, 1)",
+                        backgroundColor: "rgba(139, 92, 246, 0.08)", // light hover fill
+                        color: "rgba(139, 92, 246, 1)",
                       },
                     }}
                   >

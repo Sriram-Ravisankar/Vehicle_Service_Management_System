@@ -9,6 +9,8 @@ import MonthlyIncomeReports from './MonthlyIncome';
 import { FaTrash } from "react-icons/fa";
 import Pagination from '../DynamicComponents/Pagination';
 import SectionHeader from '../common/Header';
+import apiEndpoints from '../../apiconfig';
+
 const Income = () => {
   const [tabValue, setTabValue] = useState(0);
   const [selected, setSelected] = useState([]);
@@ -28,19 +30,22 @@ const Income = () => {
     }
   ]);
 
-  useEffect(() => {
-    const storedData = JSON.parse(sessionStorage.getItem('incomeData')) || [];
+    const fetchIncome = async () => {
+        try {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(apiEndpoints.income, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setRows(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch income:", err);
+        }
+    };
 
-    // Ensure each item has a unique ID
-    const dataWithIds = storedData.map((item, index) => ({
-      ...item,
-      id: item.id ?? Date.now() + index // Assign a fallback ID if missing
-    }));
-
-    // Save back the updated data (with IDs) to sessionStorage
-    sessionStorage.setItem('incomeData', JSON.stringify(dataWithIds));
-    setRows(dataWithIds);
-  }, []);
+    useEffect(() => {
+        fetchIncome();
+    }, []);
 
 
   const navigate = useNavigate();
@@ -73,18 +78,13 @@ const Income = () => {
     handleMenuClose();
   };
 
-  const handleDelete = (rowId) => {
-    console.log('Deleting row with ID:', rowId);
-    console.log('Current rows:', rows);
-
-    const updatedRows = rows.filter((row) => {
-      console.log('Checking row:', row.id, 'vs', rowId);
-      return row.id !== rowId;
+  const handleDelete = async (rowId) => {
+    const token = sessionStorage.getItem("token");
+    await fetch(`${apiEndpoints.income}&id=${rowId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
     });
-
-    console.log('Updated rows:', updatedRows);
-    setRows(updatedRows);
-    sessionStorage.setItem('incomeData', JSON.stringify(updatedRows));
+    fetchIncome();
     handleMenuClose();
   };
 
@@ -95,11 +95,16 @@ const Income = () => {
   };
 
 
-  const handleDeleteSelected = () => {
-    const updatedRows = rows.filter((row) => !selected.includes(row.id));
-    setRows(updatedRows);
+  const handleDeleteSelected = async () => {
+    const token = sessionStorage.getItem("token");
+    for (const id of selected) {
+        await fetch(`${apiEndpoints.income}&id=${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    }
     setSelected([]);
-    sessionStorage.setItem('taxRates', JSON.stringify(updatedRows));
+    fetchIncome();
   };
 
   const handleUpdate = (updatedRow) => {
@@ -205,8 +210,8 @@ const Income = () => {
                 variant="contained"
                 onClick={handleSelectAll}
                 sx={{
-                  bgcolor: "rgba(249, 115, 22, 0.9)",
-                  "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
+                  bgcolor: "rgba(139, 92, 246, 0.9)",
+                  "&:hover": { bgcolor: "rgba(139, 92, 246, 0.9)" },
                   display: "flex",
                   alignItems: "center",
                   px: 2,

@@ -1,330 +1,331 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  IconButton,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Checkbox,
-  Menu,
-  MenuItem,
-  Button,
-  CircularProgress,
-} from "@mui/material";
-import TablePagination from "@mui/material/TablePagination";
-import { Add, MoreVert, Delete } from "@mui/icons-material";
-import EditIcon from "@mui/icons-material/Edit";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import Pagination from "../DynamicComponents/Pagination";
-import SectionHeader from '../common/Header';
-
-
 import { useNavigate } from "react-router-dom";
+import { 
+  Search, 
+  Pencil, 
+  Trash2, 
+  ClipboardList, 
+  Phone, 
+  Car, 
+  Calendar, 
+  ChevronLeft,
+  ChevronRight,
+  Filter
+} from "lucide-react";
+import { 
+  Box, 
+  Paper, 
+  Typography, 
+  Button, 
+  TextField,
+  Tooltip
+} from "@mui/material";
+import SectionHeader from '../common/Header';
 import apiEndpoints from "../../apiconfig";
-import {useLoading} from "../../pages/LoadingContext";
+import { useLoading } from "../../pages/LoadingContext";
+
+// ── Status Styling ──
+const STATUS_STYLES = {
+  "completed": { bg: "#ECFDF5", text: "#059669" },
+  "delivered": { bg: "#F5F3FF", text: "#7C3AED" },
+  "pending":   { bg: "#FFFBEB", text: "#D97706" },
+  "in progress": { bg: "#EFF6FF", text: "#2563EB" },
+  "work in progress": { bg: "#EFF6FF", text: "#2563EB" },
+  "cancelled": { bg: "#FEF2F2", text: "#DC2626" },
+  "approval pending": { bg: "#FDF2F8", text: "#BE185D" },
+  "approved": { bg: "#F0FDFA", text: "#0D9488" },
+  "default":   { bg: "#F3F4F6", text: "#4B5563" }
+};
+
+const StatusBadge = ({ status }) => {
+  const s = (status || "").toLowerCase();
+  const style = STATUS_STYLES[s] || STATUS_STYLES.default;
+  return (
+    <span style={{
+      padding: "4px 10px",
+      borderRadius: "99px",
+      fontSize: "12px",
+      fontWeight: 600,
+      backgroundColor: style.bg,
+      color: style.text,
+      display: "inline-block"
+    }}>
+      {status}
+    </span>
+  );
+};
+
+// ── Column Widths ──
+const COL = {
+  jobNo: "22%",
+  customer: "24%",
+  vehicle: "18%",
+  arrival: "15%",
+  status: "13%",
+  action: "8%"
+};
+
+// ── Header Component ──
+const THead = () => (
+  <div style={{
+    display: "flex", alignItems: "center",
+    padding: "16px 24px", background: "#F9FAFB", borderBottom: "1px solid #F3F4F6",
+    minWidth: "800px" // Ensure columns don't collapse too much
+  }}>
+    <span style={{ width: COL.jobNo, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Jobcard Info</span>
+    <span style={{ width: COL.customer, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Customer</span>
+    <span style={{ width: COL.vehicle, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Vehicle</span>
+    <span style={{ width: COL.arrival, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Arrival</span>
+    <span style={{ width: COL.status, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</span>
+    <span style={{ width: COL.action, fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Actions</span>
+  </div>
+);
+
+// ── Row Component ──
+const ListRow = ({ row, onEdit, onView, onDelete, isLast }) => (
+  <div 
+    onClick={onView}
+    style={{
+      display: "flex", alignItems: "center",
+      padding: "16px 24px",
+      minWidth: "800px",
+      borderBottom: isLast ? "none" : "1px solid #F3F4F6",
+      cursor: "pointer", transition: "all 0.2s"
+    }}
+    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#F9FAFB"; }}
+    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+  >
+    <div style={{ width: COL.jobNo, display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <ClipboardList size={16} style={{ color: "#8B5CF6" }} />
+      </div>
+      <span style={{ fontSize: 14, fontWeight: 700, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {row.jobcardNo}
+      </span>
+    </div>
+
+    <div style={{ width: COL.customer, display: "flex", flexDirection: "column" }}>
+      <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{row.customer_name}</span>
+      <span style={{ fontSize: 12, color: "#6B7280" }}>{row.mobile}</span>
+    </div>
+
+    <div style={{ width: COL.vehicle }}>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F1F5F9", padding: "4px 10px", borderRadius: 8 }}>
+        <Car size={14} style={{ color: "#475569" }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{row.registration_number || "—"}</span>
+      </div>
+    </div>
+
+    <div style={{ width: COL.arrival, display: "flex", alignItems: "center", gap: 6 }}>
+      <Calendar size={14} style={{ color: "#9CA3AF" }} />
+      <span style={{ fontSize: 13, color: "#4B5563" }}>{row.arrival_date}</span>
+    </div>
+
+    <div style={{ width: COL.status }}>
+      <StatusBadge status={row.status} />
+    </div>
+
+    <div style={{ width: COL.action, display: "flex", justifyContent: "flex-end", gap: 6 }}>
+      <Tooltip title="Edit Service">
+        <button 
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#F5F3FF", color: "#8B5CF6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#8B5CF6"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#F5F3FF"; e.currentTarget.style.color = "#8B5CF6"; }}
+        >
+          <Pencil size={15} />
+        </button>
+      </Tooltip>
+      <Tooltip title="Delete Service">
+        <button 
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#FEF2F2", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#EF4444"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#FEF2F2"; e.currentTarget.style.color = "#EF4444"; }}
+        >
+          <Trash2 size={15} />
+        </button>
+      </Tooltip>
+    </div>
+  </div>
+);
+
 const ServiceMain = () => {
   const navigate = useNavigate();
-  const {show, hide} = useLoading();
+  const { show, hide } = useLoading();
   const token = sessionStorage.getItem("token");
 
   const [jobcards, setJobcards] = useState([]);
   const [filtered, setFiltered] = useState([]);
-
-
   const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 8;
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedRow, setSelectedRow] = useState(null);
-
-const [currentPage, setCurrentPage] = useState(1);
-const rowsPerPage = 5;
-
-
-  /* ---------------- FETCH JOB CARDS (UNCHANGED) ---------------- */
   const fetchJobCards = async () => {
+    show();
     try {
-     show();
-
       const res = await fetch(apiEndpoints.JobCard, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
-      setJobcards(data);
-      setFiltered(data);
+      setJobcards(data || []);
     } catch (error) {
       console.error("Error loading jobcards:", error);
     } finally {
-     hide();
+      hide();
     }
   };
 
-  useEffect(() => {
-    fetchJobCards();
-  }, []);
+  useEffect(() => { fetchJobCards(); }, []);
 
-  /* ---------------- SEARCH ---------------- */
   useEffect(() => {
     let temp = [...jobcards];
-
     if (search.trim()) {
-      temp = temp.filter(
-        (item) =>
-          item.jobcardNo?.toLowerCase().includes(search.toLowerCase()) ||
-          item.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-          item.mobile?.includes(search) ||
-          item.registration_number
-            ?.toLowerCase()
-            .includes(search.toLowerCase())
+      temp = temp.filter(item =>
+        item.jobcardNo?.toLowerCase().includes(search.toLowerCase()) ||
+        item.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+        item.mobile?.includes(search) ||
+        item.registration_number?.toLowerCase().includes(search.toLowerCase())
       );
     }
-
     setFiltered(temp);
+    setCurrentPage(1);
   }, [search, jobcards]);
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const paginatedData = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-const paginatedJobcards = filtered.slice(
-  (currentPage - 1) * rowsPerPage,
-  currentPage * rowsPerPage
-);
-
-
-  /* ---------------- DELETE (UNCHANGED API) ---------------- */
   const handleDelete = async (guid) => {
-    if (!window.confirm("Are you sure you want to delete this job card?"))
-      return;
-
+    if (!window.confirm("Are you sure you want to delete this job card?")) return;
+    show();
     try {
       const res = await fetch(`${apiEndpoints.JobCard}?job_guid=${guid}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
       if (data.success) fetchJobCards();
     } catch (error) {
       console.error("Delete failed:", error);
+    } finally {
+      hide();
     }
   };
 
-  /* ---------------- MENU ---------------- */
-  const openMenu = (e, row) => {
-    setAnchorEl(e.currentTarget);
-    setSelectedRow(row);
-  };
-
-  const closeMenu = () => {
-    setAnchorEl(null);
-    setSelectedRow(null);
-  };
-
   return (
-    <Box sx={{ fontFamily: "Montserrat", p: 3 }}>
-<SectionHeader/>
+    <Box sx={{ p: { xs: 2, md: 4 }, minHeight: "100vh", backgroundColor: "#F8FAFC" }}>
+      <SectionHeader title="Services" />
 
-      {/* SEARCH */}
-      <Box display="flex" justifyContent="flex-end" mt={2}>
-        <TextField
-          placeholder="Search..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{
-           backgroundColor: "#f1f3f4",
-            borderRadius: "6px",
-            width: { xs: "100%", sm: 250 },
-            "& fieldset": { border: "none" },
-            height: "40px",
-            "& input": { padding: "10px" },
-          }}
-        />
-      </Box>
-
-      {/* TABLE */}
-      <Paper elevation={0} sx={{ mt: 2, borderRadius: "8px" }}>
-          <Box sx={{ width: "100%", overflowX: "auto" }}>
-            <Table sx={{ minWidth: 900 }}>
-              <TableHead>
-                <TableRow>
-                  {/* <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={
-                        selectedIds.length === filtered.length &&
-                        filtered.length > 0
-                      }
-                      onChange={(e) =>
-                        setSelectedIds(
-                          e.target.checked
-                            ? filtered.map((j) => j.job_guid)
-                            : []
-                        )
-                      }
-                    />
-                  </TableCell> */}
-                  <TableCell>Jobcard No</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Vehicle</TableCell>
-                  <TableCell>Arrival</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {paginatedJobcards.map((row) => (
-
-                    <TableRow key={row.job_guid} hover>
-                      {/* <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selectedIds.includes(row.job_guid)}
-                          onChange={() =>
-                            setSelectedIds((prev) =>
-                              prev.includes(row.job_guid)
-                                ? prev.filter((id) => id !== row.job_guid)
-                                : [...prev, row.job_guid]
-                            )
-                          }
-                        />
-                      </TableCell> */}
-
-                      <TableCell>{row.jobcardNo}</TableCell>
-                      <TableCell>{row.customer_name}</TableCell>
-                      <TableCell>{row.mobile}</TableCell>
-                      <TableCell>{row.registration_number}</TableCell>
-                      <TableCell>{row.arrival_date}</TableCell>
-
-                      <TableCell>{row.status}</TableCell>
-
-                      <TableCell align="right">
-                        <IconButton onClick={(e) => openMenu(e, row)}>
-                          <MoreVert />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                      No job cards found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Box>
-      </Paper>
-
-      {/* ACTION MENU */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
-        <MenuItem
-          onClick={() => {
-            navigate("/services-form", {
-              state: { guid: selectedRow?.job_guid },
-            });
-            closeMenu();
-          }}
-        >
-          <VisibilityIcon sx={{ mr: 1 }} /> View
-        </MenuItem>
-
-        <MenuItem
-          onClick={() => {
-            navigate("/services-form", {
-              state: { guid: selectedRow?.job_guid, isEditing: true },
-            });
-            closeMenu();
-          }}
-        >
-          <EditIcon sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-
-        <MenuItem
-          sx={{ color: "red" }}
-          onClick={() => {
-            handleDelete(selectedRow?.job_guid);
-            closeMenu();
-          }}
-        >
-          <Delete sx={{ mr: 1 }} /> Delete
-        </MenuItem>
-      </Menu>
-
-{/* PAGINATION  */}
-<Pagination
-  currentPage={currentPage}
-  totalPages={totalPages}
-  onPageChange={(page) => setCurrentPage(page)}
-/>
-
-
-      {/* BOTTOM BULK BAR */}
-      {/* <Box mt={3} display="flex" alignItems="center">
-        <Box
-          display="flex"
-          alignItems="center"
-          sx={{
-            backgroundColor: "rgba(249, 115, 22, 0.9)",
-            borderRadius: "4px",
-            px: 2,
-            py: 1.5,
-            cursor: "pointer",
-          }}
-          onClick={() =>
-            setSelectedIds(
-              selectedIds.length === jobcards.length
-                ? []
-                : jobcards.map((j) => j.job_guid)
-            )
-          }
-        >
-          <Checkbox
-            checked={
-              selectedIds.length === jobcards.length && jobcards.length > 0
-            }
+      {/* ── Search & Filter Bar ── */}
+      <Box sx={{ 
+        display: "flex", flexWrap: "wrap", justifyContent: "space-between", 
+        alignItems: "center", mt: 3, mb: 3, gap: 2 
+      }}>
+        <Box sx={{ position: "relative", width: { xs: "100%", sm: "100%", md: 450 } }}>
+          <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", zIndex: 1 }} />
+          <TextField 
+            placeholder="Search jobcards, customers, vehicles..."
+            fullWidth
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             sx={{
-              padding: 0,
-              color: "white",
-              "&.Mui-checked": { color: "white" },
+              "& .MuiOutlinedInput-root": {
+                paddingLeft: "35px",
+                borderRadius: "12px",
+                backgroundColor: "#fff",
+                border: "1px solid #E2E8F0",
+                height: '45px',
+                transition: 'all 0.2s',
+                "& fieldset": { border: "none" },
+                "&.Mui-focused": { 
+                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
+                  border: '1px solid #8B5CF6'
+                }
+              }
             }}
           />
-          <Typography sx={{ color: "white" }}>Select All</Typography>
         </Box>
+        
+        <Box sx={{ display: "flex", gap: 2 }}>
+           {/* Filter button removed */}
+        </Box>
+      </Box>
 
-        <Button
-          variant="contained"
-                    sx={{
-            bgcolor: "red",
-            "&:hover": { bgcolor: "darkred" },
-            px: 2,
-            py: 1.7,
-            ml: 1,
-            borderRadius: "4px",
-            color: "white",
-          }}
-          disabled={selectedIds.length === 0}
-          onClick={() => {
-            selectedIds.forEach((id) => handleDelete(id));
-            setSelectedIds([]);
-          }}
-        >
-          <Delete fontSize="small" />
-        </Button>
-      </Box> */}
+      {/* ── Summary Text ── */}
+      <Typography sx={{ mb: 2, fontSize: 14, color: "#64748B" }}>
+        Showing <strong>{filtered.length}</strong> service records
+      </Typography>
+
+      {/* ── List/Table Container ── */}
+      <Paper elevation={0} sx={{ borderRadius: "16px", border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <Box sx={{ overflowX: "auto", width: "100%" }}>
+          <THead />
+          {paginatedData.length > 0 ? (
+            paginatedData.map((row, i) => (
+              <ListRow 
+                key={row.job_guid}
+                row={row} 
+                isLast={i === paginatedData.length - 1}
+                onView={() => navigate("/services-form", { state: { guid: row.job_guid } })}
+                onEdit={() => navigate("/services-form", { state: { guid: row.job_guid, isEditing: true } })}
+                onDelete={() => handleDelete(row.job_guid)}
+              />
+            ))
+          ) : (
+            <Box sx={{ p: 8, textAlign: "center" }}>
+              <ClipboardList size={48} style={{ color: "#CBD5E1", margin: "0 auto 16px" }} />
+              <Typography sx={{ color: "#64748B", fontSize: 15 }}>No service records found</Typography>
+            </Box>
+          )}
+        </Box>
+      </Paper>
+
+      {/* ── Pagination ── */}
+      {totalPages > 1 && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 1 }}>
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => prev - 1)}
+            style={{
+              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", color: currentPage === 1 ? "#CBD5E1" : "#64748B",
+              cursor: currentPage === 1 ? "not-allowed" : "pointer"
+            }}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          
+          {[...Array(totalPages)].map((_, i) => (
+            <button 
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              style={{
+                width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: 10, border: i + 1 === currentPage ? "1px solid #8B5CF6" : "1px solid #E2E8F0",
+                background: i + 1 === currentPage ? "#F5F3FF" : "#fff",
+                color: i + 1 === currentPage ? "#8B5CF6" : "#64748B",
+                fontWeight: i + 1 === currentPage ? 700 : 500,
+                cursor: "pointer"
+              }}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            style={{
+              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", color: currentPage === totalPages ? "#CBD5E1" : "#64748B",
+              cursor: currentPage === totalPages ? "not-allowed" : "pointer"
+            }}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </Box>
+      )}
     </Box>
   );
 };

@@ -1,440 +1,341 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import Pagination from "../../components/DynamicComponents/Pagination";
 import {
   Box,
-  IconButton,
-  TextField,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Checkbox,
-  Avatar,
-  Paper,
   Typography,
-  Button,
-  MenuItem,
-  Menu,
-  useMediaQuery,
-  Stack,
+  Avatar,
+  Snackbar,
+  Alert,
   Tooltip,
+  IconButton,
 } from "@mui/material";
-import { Add, Delete, MoreVert, Settings } from "@mui/icons-material";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import { 
+  Search, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Mail, 
+  Phone, 
+  User, 
+  Car, 
+  Briefcase, 
+  GraduationCap,
+  MoreVertical,
+  ChevronRight
+} from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../../components/common/Header";
-import ReportTable from "../../components/Reports/ReportTable";
+import { TextField } from "@mui/material";
+import CustomerViewModal from "./CustomerViewModal";
 
-const api = {
-  delete: async (url) => {
-    const response = await fetch(url, {
-      method: "DELETE",
-      headers: {
-        Authorization: "Bearer " + sessionStorage.getItem("token"),
-      },
-    });
-    const data = await response.json();
-    return { data };
-  },
+// ── col widths ────────────────────────────────────────────────────────────────
+const COL = {
+  profile: 320,
+  contact: 280,
+  extra:   200,
+  action:  100,
 };
 
+// ── List Header ────────────────────────────────────────────────────────────────
+const THead = ({ extraLabel }) => (
+  <Box sx={{
+    display: "flex", alignItems: "center",
+    padding: "14px 24px", background: "#F8FAF6", borderBottom: "1px solid #E2E8F0",
+    gap: 3,
+  }}>
+    <Typography sx={{ width: COL.profile, fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Customer Identity</Typography>
+    <Typography sx={{ width: COL.contact, fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contact Details</Typography>
+    <Typography sx={{ width: COL.extra, fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>{extraLabel}</Typography>
+    <Box sx={{ flex: 1 }} />
+    <Typography sx={{ width: COL.action, fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>Actions</Typography>
+  </Box>
+);
+
+// ── List Row ─────────────────────────────────────────────────────────────────
+const ListRow = ({ user, extraLabel, onEdit, onDelete, onView, isLast, showView }) => {
+  const ExtraIcon = useMemo(() => {
+    switch(extraLabel?.toLowerCase()) {
+      case 'vehicle': return Car;
+      case 'position': return Briefcase;
+      case 'role': return User;
+      case 'qualification': return GraduationCap;
+      default: return User;
+    }
+  }, [extraLabel]);
+
+  return (
+    <Box
+      sx={{
+        display: "flex", alignItems: "center",
+        padding: "16px 24px",
+        gap: 3,
+        borderBottom: isLast ? "none" : "1px solid #F1F5F9",
+        transition: "all 0.2s ease",
+        cursor: showView ? "pointer" : "default",
+        "&:hover": { background: "#F8FAFC" }
+      }}
+      onClick={showView ? onView : undefined}
+    >
+      {/* Identity */}
+      <Box sx={{ width: COL.profile, display: "flex", alignItems: "center", gap: 2 }}>
+        <Avatar 
+          src={user.image} 
+          sx={{ width: 44, height: 44, borderRadius: "12px", border: "2px solid #fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+        >
+          {user.firstName?.[0]}
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#1E293B", lineHeight: 1.2 }}>
+            {user.firstName} {user.lastName}
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: "#94A3B8", mt: 0.5, display: "flex", alignItems: "center", gap: 0.5 }}>
+            ID: <span style={{ color: "#3B82F6", fontWeight: 600 }}>{user.user_guid?.slice(0, 8)}</span>
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Contact */}
+      <Box sx={{ width: COL.contact }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+          <Mail size={13} color="#94A3B8" />
+          <Typography sx={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{user.email || 'N/A'}</Typography>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Phone size={13} color="#94A3B8" />
+          <Typography sx={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{user.mobile || 'N/A'}</Typography>
+        </Box>
+      </Box>
+
+      {/* Extra Info (Vehicle/Position/etc) */}
+      <Box sx={{ width: COL.extra }}>
+        <Box sx={{ 
+          display: "inline-flex", alignItems: "center", gap: 1, 
+          background: "#F1F5F9", px: 1.5, py: 0.75, borderRadius: "8px",
+          border: "1px solid #E2E8F0"
+        }}>
+          <ExtraIcon size={14} color="#64748B" />
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
+            {user.extraValue || "-"}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ flex: 1 }} />
+
+      <Box sx={{ width: COL.action, display: "flex", justifyContent: "center", gap: 1 }}>
+        <Tooltip title="Edit Profile">
+          <IconButton 
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            sx={{ 
+              width: 32, height: 32, borderRadius: "8px", background: "#F5F3FF", color: "#8B5CF6",
+              "&:hover": { background: "#8B5CF6", color: "#fff" }
+            }}
+          >
+            <Pencil size={15} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Delete Entry">
+          <IconButton 
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            sx={{ 
+              width: 32, height: 32, borderRadius: "8px", background: "#FEF2F2", color: "#EF4444",
+              "&:hover": { background: "#EF4444", color: "#fff" }
+            }}
+          >
+            <Trash2 size={15} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+};
+
+// ── Main UserList Component ───────────────────────────────────────────────────
 function UserList({
   users = [],
-  onDelete,
-  setUsers,
   title,
   columns,
   detailsKey,
   addRoute,
   editRoutePrefix,
   fetchData,
+  onDelete: onDeleteProp,
 }) {
-  const [localUsers, setLocalUsers] = useState(users);
   const navigate = useNavigate();
-  const location = useLocation();
-  const isMobile = useMediaQuery("(max-width:600px)");
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
-
-  const [actionAnchorEl, setActionAnchorEl] = useState(null);
-  const [addAnchorEl, setAddAnchorEl] = useState(null);
-  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 1;
-
-
-
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
-    fetchData(); // Call your API/data fetching function
+    fetchData();
   }, []);
 
-  // useEffect(() => {
-  //   const hasReloaded = sessionStorage.getItem('hasReloaded');
+  const extraColumn = useMemo(() => {
+    return columns.find(c => !["Image", "First Name", "Last Name", "Email", "Mobile Number", "Action"].includes(c));
+  }, [columns]);
 
-  //   if (!hasReloaded) {
-  //     sessionStorage.setItem('hasReloaded', 'true');
-  //     window.location.reload();
-  //   }
-  //   else{
-
-  //   }
-  // }, []);
-
-  // Transform the user data to match the expected format
-  const transformedUsers = React.useMemo(() => {
+  const transformedUsers = useMemo(() => {
     return (users || []).map((user) => ({
-      id: user.vehicle_guid || user.user_guid,
-      user_guid: user.user_guid,
-      vehicle_guid: user.vehicle_guid,
-
+      ...user,
       firstName: user.first_name,
       lastName: user.last_name,
       email: user.email,
       mobile: user.mobile,
+      monthlySalary: user.monthly_salary ?? user.monthlySalary ?? user.salary ?? "0",
       image: `${apiEndpoints.blob}${user.image_path}` || user.image_path,
-      [detailsKey]: getUserDetail(user, detailsKey),
-      // For quotations
-      quotationNumber: user.quotation_no,
-      customerName: user.customer_name,
-      date: user.date,
-      price: user.price,
-      status: user.status,
-      // Add other fields as needed
+      extraValue: user[detailsKey] || user.vehicle_number || user.position || user.role || user.qualifications || "-",
     }));
   }, [users, detailsKey]);
 
-  console.log(transformedUsers);
-
-  // Helper function to get the detail based on user type
-  function getUserDetail(user, key) {
-    const supportStaffMappings = {
-      roles: {
-        1: "Cleaner",
-        2: "Helper",
-        3: "Runner",
-        4: "Inventory Helper",
-      },
-    };
-
-    switch (key) {
-      case "vehicle":
-        // Try vehicle_make (joined), fallback to first vehicle if exists
-        return (
-          // user.vehicle_make ||
-          // user.vehicle_number ||
-          // user.vehicles?.[0]?.make ||
-          // "-"
-          user.vehicle_number || "-"
-        );
-      case "position":
-        return user.position || "-";
-      case "role":
-        return supportStaffMappings.roles[user.role] || user.role || "-";
-      case "qualification":
-        return user.qualifications || "-";
-      case "service":
-        return user.service || "-";
-      default:
-        return "-";
-    }
-  }
-
-  const filteredUsers = React.useMemo(() => {
+  const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return transformedUsers.filter((user) => {
-      return (
-        user.firstName?.toLowerCase().includes(term) ||
-        user.lastName?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term) ||
-        user.mobile?.toString().includes(term) ||
-        user[detailsKey]?.toLowerCase?.().includes(term)
-      );
-    });
-  }, [transformedUsers, searchTerm, detailsKey]);
-
-  useEffect(() => {
-    setSelectedUsers([]);
-  }, [users]);
-
-  const handleAddMenuOpen = (event) => {
-    setAddAnchorEl(event.currentTarget);
-  };
-
-  const handleAddMenuClose = () => {
-    setAddAnchorEl(null);
-  };
-
-  const handleMenuOpen = (event, user) => {
-    setActionAnchorEl(event.currentTarget);
-    setSelectedUser(user);
-  };
-
-  const handleMenuClose = () => {
-    setActionAnchorEl(null);
-    setSelectedUser(null);
-  };
-
-  const handleProfileClose = () => {
-    setProfileAnchorEl(null);
-  };
-
-  const handleSelectAll = (event) => {
-    setSelectedUsers(event.target.checked ? users.map((u) => u.id) : []);
-  };
-
-  const handleSelectOne = (id) => {
-    setSelectedUsers((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    return transformedUsers.filter((user) => 
+      user.firstName?.toLowerCase().includes(term) ||
+      user.lastName?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term) ||
+      user.mobile?.toString().includes(term) ||
+      user.extraValue?.toLowerCase?.().includes(term) ||
+      user.user_guid?.toLowerCase().includes(term)
     );
-  };
+  }, [transformedUsers, searchTerm]);
 
   const handleDelete = async (userGuid, vehicleGuid) => {
-    console.log("Delete called:", userGuid, vehicleGuid);
+    if (!window.confirm(`Are you sure you want to remove this ${title.toLowerCase()}?`)) return;
     try {
-      const response = await api.delete(
-        `${apiEndpoints.usersdata}?user_guid=${userGuid}&vehicle_guid=${vehicleGuid}`
-      );
-      console.log(response.data);
-      fetchData();
+      if (onDeleteProp) {
+        await onDeleteProp([userGuid], vehicleGuid, userGuid);
+        setSnackbar({ open: true, message: `${title} deleted successfully`, severity: "success" });
+        return;
+      }
+
+      const response = await fetch(`${apiEndpoints.usersdata}?user_guid=${userGuid}&vehicle_guid=${vehicleGuid || ''}`, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + sessionStorage.getItem("token") },
+      });
+      const data = await response.json();
+      if (data.success || data.message?.includes("success")) {
+        setSnackbar({ open: true, message: `${title} deleted successfully`, severity: "success" });
+        fetchData();
+      } else {
+        throw new Error(data.message || "Delete failed");
+      }
     } catch (error) {
-      console.error(error);
+      setSnackbar({ open: true, message: error.message, severity: "error" });
     }
   };
-
-
-  const handleFooterSelectAll = (event) => {
-    const shouldSelectAll = event.target.checked;
-    const filteredIds = filteredUsers.map((u) => u.id);
-
-    if (shouldSelectAll) {
-      setSelectedUsers([...new Set([...selectedUsers, ...filteredIds])]);
-    } else {
-      setSelectedUsers(selectedUsers.filter((id) => !filteredIds.includes(id)));
-    }
-  };
-
-  const handleDropdownItemClick = (path) => {
-    navigate(path);
-    handleAddMenuClose();
-  };
-
-  const handleDropdownClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleProfileClick = (event) => {
-    setProfileAnchorEl(event.currentTarget);
-  };
-
-  const dynamicColumn = columns.find(
-    (c) =>
-      ![
-        "Image",
-        "First Name",
-        "Last Name",
-        "Email",
-        "Mobile Number",
-        "Action",
-      ].includes(c)
-  );
-
-  const tableData = filteredUsers.map((user) => ({
-    Selected: selectedUsers.includes(user.id),
-    Image: user.image,
-    "First Name": user.firstName,
-    "Last Name": user.lastName,
-    Email: user.email,
-    "Mobile Number": user.mobile,
-
-    [dynamicColumn]: user[detailsKey] || "-", // ✅ FIXED
-
-    onEdit: () => navigate(`${editRoutePrefix}/${user.user_guid}`),
-    onDelete: () => {
-      handleDelete(user.user_guid, user.vehicle_guid);
-    }
-
-  }));
-
 
   return (
-    <Box sx={{ fontFamily: "Montserrat", p: { xs: 1, sm: 3 } }}>
+    <Box sx={{ p: 4 }}>
       <SectionHeader />
 
-      <Box
-        display="flex"
-        flexDirection={{ xs: "column", sm: "row" }}
-        justifyContent="flex-end"
-        alignItems={{ xs: "flex-start", sm: "center" }}
-        mb={2}
-        mt={2}
-        gap={2}
-      >
-        <TextField
-          placeholder="Search..."
-          variant="outlined"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{
-            backgroundColor: "#f1f3f4",
-            borderRadius: "6px",
-            width: { xs: "100%", sm: 250 },
-            "& fieldset": { border: "none" },
-          }}
-        />
-      </Box>
-
-      {/* Table Container */}
-      <Box sx={{ overflowX: "auto" }}>
-        <Paper elevation={0} sx={{ minWidth: 600 }}>
-          <ReportTable
-            columns={columns}
-            data={tableData}
-            onCheckChange={(index) => {
-              const userId = filteredUsers[index]?.id;
-              if (userId) handleSelectOne(userId);
-            }}
-          />
-        </Paper>
-      </Box>
-
-      <Menu
-        anchorEl={actionAnchorEl}
-        open={Boolean(actionAnchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem
-          onClick={() => {
-            navigate(`${editRoutePrefix}/${selectedUser?.id}`);
-            handleMenuClose();
-          }}
-        >
-          Edit
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleDelete(selectedUser?.user_guid, selectedUser?.vehicle_guid);
-            handleMenuClose();
-          }}
-        >
-          Delete
-        </MenuItem>
-
-      </Menu>
-
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) => setCurrentPage(page)}
-      />
-
-      <Box
-        display="flex"
-        flexDirection={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        mt={2}
-        gap={2}
-      >
-        <Box>
-          {/* Buttons Container */}
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            spacing={2}
-          >
-            {/* Left Side: Select All */}
-            {/* <Box
-              display="flex"
-              alignItems="center"
+      {/* Toolbar Section */}
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          <Box sx={{ position: "relative", width: { xs: "100%", sm: "100%", md: 400 } }}>
+            <Search size={18} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none", zIndex: 1 }} />
+            <TextField
+              placeholder={`Search ${title.toLowerCase()}...`}
+              fullWidth
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
-                borderRadius: "4px",
-                px: 2,
-                py: 1,
-                minHeight: "36px",
-                "&:hover": {
-                  cursor: "pointer",
-                },
-              }}
-              onClick={(e) => {
-                const allSelected = filteredUsers.every((user) =>
-                  selectedUsers.includes(user.id)
-                );
-                handleFooterSelectAll({ target: { checked: !allSelected } });
-              }}
-            >
-              <Checkbox
-                checked={
-                  filteredUsers.length > 0 &&
-                  filteredUsers.every((user) => selectedUsers.includes(user.id))
+                "& .MuiOutlinedInput-root": {
+                  paddingLeft: "36px",
+                  borderRadius: "14px",
+                  backgroundColor: "#fff",
+                  border: "1px solid #E2E8F0",
+                  height: '45px',
+                  transition: 'all 0.2s',
+                  "& fieldset": { border: "none" },
+                  "&.Mui-focused": { 
+                    boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
+                    border: '1px solid #8B5CF6'
+                  }
                 }
-                onChange={handleFooterSelectAll}
-                sx={{
-                  padding: 0,
-                  color: "white",
-                  "&.Mui-checked": { color: "white" },
-                  "&:hover": { backgroundColor: "transparent" },
-                }}
-              />
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "white",
-                  ml: 1,
-                  lineHeight: 1,
-                }}
-              >
-                Select All
-              </Typography>
-            </Box> */}
-
-            {/* Right Side: Delete + Pagination */}
-            {/* <Box display="flex" alignItems="center" gap={1}>
-              <Button
-                variant="contained"
-                sx={{
-                  bgcolor: "red",
-                  "&:hover": { bgcolor: "darkred" },
-                  px: 2,
-                  py: 1.3,
-                  borderRadius: "4px",
-                  color: "white",
-                  minWidth: "auto",
-                  marginLeft: "10px",
-                }}
-                onClick={() => handleDelete()}
-              >
-                <Delete fontSize="small" />
-              </Button>
-            </Box> */}
+              }}
+            />
           </Box>
+          <Typography sx={{ fontSize: 13, color: "#94A3B8", ml: 1, fontWeight: 600 }}>
+            Showing <span style={{ color: "#8B5CF6", fontWeight: 800 }}>{filteredUsers.length}</span> {title}
+          </Typography>
         </Box>
       </Box>
+
+      {/* List Container */}
+      {filteredUsers.length === 0 ? (
+        <Box sx={{ 
+          textAlign: "center", py: 12, background: "#F8FAFC", borderRadius: "24px", 
+          border: "2px dashed #E2E8F0", display: "flex", flexDirection: "column", alignItems: "center"
+        }}>
+          <Box sx={{ 
+            width: 80, height: 80, borderRadius: "20px", background: "#fff", 
+            display: "flex", alignItems: "center", justifyContent: "center",
+            mb: 2, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.04)"
+          }}>
+            <User size={32} color="#94A3B8" />
+          </Box>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1E293B" }}>No {title.toLowerCase()} found</Typography>
+          <Typography sx={{ fontSize: 14, color: "#64748B", mt: 1, maxWidth: 300 }}>
+            We couldn't find any {title.toLowerCase()} matching your current search criteria.
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ 
+          background: "#fff", borderRadius: "24px", border: "1px solid #E2E8F0", 
+          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.04)", overflow: "hidden" 
+        }}>
+          <Box sx={{ overflowX: "auto", width: "100%" }}>
+            <Box sx={{ minWidth: COL.profile + COL.contact + COL.extra + COL.action + 100 }}>
+              <THead extraLabel={extraColumn} />
+              {filteredUsers.map((user, i) => (
+                <ListRow 
+                  key={user.user_guid} 
+                  user={user} 
+                  extraLabel={extraColumn}
+                  isLast={i === filteredUsers.length - 1}
+                  showView={["Customers", "Employees", "Support Staff", "Accountants"].includes(title)}
+                  onView={() => { setSelectedUser(user); setViewOpen(true); }}
+                  onEdit={() => navigate(`${editRoutePrefix}/${user.user_guid}`)}
+                  onDelete={() => handleDelete(user.user_guid, user.vehicle_guid)}
+                />
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Notifications */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar(p => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "12px", fontWeight: 600 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      <CustomerViewModal 
+        open={viewOpen} 
+        onClose={() => setViewOpen(false)} 
+        user={selectedUser} 
+      />
     </Box>
   );
 }
 
 UserList.propTypes = {
   users: PropTypes.array.isRequired,
-  setUsers: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
   title: PropTypes.string.isRequired,
   columns: PropTypes.array.isRequired,
   detailsKey: PropTypes.string.isRequired,
   addRoute: PropTypes.string.isRequired,
   editRoutePrefix: PropTypes.string.isRequired,
+  fetchData: PropTypes.func.isRequired,
 };
 
 export default React.memo(UserList);

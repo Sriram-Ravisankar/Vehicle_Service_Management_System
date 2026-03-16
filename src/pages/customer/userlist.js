@@ -615,7 +615,7 @@ function UserList({
               display="flex"
               alignItems="center"
               sx={{
-                backgroundColor: "rgba(249, 115, 22, 0.9)",
+                backgroundColor: "rgba(139, 92, 246, 0.9)",
                 borderRadius: "4px",
                 px: 2,
                 py: 1,

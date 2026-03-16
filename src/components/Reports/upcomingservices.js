@@ -109,7 +109,7 @@ if (filters.status && filters.status !== "All") {
     };
     if (status === "Completed")
       return { ...base, background: "linear-gradient(90deg,#10B981,#059669)" }; // green
-    return { ...base, background: "linear-gradient(90deg,#F59E0B,#F97316)" }; // pending -> orange
+    return { ...base, background: "linear-gradient(90deg,#F59E0B,#8B5CF6)" }; // pending -> orange
   };
 
   const renderBadge = (status) => (

@@ -258,17 +258,19 @@ const JobCard = ({ formData, setFormData }) => {
           </Box>
 
           {/* Table */}
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Category</TableCell>
-                <TableCell>Observation Point</TableCell>
-                <TableCell>Comments</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>{/* Dynamic rows will go here */}</TableBody>
-          </Table>
+          <Box sx={{ overflowX: "auto", width: "100%" }}>
+            <Table sx={{ minWidth: 600 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Observation Point</TableCell>
+                  <TableCell>Comments</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>{/* Dynamic rows will go here */}</TableBody>
+            </Table>
+          </Box>
         </Box>
       </Collapse>
 

@@ -189,7 +189,7 @@ switch ($method) {
                         $user['vehicles'] = $conn->query($vehiclesSql)->fetch_all(MYSQLI_ASSOC);
                         break;
                     case 'employee':
-                        $typeSql = "SELECT * FROM employees WHERE user_guid = '$userGuid'";
+                        $typeSql = "SELECT *, monthly_salary as monthlySalary, monthly_salary as salary FROM employees WHERE user_guid = '$userGuid'";
                         break;
                     case 'accountant':
                         $typeSql = "SELECT * FROM accountants WHERE user_guid = '$userGuid'";
@@ -225,7 +225,10 @@ switch ($method) {
                     case 'employee':
                         $sql = "
                 SELECT u.*, e.position, e.department, e.employee_type, 
-                       e.date_of_joining
+                       e.date_of_joining, e.monthly_salary, e.monthly_salary as monthlySalary, e.bank_name, 
+                       e.account_number, e.ifsc_code, e.pan_number, 
+                       e.aadhaar_number, e.employee_code, e.shift_timing,
+                       e.reporting_manager, e.work_location
                 FROM users u
                 LEFT JOIN employees e ON e.user_guid = u.user_guid
                 WHERE u.isDeleted = FALSE 
@@ -253,7 +256,7 @@ switch ($method) {
 
                     case 'support_staff':
                         $sql = "
-                SELECT u.*, s.role, s.assigned_area, s.joining_date, s.shift_timing
+                SELECT u.*, s.role, s.assigned_area, s.joining_date, s.shift_timing, s.emergency_contact
                 FROM users u
                 LEFT JOIN support_staff s ON s.user_guid = u.user_guid
                 WHERE u.isDeleted = FALSE 
@@ -540,105 +543,99 @@ switch ($method) {
                     $leaveBalance = $_POST['leave_balance'] ?? 0;
 
                     if ($isUpdate) {
+                        // Check if employee record exists
+                        $checkSql = "SELECT user_guid FROM employees WHERE user_guid = ?";
+                        $checkStmt = $conn->prepare($checkSql);
+                        $checkStmt->bind_param("s", $userGuid);
+                        $checkStmt->execute();
+                        $exists = $checkStmt->get_result()->num_rows > 0;
 
-                        // UPDATE EMPLOYEE
-                        $typeSql = "
-            UPDATE employees SET
-                position = ?, 
-                department = ?, 
-                employee_type = ?, 
-                date_of_joining = ?, 
-                shift_timing = ?, 
-                reporting_manager = ?, 
-                work_location = ?, 
-                monthly_salary = ?, 
-                bank_name = ?, 
-                account_holder_name = ?, 
-                account_number = ?, 
-                ifsc_code = ?, 
-                pan_number = ?, 
-                aadhaar_number = ?, 
-                status = ?, 
-                employee_code = ?, 
-                total_jobs_assigned = ?, 
-                jobs_completed = ?, 
-                customer_rating = ?, 
-                attendance_record = ?, 
-                leave_balance = ?
-            WHERE user_guid = ?
-        ";
+                        if ($exists) {
+                            // UPDATE EMPLOYEE
+                            $typeSql = "
+                                UPDATE employees SET
+                                    position = ?, 
+                                    department = ?, 
+                                    employee_type = ?, 
+                                    date_of_joining = ?, 
+                                    shift_timing = ?, 
+                                    reporting_manager = ?, 
+                                    work_location = ?, 
+                                    monthly_salary = ?, 
+                                    bank_name = ?, 
+                                    account_holder_name = ?, 
+                                    account_number = ?, 
+                                    ifsc_code = ?, 
+                                    pan_number = ?, 
+                                    aadhaar_number = ?, 
+                                    status = ?, 
+                                    employee_code = ?, 
+                                    total_jobs_assigned = ?, 
+                                    jobs_completed = ?, 
+                                    customer_rating = ?, 
+                                    attendance_record = ?, 
+                                    leave_balance = ?
+                                WHERE user_guid = ?
+                            ";
 
-                        $stmt = $conn->prepare($typeSql);
+                            $stmt = $conn->prepare($typeSql);
+                            $stmt->bind_param(
+                                "ssssssssssssssssiidsis",
+                                $position, $department, $employeeType, $dateOfJoining,
+                                $shiftTiming, $reportingManager, $workLocation, $monthlySalary,
+                                $bankName, $accountHolderName, $accountNumber, $ifscCode,
+                                $panNumber, $aadhaarNumber, $status, $employeeCode,
+                                $totalJobsAssigned, $jobsCompleted, $customerRating,
+                                $attendanceRecord, $leaveBalance, $userGuid
+                            );
+                        } else {
+                            // INSERT EMPLOYEE (if record was somehow missing)
+                            $typeSql = "
+                                INSERT INTO employees (
+                                    user_guid, position, department, employee_type, 
+                                    date_of_joining, shift_timing, reporting_manager, 
+                                    work_location, monthly_salary, bank_name, 
+                                    account_holder_name, account_number, ifsc_code, 
+                                    pan_number, aadhaar_number, status, employee_code, 
+                                    total_jobs_assigned, jobs_completed, customer_rating, 
+                                    attendance_record, leave_balance
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ";
 
-                        // ✅ Correct bind_param (21 params + 1 user_guid)
-                        $stmt->bind_param(
-                            "ssssssssssssssssiidssi",
-                            $position,
-                            $department,
-                            $employeeType,
-                            $dateOfJoining,
-                            $shiftTiming,
-                            $reportingManager,
-                            $workLocation,
-                            $monthlySalary,
-                            $bankName,
-                            $accountHolderName,
-                            $accountNumber,
-                            $ifscCode,
-                            $panNumber,
-                            $aadhaarNumber,
-                            $status,
-                            $employeeCode,
-                            $totalJobsAssigned,
-                            $jobsCompleted,
-                            $customerRating,
-                            $attendanceRecord,
-                            $leaveBalance,
-                            $userGuid
-                        );
-
+                            $stmt = $conn->prepare($typeSql);
+                            $stmt->bind_param(
+                                "sssssssssssssssssiidsi",
+                                $userGuid, $position, $department, $employeeType,
+                                $dateOfJoining, $shiftTiming, $reportingManager, $workLocation,
+                                $monthlySalary, $bankName, $accountHolderName, $accountNumber,
+                                $ifscCode, $panNumber, $aadhaarNumber, $status,
+                                $employeeCode, $totalJobsAssigned, $jobsCompleted,
+                                $customerRating, $attendanceRecord, $leaveBalance
+                            );
+                        }
                     } else {
-
                         // INSERT EMPLOYEE
                         $typeSql = "
-            INSERT INTO employees (
-                user_guid, position, department, employee_type, 
-                date_of_joining, shift_timing, reporting_manager, 
-                work_location, monthly_salary, bank_name, 
-                account_holder_name, account_number, ifsc_code, 
-                pan_number, aadhaar_number, status, employee_code, 
-                total_jobs_assigned, jobs_completed, customer_rating, 
-                attendance_record, leave_balance
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ";
+                            INSERT INTO employees (
+                                user_guid, position, department, employee_type, 
+                                date_of_joining, shift_timing, reporting_manager, 
+                                work_location, monthly_salary, bank_name, 
+                                account_holder_name, account_number, ifsc_code, 
+                                pan_number, aadhaar_number, status, employee_code, 
+                                total_jobs_assigned, jobs_completed, customer_rating, 
+                                attendance_record, leave_balance
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ";
 
                         $stmt = $conn->prepare($typeSql);
-
-                        // ✔ INSERT parameter order
                         $stmt->bind_param(
-                            "ssssssssssssssssiidsss",
-                            $userGuid,
-                            $position,
-                            $department,
-                            $employeeType,
-                            $dateOfJoining,
-                            $shiftTiming,
-                            $reportingManager,
-                            $workLocation,
-                            $monthlySalary,
-                            $bankName,
-                            $accountHolderName,
-                            $accountNumber,
-                            $ifscCode,
-                            $panNumber,
-                            $aadhaarNumber,
-                            $status,
-                            $employeeCode,
-                            $totalJobsAssigned,
-                            $jobsCompleted,
-                            $customerRating,
-                            $attendanceRecord,
-                            $leaveBalance
+                            "sssssssssssssssssiidsi",
+                            $userGuid, $position, $department, $employeeType,
+                            $dateOfJoining, $shiftTiming, $reportingManager, $workLocation,
+                            $monthlySalary, $bankName, $accountHolderName, $accountNumber,
+                            $ifscCode, $panNumber, $aadhaarNumber, $status,
+                            $employeeCode, $totalJobsAssigned, $jobsCompleted,
+                            $customerRating, $attendanceRecord, $leaveBalance
                         );
                     }
 

@@ -2,46 +2,76 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
-  Grid,
-  Typography,
-  TextField,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Button,
-  Stack,
-  IconButton,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  useMediaQuery,
-  useTheme,
   Snackbar,
   Alert,
-  FormHelperText,
 } from "@mui/material";
 import { format } from "date-fns";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import AddIcon from "@mui/icons-material/Add";
-import SettingsIcon from "@mui/icons-material/Settings";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
-import DeleteIcon from "@mui/icons-material/Delete";
-import Checkbox from "@mui/material/Checkbox";
-import { CgArrowLeft } from "react-icons/cg";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Building2, 
+  Upload, 
+  X, 
+  Save, 
+  Briefcase, 
+  Car, 
+  CreditCard, 
+  DollarSign, 
+  ShieldCheck,
+  Calendar,
+  Trash2,
+  Plus,
+  Hash
+} from "lucide-react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import apiEndpoints from "../../apiconfig/index";
 import DynamicHeader from "../../components/common/Dynamicheader";
+
+// ── tiny helpers (consistent with AddSupplier / AddPurchase) ───────────────────
+const Field = ({ label, icon: Icon, error, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
+      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {label}
+    </label>
+    {children}
+    {error && <span style={{ fontSize: 12, color: "#DC2626" }}>{error}</span>}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+});
+
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+    </div>
+    {children}
+  </div>
+);
 
 const api = {
   get: async (url) => {
@@ -57,10 +87,6 @@ const api = {
 };
 
 const AddUser = ({ userType, onSave, users }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
-  const isLaptop = useMediaQuery(theme.breakpoints.up("md"));
   const [errors, setErrors] = useState({});
 
   const navigate = useNavigate();
@@ -75,32 +101,6 @@ const AddUser = ({ userType, onSave, users }) => {
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbar({ ...snackbar, open: false });
-  };
-  // Responsive styles
-  const labelStyle = {
-    minWidth: isMobile ? "120px" : "150px",
-    textAlign: "left",
-    paddingRight: isMobile ? "8px" : "16px",
-    fontWeight: 500,
-    fontSize: isMobile ? "0.85rem" : "0.95rem",
-  };
-
-  const inputStyle = {
-    flex: 1,
-    "& .MuiInputBase-root": {
-      height: isMobile ? "36px" : "40px",
-      fontSize: isMobile ? "0.8rem" : "0.9rem",
-    },
-  };
-
-  const sectionTitleStyle = {
-    variant: isMobile ? "subtitle1" : "h6",
-    fontWeight: "bold",
-    sx: {
-      textTransform: "uppercase",
-      mb: 1,
-      fontSize: isMobile ? "1rem" : "1.25rem",
-    },
   };
 
   // Define constants for dropdown options
@@ -274,16 +274,7 @@ const AddUser = ({ userType, onSave, users }) => {
     },
   ]);
 
-  const [notes, setNotes] = useState([
-    {
-      id: 1,
-      text: "",
-      file: null,
-      filePath: "", // For displaying existing file in edit mode
-      internalNotes: false,
-      sharedWithCustomer: false,
-    },
-  ]);
+
 
   useEffect(() => {
     if (isEdit && id) {
@@ -333,7 +324,7 @@ const AddUser = ({ userType, onSave, users }) => {
               shiftTiming: userData.shiftTiming || userData.shift_timing || "",
               reportingManager: userData.reporting_manager || "",
               workLocation: userData.work_location || "",
-              monthlySalary: userData.monthly_salary || "",
+              monthlySalary: userData.monthly_salary ?? userData.monthlySalary ?? userData.salary ?? "",
               bankName: userData.bank_name || "",
               accountHolderName: userData.account_holder_name || "",
               accountNumber: userData.account_number || "",
@@ -392,45 +383,12 @@ const AddUser = ({ userType, onSave, users }) => {
               }));
             }
 
-            // Handle notes data
-            let notesData = [
-              {
-                id: 1,
-                text: "",
-                file: null,
-                filePath: "",
-                internalNotes: false,
-                sharedWithCustomer: false,
-              },
-            ];
 
-            if (userData.notes && Array.isArray(userData.notes)) {
-              notesData = userData.notes.map((note, index) => ({
-                id: index + 1,
-                text: note.text || note.note_text || "",
-                file: null,
-                filePath: note.file_path || "",
-                internalNotes:
-                  note.internal_notes === 1 ||
-                  note.internal_notes === "1" ||
-                  note.is_internal === 1 ||
-                  note.is_internal === "1",
-                sharedWithCustomer:
-                  note.shared_with_customer === 1 ||
-                  note.shared_with_customer === "1" ||
-                  note.is_shared_with_customer === 1 ||
-                  note.is_shared_with_customer === "1",
-              }));
-
-            }
 
             console.log("Mapped Data:", mappedData);
             console.log("Vehicles Data:", vehiclesData);
-            console.log("Notes Data:", notesData);
-
             setFormData(mappedData);
             setVehicles(vehiclesData);
-            setNotes(notesData);
           } else {
             console.error(data.error || "Failed to fetch user data");
             alert(data.error || "Failed to fetch user data");
@@ -504,34 +462,7 @@ const AddUser = ({ userType, onSave, users }) => {
     }
   };
 
-  const addNoteSection = () => {
-    setNotes([
-      ...notes,
-      {
-        id: Date.now(),
-        text: "",
-        file: null,
-        filePath: "",
-        internalNotes: false,
-        sharedWithCustomer: false,
-      },
-    ]);
-  };
 
-  const deleteNoteSection = (id) => {
-    setNotes(notes.filter((note) => note.id !== id));
-  };
-
-  const handleNoteChange = (id, field, value) => {
-    setNotes(
-      notes.map((note) => (note.id === id ? { ...note, [field]: value } : note))
-    );
-  };
-
-  const handleNoteFileChange = (id, e) => {
-    const file = e.target.files[0];
-    setNotes(notes.map((note) => (note.id === id ? { ...note, file } : note)));
-  };
 
   const validateForm = () => {
     let newErrors = {};
@@ -822,14 +753,7 @@ const AddUser = ({ userType, onSave, users }) => {
         formDataToSend.append("vehicles", JSON.stringify(processedVehicles));
       }
 
-      // Notes
-      const processedNotes = notes.map((note) => ({
-        text: note.text,
-        file_path: note.filePath,
-        internal_notes: note.internalNotes,
-        shared_with_customer: note.sharedWithCustomer,
-      }));
-      formDataToSend.append("notes", JSON.stringify(processedNotes));
+
 
       console.log("EDIT MODE:", isEdit);
       console.log("Sending user_guid:", id);
@@ -884,610 +808,201 @@ const AddUser = ({ userType, onSave, users }) => {
 
   // Render Support Staff specific fields
   const renderSupportStaffFields = () => (
-    <>
-      <Box sx={{ mt: 4, mb: 2 }}>
-        <Typography {...sectionTitleStyle}>
-          Support Staff Information
-        </Typography>
-        <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-      </Box>
+    <SectionCard title="Support Staff Information" icon={Briefcase}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
+        <Field label="Role/Designation *" icon={Briefcase} error={errors.role}>
+          <select name="role" value={formData.role} onChange={handleChange} style={inputSx(!!errors.role)}>
+            <option value="">Select Role</option>
+            {supportStaffRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </Field>
 
-      <Grid container spacing={isMobile ? 2 : 4}>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Stack spacing={2}>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Role/Designation*
-              </Typography>
-              <FormControl sx={{ ...inputStyle, width: "100%" }}>
-                <InputLabel>Select Role</InputLabel>
-                <Select
-                  name="role"
-                  label="Select Role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  error={Boolean(errors.role)}
-                  helperText={errors.role}
-                >
-                  {supportStaffRoles.map((role) => (
-                    <MenuItem key={role.id} value={role.id}>
-                      {role.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Assigned Area*
-              </Typography>
-              <FormControl sx={{ ...inputStyle, width: "100%" }}>
-                <InputLabel>Select Area</InputLabel>
-                <Select
-                  name="assignedArea"
-                  label="Select Area"
-                  value={formData.assignedArea}
-                  onChange={handleChange}
-                  error={Boolean(errors.assignedArea)}
-                  helperText={errors.assignedArea}
-                >
-                  {assignedAreas.map((area) => (
-                    <MenuItem key={area.id} value={area.id}>
-                      {area.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          </Stack>
-        </Grid>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Stack spacing={2}>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Shift Timing*
-              </Typography>
-              <FormControl sx={{ ...inputStyle, width: "100%" }}>
-                <InputLabel>Select Shift</InputLabel>
-                <Select
-                  name="shiftTiming"
-                  label="Select Shift"
-                  value={formData.shiftTiming}
-                  onChange={handleChange}
-                  error={Boolean(errors.shiftTiming)}
-                  helperText={errors.shiftTiming}
-                >
-                  {shiftTimings.map((shift) => (
-                    <MenuItem key={shift.id} value={shift.id}>
-                      {shift.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Emergency Contact*
-              </Typography>
-              <TextField
-                fullWidth
-                name="emergencyContact"
-                value={formData.emergencyContact}
-                onChange={handleChange}
-                placeholder="Enter Emergency Contact"
-                error={Boolean(errors.emergencyContact)}
-                helperText={errors.emergencyContact}
-                sx={{ ...inputStyle, width: "100%" }}
-              />
-            </Box>
-          </Stack>
-        </Grid>
-      </Grid>
+        <Field label="Assigned Area *" icon={MapPin} error={errors.assignedArea}>
+          <select name="assignedArea" value={formData.assignedArea} onChange={handleChange} style={inputSx(!!errors.assignedArea)}>
+            <option value="">Select Area</option>
+            {assignedAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </Field>
 
-      <Box sx={{ mt: 4, mb: 2 }}>
-        <Typography {...sectionTitleStyle}>Joining Information</Typography>
-        <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-      </Box>
+        <Field label="Shift Timing *" icon={Calendar} error={errors.shiftTiming}>
+          <select name="shiftTiming" value={formData.shiftTiming} onChange={handleChange} style={inputSx(!!errors.shiftTiming)}>
+            <option value="">Select Shift</option>
+            {shiftTimings.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </Field>
 
-      <Grid container spacing={isMobile ? 2 : 4}>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-            <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-              Date of Joining*
-            </Typography>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                value={formData.dateOfJoining}
-                onChange={(newValue) =>
-                  setFormData({ ...formData, dateOfJoining: newValue })
-                }
-                slotProps={{
-                  textField: {
-                    sx: { ...inputStyle, width: "100%" },
-                    error: Boolean(errors.dateOfJoining),
-                    helperText: errors.dateOfJoining,
-                  },
-                }}
-              />
-            </LocalizationProvider>
-          </Box>
-        </Grid>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-            <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-              Status*
-            </Typography>
-            <FormControl
-              sx={{ ...inputStyle, width: "100%" }}
-              error={Boolean(errors.status)}
-            >
-              <InputLabel>Select Status</InputLabel>
-              <Select
-                name="status"
-                label="Select Status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-              </Select>
-              {errors.status && (
-                <FormHelperText>{errors.status}</FormHelperText>
-              )}
-            </FormControl>
-          </Box>
-        </Grid>
-      </Grid>
-    </>
+        <Field label="Emergency Contact *" icon={Phone} error={errors.emergencyContact}>
+          <input name="emergencyContact" value={formData.emergencyContact} onChange={handleChange}
+            placeholder="Enter Emergency Contact" style={inputSx(!!errors.emergencyContact)} />
+        </Field>
+
+        <Field label="Date of Joining *" icon={Calendar} error={errors.dateOfJoining}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+             <DatePicker
+              value={formData.dateOfJoining}
+              onChange={(newValue) => setFormData({ ...formData, dateOfJoining: newValue })}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  size: "small",
+                  sx: { "& .MuiOutlinedInput-root": { borderRadius: "8px", background: "#F9FAFB" } },
+                },
+              }}
+            />
+          </LocalizationProvider>
+        </Field>
+
+        <Field label="Status *" icon={ShieldCheck} error={errors.status}>
+          <select name="status" value={formData.status} onChange={handleChange} style={inputSx(!!errors.status)}>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </Field>
+      </div>
+    </SectionCard>
   );
 
   // Render Accountant specific fields
   const renderAccountantFields = () => (
-    <>
-      <Box sx={{ mt: 4, mb: 2 }}>
-        <Typography {...sectionTitleStyle}>Accountant Information</Typography>
-        <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-      </Box>
+    <SectionCard title="Accountant Information" icon={Briefcase}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
+        <Field label="Specialization" icon={Briefcase} error={errors.specialization}>
+          <input name="specialization" value={formData.specialization} onChange={handleChange}
+            placeholder="Enter Specialization" style={inputSx(!!errors.specialization)} />
+        </Field>
 
-      <Grid container spacing={isMobile ? 2 : 4}>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Stack spacing={2}>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Specialization
-              </Typography>
-              <TextField
-                fullWidth
-                name="specialization"
-                value={formData.specialization}
-                onChange={handleChange}
-                placeholder="Enter Specialization"
-                error={Boolean(errors.specialization)}
-                helperText={errors.specialization}
-                sx={{ ...inputStyle, width: "100%" }}
-              />
-            </Box>
-          </Stack>
-        </Grid>
-        <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{
-            width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-          }}
-        >
-          <Stack spacing={2}>
-            <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-              <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                Qualifications
-              </Typography>
-              <TextField
-                fullWidth
-                name="qualifications"
-                value={formData.qualifications}
-                onChange={handleChange}
-                placeholder="Enter Qualifications"
-                error={Boolean(errors.qualifications)}
-                helperText={errors.qualifications}
-                sx={{ ...inputStyle, width: "100%" }}
-              />
-            </Box>
-          </Stack>
-        </Grid>
-      </Grid>
-    </>
+        <Field label="Qualifications" icon={Briefcase} error={errors.qualifications}>
+          <input name="qualifications" value={formData.qualifications} onChange={handleChange}
+            placeholder="Enter Qualifications" style={inputSx(!!errors.qualifications)} />
+        </Field>
+      </div>
+    </SectionCard>
   );
 
   return (
-    <Box sx={{ p: isMobile ? 2 : 4 }}>
-      {/* Header */}
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2, sm: 4 }, 
+      width: "100%", 
+      maxWidth: "100%", 
+      overflowX: "hidden" 
+    }}>
       <DynamicHeader />
 
       <form onSubmit={handleSubmit}>
-        {/* Personal Info Title */}
-        <Box sx={{ mt: 4, mb: 2 }}>
-          <Typography {...sectionTitleStyle}>Personal Information</Typography>
-          <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-        </Box>
+        {/* ── SECTION 1: Personal Information ── */}
+        <SectionCard title="Personal Information" icon={User}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
+            <Field label="First Name *" icon={User} error={errors.firstName}>
+              <input name="firstName" value={formData.firstName} onChange={handleChange}
+                placeholder="Name" style={inputSx(!!errors.firstName)} />
+            </Field>
 
-        {/* Personal Info Fields */}
-        <Grid container spacing={isMobile ? 2 : 4}>
-          {/* LEFT COLUMN */}
-          <Grid
-            item
-            xs={12}
-            md={6}
-            sx={{
-              width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-            }}
-          >
-            <Stack spacing={2}>
-              {[
-                {
-                  label: "First Name*",
-                  name: "firstName",
-                  placeholder: "Enter First Name",
-                },
-                { label: "Email*", name: "email", placeholder: "Enter Email" },
-                {
-                  label: "Mobile Number*",
-                  name: "mobile",
-                  placeholder: "Enter Mobile Number",
-                },
-                {
-                  label: "Alternate Contact",
-                  name: "alternateMobile",
-                  placeholder: "Enter Alternate Number",
-                },
-              ].map((field, idx) => (
-                <React.Fragment key={idx}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      {field.label}
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name={field.name}
-                      value={formData[field.name]}
-                      onChange={handleChange}
-                      placeholder={field.placeholder}
-                      error={Boolean(errors[field.name])}
-                      helperText={errors[field.name]}
-                      sx={{ ...inputStyle, width: "100%" }}
+            <Field label="Last Name *" icon={User} error={errors.lastName}>
+              <input name="lastName" value={formData.lastName} onChange={handleChange}
+                placeholder="Surname" style={inputSx(!!errors.lastName)} />
+            </Field>
+
+            <Field label="Email *" icon={Mail} error={errors.email}>
+              <input name="email" type="email" value={formData.email} onChange={handleChange}
+                placeholder="example@mail.com" style={inputSx(!!errors.email)} />
+            </Field>
+
+            <Field label="Mobile Number *" icon={Phone} error={errors.mobile}>
+              <input name="mobile" value={formData.mobile} onChange={handleChange}
+                placeholder="10-digit number" style={inputSx(!!errors.mobile)} />
+            </Field>
+
+            <Field label="Alternate Contact" icon={Phone}>
+              <input name="alternateMobile" value={formData.alternateMobile} onChange={handleChange}
+                placeholder="Optional" style={inputSx(false)} />
+            </Field>
+
+            {userType === "Customers" && (
+              <>
+                <Field label="Company Name" icon={Building2}>
+                  <input name="companyName" value={formData.companyName} onChange={handleChange}
+                    placeholder="Optional" style={inputSx(false)} />
+                </Field>
+                <Field label="Tax Id (GST)" icon={CreditCard} error={errors.taxId}>
+                  <input name="taxId" value={formData.taxId} onChange={handleChange}
+                    placeholder="GSTIN" style={inputSx(!!errors.taxId)} />
+                </Field>
+              </>
+            )}
+
+            <Field label="Gender">
+              <div style={{ display: "flex", gap: 20, paddingTop: 8 }}>
+                {["male", "female"].map(g => (
+                  <label key={g} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
+                    <input type="radio" name="gender" value={g} checked={formData.gender === g}
+                      onChange={handleChange} style={{ accentColor: "#8B5CF6", width: 16, height: 16 }} />
+                    {g.charAt(0).toUpperCase() + g.slice(1)}
+                  </label>
+                ))}
+              </div>
+            </Field>
+
+            {/* Profile Image */}
+            <Field label="Profile Image">
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", paddingTop: 2 }}>
+                <label style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  border: "1px solid #8B5CF6", color: "#8B5CF6", cursor: "pointer", background: "#fff",
+                }}>
+                  <Upload size={14} /> Choose Image
+                  <input type="file" name="image" accept="image/*" hidden onChange={handleChange} />
+                </label>
+                {(formData.imagePreview || formData.imagePath) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <img
+                      src={formData.imagePreview || (formData.imagePath ? (apiEndpoints.ImageURL + formData.imagePath) : "")}
+                      alt="Preview"
+                      style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB" }}
                     />
-                  </Box>
-
-                  {idx === 0 && (
-                    <Box
-                      display="flex"
-                      flexDirection={isMobile ? "column" : "row"}
-                    >
-                      <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                        Gender
-                      </Typography>
-                      <RadioGroup
-                        row
-                        name="gender"
-                        value={formData.gender}
-                        onChange={(e) =>
-                          setFormData({ ...formData, gender: e.target.value })
-                        }
-                        sx={{ mt: isMobile ? 1 : 0 }}
-                      >
-                        <FormControlLabel
-                          value="male"
-                          control={
-                            <Radio
-                              size="small"
-                              sx={{
-                                color: "rgba(249, 115, 22, 0.9)",
-                                "&.Mui-checked": {
-                                  color: "rgba(249, 115, 22, 0.9)",
-                                },
-                              }}
-                            />
-                          }
-                          label="Male"
-                        />
-
-                        <FormControlLabel
-                          value="female"
-                          control={
-                            <Radio
-                              size="small"
-                              sx={{
-                                color: "rgba(249, 115, 22, 0.9)",
-                                "&.Mui-checked": {
-                                  color: "rgba(249, 115, 22, 0.9)",
-                                },
-                              }}
-                            />
-                          }
-                          label="Female"
-                        />
-                      </RadioGroup>
-
-                    </Box>
-                  )}
-                </React.Fragment>
-              ))}
-
-              {/* Image Upload */}
-              <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-                <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                  Image
-                </Typography>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadFileIcon />}
-                  sx={{
-                    height: "40px",
-                    textTransform: "none",
-                    width: isMobile ? "100%" : "auto",
-
-                    color: "rgba(249, 115, 22, 0.9)",        // text & icon
-                    borderColor: "rgba(249, 115, 22, 0.9)", // border
-
-                    "&:hover": {
-                      borderColor: "rgba(249, 115, 22, 1)",
-                      backgroundColor: "rgba(249, 115, 22, 0.08)",
-                      color: "rgba(249, 115, 22, 1)",
-                    },
-                  }}
-                >
-                  Choose File
-                  <input
-                    type="file"
-                    name="image"
-                    onChange={handleChange}
-                    hidden
-                  />
-                </Button>
-
-                {formData.imagePreview && (
-                  <img
-                    src={formData.imagePreview}
-                    alt="Preview"
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "8px",
-                      marginLeft: "20px",
-                      objectFit: "cover",
-                      border: "1px solid #ccc",
-                    }}
-                  />
+                    <button type="button"
+                      onClick={() => setFormData((p) => ({ ...p, image: null, imagePreview: "", imagePath: "" }))}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#DC2626", padding: 0 }}
+                    ><X size={16} /></button>
+                  </div>
                 )}
+              </div>
+            </Field>
+          </div>
+        </SectionCard>
 
-                {/* For edit mode (existing image from server) */}
-                {!formData.imagePreview && formData.imagePath && (
-                  <img
-                    src={apiEndpoints.ImageURL + formData.imagePath}
-                    alt="User"
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "8px",
-                      marginLeft: "20px",
-                      objectFit: "cover",
-                      border: "1px solid #ccc",
-                    }}
-                  />
-                )}
+        {/* ── SECTION 2: Address Information ── */}
+        <SectionCard title="Address Information" icon={MapPin}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 20 }}>
+            <Field label="Permanent Address *" icon={MapPin} error={errors.permanentAddress}>
+              <textarea name="permanentAddress" value={formData.permanentAddress} onChange={handleChange}
+                placeholder="Full address" rows={3}
+                style={{ ...inputSx(!!errors.permanentAddress), resize: "vertical", height: "auto" }} />
+            </Field>
 
-                {formData.imagePath && (
-                  <Typography
-                    sx={{
-                      ml: isMobile ? 0 : 2,
-                      mt: isMobile ? 1 : 0,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Current: {formData.imagePath.split("/").pop()}
-                  </Typography>
-                )}
-              </Box>
-            </Stack>
-          </Grid>
+            <Field label="Current Address" icon={MapPin}>
+              <textarea name="address" value={formData.address} onChange={handleChange}
+                placeholder="Current address (if different)" rows={3}
+                style={{ ...inputSx(false), resize: "vertical", height: "auto" }} />
+            </Field>
+          </div>
 
-          {/* RIGHT COLUMN */}
-          <Grid
-            item
-            xs={12}
-            md={6}
-            sx={{
-              width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-            }}
-          >
-            <Stack spacing={2}>
-              {[
-                {
-                  label: "Last Name*",
-                  name: "lastName",
-                  placeholder: "Enter Last Name",
-                },
-                {
-                  label: "Company Name",
-                  name: "companyName",
-                  placeholder: "Enter Company Name",
-                },
-                { label: "Tax Id", name: "taxId", placeholder: "Enter Tax Id" },
-              ].map((field, idx) => (
-                <Box
-                  key={idx}
-                  display="flex"
-                  flexDirection={isMobile ? "column" : "row"}
-                >
-                  <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                    {field.label}
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    name={field.name}
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    placeholder={field.placeholder}
-                    error={Boolean(errors[field.name])}
-                    helperText={errors[field.name]}
-                    sx={{ ...inputStyle, width: "100%" }}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          </Grid>
-        </Grid>
-
-        {/* Address Section */}
-        <Box sx={{ mt: 4, mb: 2 }}>
-          <Typography {...sectionTitleStyle}>Address Information</Typography>
-          <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-        </Box>
-
-        <Grid container spacing={isMobile ? 2 : 4}>
-          <Grid
-            item
-            xs={12}
-            md={6}
-            sx={{
-              width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-            }}
-          >
-            <Stack spacing={2}>
-              <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-                <Typography
-                  sx={{
-                    ...labelStyle,
-                    paddingTop: "10px",
-                    mb: isMobile ? 1 : 0,
-                  }}
-                >
-                  Permanent Address*
-                </Typography>
-                <TextField
-                  fullWidth
-                  name="permanentAddress"
-                  value={formData.permanentAddress}
-                  onChange={handleChange}
-                  multiline
-                  minRows={3}
-                  placeholder="Enter Permanent Address"
-                  error={Boolean(errors.permanentAddress)}
-                  helperText={errors.permanentAddress}
-                  sx={{
-                    width: "100%",
-                    "& .MuiInputBase-root": {
-                      fontSize: "0.9rem",
-                    },
-                  }}
-                />
-              </Box>
-              <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-                <Typography
-                  sx={{
-                    ...labelStyle,
-                    paddingTop: "10px",
-                    mb: isMobile ? 1 : 0,
-                  }}
-                >
-                  Current Address
-                </Typography>
-                <TextField
-                  fullWidth
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  multiline
-                  minRows={3}
-                  placeholder="Enter Current Address (if different)"
-                  sx={{
-                    width: "100%",
-                    "& .MuiInputBase-root": {
-                      fontSize: "0.9rem",
-                    },
-                  }}
-                />
-              </Box>
-            </Stack>
-          </Grid>
-          <Grid
-            item
-            xs={12}
-            md={6}
-            sx={{
-              width: { xs: "100%", sm: "90%", md: "80%", lg: "47%", xl: "48%" },
-            }}
-          >
-            <Stack spacing={2}>
-              {[
-                {
-                  label: "Country",
-                  name: "country",
-                  placeholder: "Enter Country",
-                },
-                { label: "State", name: "state", placeholder: "Enter State" },
-                { label: "City", name: "city", placeholder: "Enter City" },
-              ].map((field, idx) => (
-                <Box
-                  key={idx}
-                  display="flex"
-                  flexDirection={isMobile ? "column" : "row"}
-                >
-                  <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                    {field.label}
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    name={field.name}
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    placeholder={field.placeholder}
-                    sx={{ ...inputStyle, width: "100%" }}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          </Grid>
-        </Grid>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 20, marginTop: 20 }}>
+            <Field label="Country" icon={MapPin}>
+              <input name="country" value={formData.country} onChange={handleChange}
+                placeholder="Country" style={inputSx(false)} />
+            </Field>
+            <Field label="State">
+              <input name="state" value={formData.state} onChange={handleChange}
+                placeholder="State" style={inputSx(false)} />
+            </Field>
+            <Field label="City">
+              <input name="city" value={formData.city} onChange={handleChange}
+                placeholder="City" style={inputSx(false)} />
+            </Field>
+          </div>
+        </SectionCard>
 
         {/* Support Staff Specific Fields */}
         {userType === "Support Staff" && renderSupportStaffFields()}
@@ -1498,1101 +1013,186 @@ const AddUser = ({ userType, onSave, users }) => {
         {/* Job Information Section - Only for Employees */}
         {userType === "Employees" && (
           <>
-            <Box sx={{ mt: 4, mb: 2 }}>
-              <Typography {...sectionTitleStyle}>Job Information</Typography>
-              <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-            </Box>
+            <SectionCard title="Job Information" icon={Briefcase}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
+                <Field label="Designation *" icon={Briefcase} error={errors.position}>
+                  <input name="position" value={formData.position} onChange={handleChange}
+                    placeholder="e.g. Mechanic" style={inputSx(!!errors.position)} />
+                </Field>
 
-            <Grid container spacing={isMobile ? 2 : 4}>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Designation*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="position"
-                      value={formData.position}
-                      onChange={handleChange}
-                      placeholder="Mechanic, Supervisor, etc."
-                      error={Boolean(errors.position)}
-                      helperText={errors.position}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Department*
-                    </Typography>
-                    <FormControl
-                      sx={{ ...inputStyle, width: "100%" }}
-                      error={Boolean(errors.department)}
-                    >
-                      <InputLabel>Select Department</InputLabel>
-                      <Select
-                        name="department"
-                        label="Select Department"
-                        value={formData.department}
-                        onChange={handleChange}
-                      >
-                        <MenuItem value="Service">Service</MenuItem>
-                        <MenuItem value="Repair">Repair</MenuItem>
-                        <MenuItem value="Admin">Admin</MenuItem>
-                        <MenuItem value="Support">Support</MenuItem>
-                        <MenuItem value="Management">Management</MenuItem>
-                      </Select>
-                      {errors.department && (
-                        <FormHelperText>{errors.department}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Employee Type*
-                    </Typography>
-                    <FormControl
-                      sx={{ ...inputStyle, width: "100%" }}
-                      error={Boolean(errors.employeeType)}
-                    >
-                      <InputLabel>Select Type</InputLabel>
-                      <Select
-                        name="employeeType"
-                        label="Select Type"
-                        value={formData.employeeType}
-                        onChange={handleChange}
-                      >
-                        <MenuItem value="Full-Time">Full-Time</MenuItem>
-                        <MenuItem value="Part-Time">Part-Time</MenuItem>
-                        <MenuItem value="Contract">Contract</MenuItem>
-                        <MenuItem value="Trainee">Trainee</MenuItem>
-                      </Select>
-                      {errors.employeeType && (
-                        <FormHelperText>{errors.employeeType}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Shift Timing
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="shiftTiming"
-                      value={formData.shiftTiming}
-                      onChange={handleChange}
-                      placeholder="e.g. 9:00 AM - 6:00 PM"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Date of Joining*
-                    </Typography>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <DatePicker
-                        value={formData.dateOfJoining}
-                        onChange={(newValue) =>
-                          setFormData({ ...formData, dateOfJoining: newValue })
-                        }
-                        slotProps={{
-                          textField: {
-                            sx: { ...inputStyle, width: "100%" },
-                            error: Boolean(errors.dateOfJoining),
-                            helperText: errors.dateOfJoining,
-                          },
-                        }}
-                      />
-                    </LocalizationProvider>
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Reporting Manager
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="reportingManager"
-                      value={formData.reportingManager}
-                      onChange={handleChange}
-                      placeholder="Manager's Name"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Work Location
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="workLocation"
-                      value={formData.workLocation}
-                      onChange={handleChange}
-                      placeholder="Branch or Location"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Status*
-                    </Typography>
-                    <FormControl
-                      sx={{ ...inputStyle, width: "100%" }}
-                      error={Boolean(errors.status)}
-                    >
-                      <InputLabel>Select Status</InputLabel>
-                      <Select
-                        name="status"
-                        label="Select Status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        helperText={errors.status}
-                      >
-                        <MenuItem value="Active">Active</MenuItem>
-                        <MenuItem value="Inactive">Inactive</MenuItem>
-                        <MenuItem value="On Leave">On Leave</MenuItem>
-                      </Select>
-                      {errors.status && (
-                        <FormHelperText>{errors.status}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Box>
-                </Stack>
-              </Grid>
-            </Grid>
+                <Field label="Department *" icon={Building2} error={errors.department}>
+                  <select name="department" value={formData.department} onChange={handleChange} style={inputSx(!!errors.department)}>
+                    <option value="">Select Dept</option>
+                    <option value="Service">Service</option>
+                    <option value="Repair">Repair</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </Field>
 
-            {/* Salary & Banking Section */}
-            <Box sx={{ mt: 4, mb: 2 }}>
-              <Typography {...sectionTitleStyle}>
-                Salary & Banking Details
-              </Typography>
-              <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-            </Box>
+                <Field label="Employee Type *" icon={User} error={errors.employeeType}>
+                  <select name="employeeType" value={formData.employeeType} onChange={handleChange} style={inputSx(!!errors.employeeType)}>
+                    <option value="Full-Time">Full-Time</option>
+                    <option value="Part-Time">Part-Time</option>
+                    <option value="Contract">Contract</option>
+                  </select>
+                </Field>
 
-            <Grid container spacing={isMobile ? 2 : 4}>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Monthly Salary*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="monthlySalary"
-                      value={formData.monthlySalary}
-                      onChange={handleChange}
-                      placeholder="Enter Salary Amount"
-                      type="number"
-                      error={Boolean(errors.monthlySalary)}
-                      helperText={errors.monthlySalary}
-                      sx={{ ...inputStyle, width: "100%" }}
+                <Field label="Date of Joining *" icon={Calendar} error={errors.dateOfJoining}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DatePicker
+                      value={formData.dateOfJoining}
+                      onChange={(newValue) => setFormData({ ...formData, dateOfJoining: newValue })}
+                      slotProps={{
+                        textField: { fullWidth: true, size: "small", sx: { "& .MuiOutlinedInput-root": { borderRadius: "8px", background: "#F9FAFB" } } },
+                      }}
                     />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Bank Name*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="bankName"
-                      value={formData.bankName}
-                      onChange={handleChange}
-                      placeholder="Enter Bank Name"
-                      error={Boolean(errors.bankName)}
-                      helperText={errors.bankName}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Account Holder*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="accountHolderName"
-                      value={formData.accountHolderName}
-                      onChange={handleChange}
-                      placeholder="Account Holder Name"
-                      error={Boolean(errors.accountHolderName)}
-                      helperText={errors.accountHolderName}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Account Number*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="accountNumber"
-                      value={formData.accountNumber}
-                      onChange={handleChange}
-                      placeholder="Enter Account Number"
-                      error={Boolean(errors.accountNumber)}
-                      helperText={errors.accountNumber}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      IFSC Code*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="ifscCode"
-                      value={formData.ifscCode}
-                      onChange={handleChange}
-                      placeholder="Enter IFSC Code"
-                      error={Boolean(errors.ifscCode)}
-                      helperText={errors.ifscCode}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      PAN Number*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      placeholder="Enter PAN Number"
-                      error={Boolean(errors.panNumber)}
-                      helperText={errors.panNumber}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Aadhaar Number
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="aadhaarNumber"
-                      value={formData.aadhaarNumber}
-                      onChange={handleChange}
-                      placeholder="Enter Aadhaar Number"
-                      sx={{ ...inputStyle, width: "100%" }}
-                      helperText={errors.aadhaarNumber}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Employee Code*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="employeeCode"
-                      value={formData.employeeCode}
-                      onChange={handleChange}
-                      placeholder="Employee ID/Access Code"
-                      error={Boolean(errors.employeeCode)}
-                      helperText={errors.employeeCode}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-            </Grid>
+                  </LocalizationProvider>
+                </Field>
 
-            {/* Performance Tracking Section */}
-            <Box sx={{ mt: 4, mb: 2 }}>
-              <Typography {...sectionTitleStyle}>
-                Performance Tracking
-              </Typography>
-              <Box sx={{ borderBottom: "1px solid #ccc", width: "100%" }} />
-            </Box>
+                <Field label="Reporting Manager" icon={User}>
+                  <input name="reportingManager" value={formData.reportingManager} onChange={handleChange}
+                    placeholder="Manager Name" style={inputSx(false)} />
+                </Field>
 
-            <Grid container spacing={isMobile ? 2 : 4}>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Total Jobs Assigned
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="totalJobsAssigned"
-                      value={formData.totalJobsAssigned}
-                      onChange={handleChange}
-                      type="number"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Jobs Completed
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="jobsCompleted"
-                      value={formData.jobsCompleted}
-                      onChange={handleChange}
-                      type="number"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-                sx={{
-                  width: {
-                    xs: "100%",
-                    sm: "90%",
-                    md: "80%",
-                    lg: "47%",
-                    xl: "48%",
-                  },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Customer Rating
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="customerRating"
-                      value={formData.customerRating}
-                      onChange={handleChange}
-                      type="number"
-                      inputProps={{ min: 0, max: 5, step: 0.1 }}
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                  <Box
-                    display="flex"
-                    flexDirection={isMobile ? "column" : "row"}
-                  >
-                    <Typography sx={{ ...labelStyle, mb: isMobile ? 1 : 0 }}>
-                      Leave Balance
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      name="leaveBalance"
-                      value={formData.leaveBalance}
-                      onChange={handleChange}
-                      type="number"
-                      sx={{ ...inputStyle, width: "100%" }}
-                    />
-                  </Box>
-                </Stack>
-              </Grid>
-            </Grid>
+                <Field label="Work Location" icon={MapPin}>
+                  <input name="workLocation" value={formData.workLocation} onChange={handleChange}
+                    placeholder="Branch" style={inputSx(false)} />
+                </Field>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Salary & Banking Details" icon={CreditCard}>
+               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
+                  <Field label="Monthly Salary *" icon={DollarSign} error={errors.monthlySalary}>
+                    <input name="monthlySalary" type="number" value={formData.monthlySalary} onChange={handleChange}
+                      placeholder="Amount" style={inputSx(!!errors.monthlySalary)} />
+                  </Field>
+                  <Field label="Bank Name *" icon={Building2} error={errors.bankName}>
+                    <input name="bankName" value={formData.bankName} onChange={handleChange}
+                      placeholder="Bank Name" style={inputSx(!!errors.bankName)} />
+                  </Field>
+                  <Field label="Account Holder *" icon={User} error={errors.accountHolderName}>
+                    <input name="accountHolderName" value={formData.accountHolderName} onChange={handleChange}
+                      placeholder="Name" style={inputSx(!!errors.accountHolderName)} />
+                  </Field>
+                  <Field label="Account Number *" icon={Hash} error={errors.accountNumber}>
+                    <input name="accountNumber" value={formData.accountNumber} onChange={handleChange}
+                      placeholder="Account No" style={inputSx(!!errors.accountNumber)} />
+                  </Field>
+                  <Field label="IFSC Code *" icon={Hash} error={errors.ifscCode}>
+                    <input name="ifscCode" value={formData.ifscCode} onChange={handleChange}
+                      placeholder="IFSC" style={inputSx(!!errors.ifscCode)} />
+                  </Field>
+                  <Field label="PAN Number *" icon={CreditCard} error={errors.panNumber}>
+                    <input name="panNumber" value={formData.panNumber} onChange={handleChange}
+                      placeholder="PAN" style={inputSx(!!errors.panNumber)} />
+                  </Field>
+                  <Field label="Employee Code *" icon={Hash} error={errors.employeeCode}>
+                    <input name="employeeCode" value={formData.employeeCode} onChange={handleChange}
+                      placeholder="E-Code" style={inputSx(!!errors.employeeCode)} />
+                  </Field>
+               </div>
+            </SectionCard>
           </>
         )}
 
-        {/* Vehicle Information Section - Only for Customers */}
+        {/* ── SECTION 4: Vehicle Information (Customers) ── */}
         {userType === "Customers" && (
-          <>
-            <Box sx={{ mt: 4, mb: 2 }}>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                flexDirection={isMobile ? "column" : "row"}
-                gap={isMobile ? 2 : 0}
+          <SectionCard title="Vehicle Information" icon={Car}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Plus size={16} />}
+                onClick={addVehicle}
+                sx={{
+                  color: "#8B5CF6", borderColor: "#8B5CF6", borderRadius: "10px",
+                  "&:hover": { borderColor: "#7C3AED", backgroundColor: "#F5F3FF" },
+                  textTransform: "none", fontWeight: 600
+                }}
               >
-                <Typography {...sectionTitleStyle}>
-                  Vehicle Information
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={addVehicle}
-                  sx={{
-                    bgcolor: "rgba(249, 115, 22, 0.9)",
-                    "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
-                    textTransform: "none",
-                    width: isMobile ? "100%" : "auto",
-                  }}
-                >
-                  Add Vehicle
-                </Button>
-              </Box>
-              <Box
-                sx={{ borderBottom: "1px solid #ccc", width: "100%", mb: 2 }}
-              />
-            </Box>
+                Add Another Vehicle
+              </Button>
+            </div>
 
-            {vehicles.map((vehicle, index) => (
-              <Paper
-                key={index}
-                sx={{ p: isMobile ? 2 : 3, mb: 3, border: "1px solid #eee" }}
-              >
-                <Box display="flex" justifyContent="flex-end">
-                  {vehicles.length > 1 && (
-                    <IconButton
-                      onClick={() => removeVehicle(index)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
-                </Box>
-                <Grid container spacing={2}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Vehicle Registration Number*"
-                      name="registrationNumber"
-                      value={vehicle.registrationNumber}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      error={Boolean(
-                        errors[`vehicle_${index}_registrationNumber`]
-                      )}
-                      helperText={errors[`vehicle_${index}_registrationNumber`]}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Chassis Number"
-                      name="chassisNumber"
-                      value={vehicle.chassisNumber}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Engine Number"
-                      name="engineNumber"
-                      value={vehicle.engineNumber}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Make / Manufacturer"
-                      name="make"
-                      value={vehicle.make}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Model"
-                      name="model"
-                      value={vehicle.model}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                      <InputLabel>Fuel Type</InputLabel>
-                      <Select
-                        name="fuelType"
-                        value={vehicle.fuelType}
-                        label="Fuel Type"
-                        onChange={(e) => handleVehicleChange(index, e)}
-                      >
-                        <MenuItem value="Petrol">Petrol</MenuItem>
-                        <MenuItem value="Diesel">Diesel</MenuItem>
-                        <MenuItem value="CNG">CNG</MenuItem>
-                        <MenuItem value="Electric">Electric</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Odometer Reading (km)"
-                      name="odometerReading"
-                      type="number"
-                      value={vehicle.odometerReading}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Year of Manufacture"
-                      name="yearOfManufacture"
-                      type="number"
-                      value={vehicle.yearOfManufacture}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Vehicle Color"
-                      name="color"
-                      value={vehicle.color}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                      <InputLabel>Transmission Type</InputLabel>
-                      <Select
-                        name="transmissionType"
-                        label="Transmission Type"
-                        value={vehicle.transmissionType}
-                        onChange={(e) => handleVehicleChange(index, e)}
-                      >
-                        <MenuItem value="Manual">Manual</MenuItem>
-                        <MenuItem value="Automatic">Automatic</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Insurance Validity"
-                      name="insuranceValidity"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      value={vehicle.insuranceValidity}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    sx={{
-                      width: {
-                        xs: "100%",
-                        sm: "45%",
-                        md: "47%",
-                        lg: "32%",
-                        xl: "30%",
-                      },
-                    }}
-                  >
-                    <TextField
-                      fullWidth
-                      label="Pollution Cert Validity"
-                      name="pollutionCertValidity"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      value={vehicle.pollutionCertValidity}
-                      onChange={(e) => handleVehicleChange(index, e)}
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                </Grid>
-              </Paper>
+            {vehicles.map((v, index) => (
+              <div key={index} style={{
+                padding: 20, borderRadius: 12, border: "1px solid #F3F4F6", background: "#FCFCFD", marginBottom: index < vehicles.length - 1 ? 20 : 0, position: "relative"
+              }}>
+                {vehicles.length > 1 && (
+                  <button type="button" onClick={() => removeVehicle(index)}
+                    style={{ position: "absolute", top: 12, right: 12, border: "none", background: "#FEF2F2", color: "#DC2626", padding: 6, borderRadius: 6, cursor: "pointer" }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+                
+                <p style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 700, color: "#8B5CF6", textTransform: "uppercase" }}>
+                   Vehicle #{index + 1}
+                </p>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16 }}>
+                  <Field label="Registration No *" icon={Hash} error={errors[`vehicle_${index}_registrationNumber`]}>
+                    <input name="registrationNumber" value={v.registrationNumber} onChange={(e) => handleVehicleChange(index, e)}
+                      placeholder="e.g. TN01AB1234" style={inputSx(!!errors[`vehicle_${index}_registrationNumber`])} />
+                  </Field>
+                  <Field label="Make" icon={Car}>
+                    <input name="make" value={v.make} onChange={(e) => handleVehicleChange(index, e)}
+                      placeholder="e.g. Maruti Suzuki" style={inputSx(false)} />
+                  </Field>
+                  <Field label="Model" icon={Car}>
+                    <input name="model" value={v.model} onChange={(e) => handleVehicleChange(index, e)}
+                      placeholder="e.g. Swift" style={inputSx(false)} />
+                  </Field>
+                  <Field label="Year" icon={Calendar}>
+                    <input name="yearOfManufacture" type="number" value={v.yearOfManufacture} onChange={(e) => handleVehicleChange(index, e)}
+                      placeholder="YYYY" style={inputSx(false)} />
+                  </Field>
+                  <Field label="Color">
+                    <input name="color" value={v.color} onChange={(e) => handleVehicleChange(index, e)}
+                      placeholder="e.g. White" style={inputSx(false)} />
+                  </Field>
+                  <Field label="Fuel Type">
+                    <select name="fuelType" value={v.fuelType} onChange={(e) => handleVehicleChange(index, e)} style={inputSx(false)}>
+                      <option value="">Select</option>
+                      <option value="Petrol">Petrol</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Electric">Electric</option>
+                      <option value="CNG">CNG</option>
+                    </select>
+                  </Field>
+                </div>
+              </div>
             ))}
-          </>
+          </SectionCard>
         )}
 
-        {/* Add Notes Section */}
-        <Box sx={{ mt: 4, mb: 2 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            flexDirection={isMobile ? "column" : "row"}
-            gap={isMobile ? 2 : 0}
-          >
-            <Typography {...sectionTitleStyle}>Add Notes</Typography>
-            {/* <IconButton
-              onClick={addNoteSection}
-              sx={{
-                color: "rgba(249, 115, 22, 0.9)",
-                "&:hover": {
-                  backgroundColor: "rgba(249, 115, 22, 0.9)",
-                },
-              }}
-            >
-              <AddIcon />
-            </IconButton> */}
-          </Box>
-        </Box>
-        <Box sx={{ borderBottom: "1px solid #ccc", width: "100%", mb: 2 }} />
-
-        {/* Notes Content */}
-        {notes.map((note) => (
-          <Grid container spacing={2} key={note.id} sx={{ mb: 3 }}>
-            <Grid
-              item
-              xs={12}
-              md={4}
-              sx={{
-                width: {
-                  xs: "100%",
-                  sm: "45%",
-                  md: "47%",
-                  lg: "35%",
-                  xl: "30%",
-                },
-              }}
-            >
-              <Box display="flex" flexDirection={isMobile ? "column" : "row"}>
-                <Typography
-                  sx={{
-                    ...labelStyle,
-                    paddingTop: "10px",
-                    mb: isMobile ? 1 : 0,
-                  }}
-                >
-                  Notes
-                </Typography>
-                <TextField
-                  multiline
-                  minRows={3}
-                  placeholder="Enter note"
-                  fullWidth
-                  value={note.text}
-                  onChange={(e) =>
-                    handleNoteChange(note.id, "text", e.target.value)
-                  }
-                  sx={{
-                    width: "100%",
-                    "& .MuiInputBase-root": {
-                      fontSize: "0.9rem",
-                    },
-                  }}
-                />
-              </Box>
-            </Grid>
-
-            <Grid
-              item
-              xs={12}
-              md={4}
-              sx={{
-                width: {
-                  xs: "100%",
-                  sm: "45%",
-                  md: "47%",
-                  lg: "35%",
-                  xl: "30%",
-                },
-              }}
-            >
-              <Box display="flex" height="100%" pt={isMobile ? 1 : 3}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<UploadFileIcon />}
-                  sx={{
-                    height: "40px",
-                    textTransform: "none",
-                    width: isMobile ? "100%" : "auto",
-
-                    color: "rgba(249, 115, 22, 0.9)",        // text & icon
-                    borderColor: "rgba(249, 115, 22, 0.9)", // border
-
-                    "&:hover": {
-                      borderColor: "rgba(249, 115, 22, 1)",
-                      backgroundColor: "rgba(249, 115, 22, 0.08)",
-                      color: "rgba(249, 115, 22, 1)",
-                    },
-                  }}
-                >
-                  Choose File
-                  <input
-                    type="file"
-                    name="image"
-                    onChange={handleChange}
-                    hidden
-                  />
-                </Button>
-
-                {note.filePath && (
-                  <Typography
-                    sx={{
-                      ml: isMobile ? 0 : 2,
-                      mt: isMobile ? 1 : 0,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Current: {note.filePath.split("/").pop()}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-
-            <Grid
-              item
-              xs={12}
-              md={4}
-              sx={{
-                width: {
-                  xs: "100%",
-                  sm: "45%",
-                  md: "47%",
-                  lg: "35%",
-                  xl: "30%",
-                },
-              }}
-            >
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                width="100%"
-                pt={isMobile ? 2 : 1}
-                flexDirection={isMobile ? "column" : "row"}
-                gap={isMobile ? 2 : 0}
-              >
-                <Box display="flex" flexDirection="column">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={note.internalNotes}
-                        onChange={(e) =>
-                          handleNoteChange(
-                            note.id,
-                            "internalNotes",
-                            e.target.checked
-                          )
-                        }
-                      />
-                    }
-                    label="Internal Notes"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={note.sharedWithCustomer}
-                        onChange={(e) =>
-                          handleNoteChange(
-                            note.id,
-                            "sharedWithCustomer",
-                            e.target.checked
-                          )
-                        }
-                      />
-                    }
-                    label="Shared with customer"
-                  />
-                </Box>
-                <IconButton
-                  color="error"
-                  sx={{ alignSelf: isMobile ? "flex-end" : "center" }}
-                  onClick={() => deleteNoteSection(note.id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            </Grid>
-          </Grid>
-        ))}
-
-        {/* Submit Button */}
-        <Box mt={4}>
+        {/* ── Single Save Button ── */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4, mb: 10 }}>
           <Button
             type="submit"
             variant="contained"
-            fullWidth
+            disabled={loading}
+            startIcon={<Save size={18} />}
             sx={{
-              backgroundColor: "rgba(249, 115, 22, 0.9)",
-              "&:hover": { backgroundColor: "rgba(249, 115, 22, 0.9)" },
-              color: "white",
-              height: "45px",
-              fontWeight: "bold",
+              backgroundColor: "rgba(139, 92, 246, 0.9)",
+              "&:hover": { backgroundColor: "rgba(139, 92, 246, 1)" },
+              color: "#fff",
+              borderRadius: "12px",
+              px: 5,
+              py: 1.5,
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: 15,
+              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
             }}
           >
-            SUBMIT
+            {loading ? "Saving..." : isEdit ? `Update ${userType.slice(0, -1)}` : `Save ${userType.slice(0, -1)}`}
           </Button>
         </Box>
       </form>
+
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
@@ -2600,7 +1200,7 @@ const AddUser = ({ userType, onSave, users }) => {
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ borderRadius: "10px", fontWeight: 600 }}
         >
           {snackbar.message}
         </Alert>

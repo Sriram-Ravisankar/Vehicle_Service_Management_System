@@ -29,6 +29,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { FaTrash } from "react-icons/fa";
 import SectionHeader from '../common/Header';
+import apiEndpoints from '../../apiconfig';
 
 const Expenses = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -42,17 +43,22 @@ const Expenses = () => {
   const [selected, setSelected] = useState([]);
 
 
-  useEffect(() => {
-    const data = JSON.parse(sessionStorage.getItem('expenseData')) || [];
+    const fetchExpenses = async () => {
+        try {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(apiEndpoints.expenses, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setExpensesData(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch expenses:", err);
+        }
+    };
 
-    const dataWithIds = data.map((item, index) => ({
-      ...item,
-      id: item.id ?? Date.now() + index
-    }));
-
-    sessionStorage.setItem('expenseData', JSON.stringify(dataWithIds));
-    setExpensesData(dataWithIds);
-  }, []);
+    useEffect(() => {
+        fetchExpenses();
+    }, []);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -67,11 +73,16 @@ const Expenses = () => {
   };
 
 
-  const handleDeleteSelected = () => {
-    const updatedRows = rows.filter((row) => !selected.includes(row.id));
-    setRows(updatedRows);
+  const handleDeleteSelected = async () => {
+    const token = sessionStorage.getItem("token");
+    for (const id of selected) {
+        await fetch(`${apiEndpoints.expenses}&id=${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    }
     setSelected([]);
-    sessionStorage.setItem('taxRates', JSON.stringify(updatedRows));
+    fetchExpenses();
   };
   const handleMenuOpen = (event, rowId) => {
     setAnchorEl(event.currentTarget);
@@ -89,10 +100,13 @@ const Expenses = () => {
     handleMenuClose();
   };
 
-  const handleDelete = (rowId) => {
-    const updatedRows = expensesData.filter((row) => row.id !== rowId);
-    setExpensesData(updatedRows);
-    sessionStorage.setItem('expenseData', JSON.stringify(updatedRows));
+  const handleDelete = async (rowId) => {
+    const token = sessionStorage.getItem("token");
+    await fetch(`${apiEndpoints.expenses}&id=${rowId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    fetchExpenses();
     handleMenuClose();
   };
 
@@ -200,8 +214,8 @@ const Expenses = () => {
             variant="contained"
             onClick={handleSelectAll}
             sx={{
-              bgcolor: "rgba(249, 115, 22, 0.9)",
-              "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
+              bgcolor: "rgba(139, 92, 246, 0.9)",
+              "&:hover": { bgcolor: "rgba(139, 92, 246, 0.9)" },
               display: "flex",
               alignItems: "center",
               px: 2,

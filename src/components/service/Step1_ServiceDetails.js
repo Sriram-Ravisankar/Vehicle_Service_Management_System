@@ -4,18 +4,61 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import {
-  Box,
-  Grid,
-  TextField,
-  Typography,
-  MenuItem,
-  IconButton,
-  Button,
-} from "@mui/material";
+import { 
+  User, 
+  Car, 
+  Wrench, 
+  DollarSign, 
+  Building2, 
+  Calendar, 
+  Clock, 
+  MoreHorizontal,
+  ChevronDown
+} from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import Autocomplete from "@mui/material/Autocomplete";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { Box } from "@mui/material";
+
+// ── tiny helpers (consistent with other premium pages) ────────────────────────
+const Field = ({ label, icon: Icon, error, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
+      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {label}
+    </label>
+    {children}
+    {error && <span style={{ fontSize: 12, color: "#DC2626" }}>{error}</span>}
+  </div>
+);
+
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "9px 13px",
+  fontSize: 14,
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E5E7EB"}`,
+  borderRadius: 8,
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#F9FAFB",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+});
+
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: 16,
+    border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    padding: "24px",
+    marginBottom: 24,
+  }}>
+    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
+    </div>
+    {children}
+  </div>
+);
 
 const Step1_ServiceDetails = forwardRef(
   ({ form, setForm, isSubmitting, isView, showSnackbar }, ref) => {
@@ -62,7 +105,7 @@ const Step1_ServiceDetails = forwardRef(
 
     useEffect(() => {
       fetchDropdown("users", "customer", setCustomers);
-      fetchDropdown("users", "employee", setEmployees);
+      fetchEmployees(); // Use specialized fetch for employees
       fetchDropdown("repair_category", null, setRepairCategories);
       fetchDropdown("branches", null, setBranches);
     }, []);
@@ -72,6 +115,34 @@ const Step1_ServiceDetails = forwardRef(
         fetchVehicles(form.customer_guid);
       }
     }, [form.customer_guid]);
+
+    const fetchEmployees = async () => {
+      try {
+        const url = `${apiEndpoints.usersdata}?user_type=employee`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        
+        if (result.status === "success" && Array.isArray(result.data)) {
+          // Filter only mechanics (case-insensitive)
+          const mechanics = result.data.filter(emp => 
+            emp.position && emp.position.toLowerCase().includes("mechanic")
+          );
+          
+          setEmployees(
+            mechanics.map((d) => ({
+              value: d.user_guid,
+              label: `${d.first_name} ${d.last_name}`,
+              phone: d.mobile,
+              position: d.position
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("employee fetch error", err);
+      }
+    };
 
     const fetchVehicles = async (customer_guid) => {
       const url = `${apiEndpoints.dropDown}?table=vehicles&todo=dropdown&columns=vehicle_guid,make,model,registration_number&user_guid=${customer_guid}`;
@@ -188,379 +259,202 @@ const Step1_ServiceDetails = forwardRef(
 
     return (
       <Box>
-        <Typography
-          variant="h6"
-          mb={3}
-          sx={{ fontWeight: 700, fontSize: "20px" }}
-        >
-          Service Details
-        </Typography>
-
-        <Grid container spacing={5}>
-          {/* Customer */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <Autocomplete
-              options={customers}
-              value={
-                customers.find((c) => c.value === form.customer_guid) || null
-              }
-
-              /* 👇 This enables name OR mobile search */
-              filterOptions={(options, { inputValue }) => {
-                const search = inputValue.toLowerCase();
-
-                return options.filter((option) =>
-                  option.label.toLowerCase().includes(search) ||
-                  option.phone.includes(search)
-                );
-              }}
-
-              onChange={(e, nv) => {
-                onCustomerChange(nv);
-                setErrors((err) => ({ ...err, customer_guid: "" }));
-              }}
-
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Customer *"
-                  size="small"
-                  fullWidth
-                  disabled={isView}
-                  error={!!errors.customer_guid}
-                  helperText={errors.customer_guid}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ "& .MuiInputLabel-root": { top: "-2px" } }}
-                />
-              )}
-            />
-          </Grid>
-
-          {/* Vehicle */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <Autocomplete
-              freeSolo
-              options={vehicles}
-              value={
-                vehicles.find((v) => v.value === form.vehicle_guid) || null
-              }
-
-              /* 🔍 Search by registration number */
-              filterOptions={(options, { inputValue }) => {
-                const search = inputValue.toLowerCase();
-                return options.filter(
-                  (opt) =>
-                    opt.label.toLowerCase().includes(search) ||
-                    opt.regNo?.toLowerCase().includes(search)
-                );
-              }}
-
-              getOptionLabel={(option) => {
-                if (typeof option === "string") return option; // typed value
-                return option.label || "";
-              }}
-
-              onChange={async (e, newValue) => {
-                // Existing vehicle selected
-                if (newValue && typeof newValue === "object") {
-                  setForm((f) => ({ ...f, vehicle_guid: newValue.value }));
-                  setErrors((err) => ({ ...err, vehicle_guid: "" }));
-                  return;
-                }
-
-
-
-                // 🆕 New vehicle entered
-                if (typeof newValue === "string" && newValue.trim()) {
-                  const vehicleNo = newValue.trim().toUpperCase();
-
-                  // ❌ validation
-                  if (!isValidVehicleNumber(vehicleNo)) {
-                    showSnackbar(
-                      "Vehicle number must be alphanumeric and max 10 characters",
-                      "error"
-                    );
-                    return;
-                  }
-
-                  if (!form.customer_guid) {
-                    showSnackbar("Please select customer first", "error");
-                    return;
-                  }
-
-                  try {
-                    const res = await fetch(`${apiEndpoints.usersdata}?table=vehicles&todo=insert`, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        registration_number: newValue,
-                        customer_guid: form.customer_guid,
-                      }),
-                    });
-
-                    const data = await res.json();
-
-                    // assuming backend returns vehicle_guid
-                    const newVehicle = {
-                      value: data.vehicle_guid,
-                      label: data.label || newValue,
-                      regNo: newValue,
-                    };
-
-                    setVehicles((prev) => [...prev, newVehicle]);
-                    setForm((f) => ({ ...f, vehicle_guid: data.vehicle_guid }));
-
-                    showSnackbar(
-                      `Vehicle ${newValue} added successfully`,
-                      "success"
-                    );
-                  } catch (err) {
-                    console.error(err);
-                    showSnackbar("Failed to add vehicle", "error");
-                  }
-                }
-              }}
-
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Vehicle *"
-                  size="small"
-                  fullWidth
-                  error={!!errors.vehicle_guid}
-                  helperText={errors.vehicle_guid}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ "& .MuiInputLabel-root": { top: "-5px" } }}
-                />
-              )}
-            />
-          </Grid>
-
-
-          {/* Repair Category */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Repair Category *"
-              value={form.repair_category_id || ""}
-              disabled={isView}
-              error={!!errors.repair_category_id}
-              helperText={errors.repair_category_id}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, repair_category_id: e.target.value }));
-                setErrors((err) => ({ ...err, repair_category_id: "" }));
-              }}
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{
-                MenuProps: {
-                  PaperProps: {
-                    style: {
-                      maxHeight: 48 * 7, // ⭐ SHOW ONLY 7 ITEMS
-                    },
-                  },
-                },
-              }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            >
-              <MenuItem value="">-- Select --</MenuItem>
-              {repairCategories.map((r) => (
-                <MenuItem key={r.id} value={r.id}>
-                  {r.name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          {/* Service Type */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Service Type"
-              value={form.service_type || "Paid"}
-              disabled={isView}
-              error={!!errors.service_type}
-              helperText={errors.service_type}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, service_type: e.target.value }));
-                setErrors((err) => ({ ...err, service_type: "" }));
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            >
-              <MenuItem value="Paid">Paid</MenuItem>
-              <MenuItem value="Free">Free</MenuItem>
-            </TextField>
-          </Grid>
-          {/* Branch */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Branch *"
-              value={form.branch_id || ""}
-              disabled={isView}
-              error={!!errors.branch_id}
-              helperText={errors.branch_id}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, branch_id: e.target.value }));
-                setErrors((err) => ({ ...err, branch_id: "" }));
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            >
-              <MenuItem value="">-- Select Branch --</MenuItem>
-              {branches.map((b) => (
-                <MenuItem key={b.value} value={b.value}>
-                  {b.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          {/* Arrival Date */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Arrival Date"
-              InputLabelProps={{ shrink: true }}
-              value={form.arrival_date}
-              disabled={isView}
-              error={!!errors.arrival_date}
-              helperText={errors.arrival_date}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, arrival_date: e.target.value }));
-                setErrors((err) => ({ ...err, arrival_date: "" }));
-              }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            />
-          </Grid>
-
-          {/* Estimate Date */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Estimate Delivery Date *"
-              InputLabelProps={{ shrink: true }}
-              value={form.estimate_date || ""}
-              error={!!errors.estimate_date}
-              disabled={isView}
-              helperText={errors.estimate_date}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, estimate_date: e.target.value }));
-                setErrors((err) => ({ ...err, estimate_date: "" }));
-              }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            />
-          </Grid>
-
-          {/* Assign To */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Assign To *"
-              value={form.assign_to || ""}
-              disabled={isView}
-              error={!!errors.assign_to}
-              helperText={errors.assign_to}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, assign_to: e.target.value }));
-                setErrors((err) => ({ ...err, assign_to: "" }));
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            >
-              <MenuItem value="">-- Select Employee --</MenuItem>
-              {employees.map((emp) => (
-                <MenuItem key={emp.value} value={emp.value}>
-                  {emp.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          {/* Additional Options */}
-          <Grid item xs={12} md={6} width={{ xs: "100%", sm: "45%" }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Additional Options"
-              placeholder="Comma separated (ex: Wash Bay, MOT Test)"
-              value={Object.keys(form.additional_options || {}).join(", ")}
-              disabled={isView}
-              onChange={(e) => {
-                const arr = e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                const obj = {};
-                arr.forEach((k) => (obj[k] = true));
-
-                setForm((f) => ({ ...f, additional_options: obj }));
-                setErrors((err) => ({ ...err, additional_options: "" }));
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputLabel-root": { top: "-2px" },
-              }}
-            />
-          </Grid>
-
-          {/* Image Upload */}
-          {/* <Grid item xs={12} width={{ xs: "100%", sm: "45%" }}>
-            <Typography variant="subtitle2" fontWeight={600} mb={1}>
-              Upload Images (before service)
-            </Typography>
-
-            <Box
-              sx={{
-                border: "2px dashed #b6b6b6",
-                p: 3,
-                borderRadius: 2,
-                textAlign: "center",
-                background: "#fafafa",
-              }}
-            >
-              <input
-                type="file"
-                multiple
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    images: [
-                      ...(f.images || []),
-                      ...Array.from(e.target.files),
-                    ],
-                  }))
-                }
+        <SectionCard title="Service Details" icon={Wrench}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
+            
+            <Field label="Customer *" icon={User} error={errors.customer_guid}>
+              <Autocomplete
+                options={customers}
+                disabled={isView}
+                value={customers.find((c) => c.value === form.customer_guid) || null}
+                filterOptions={(options, { inputValue }) => {
+                  const search = inputValue.toLowerCase();
+                  return options.filter((option) =>
+                    option.label.toLowerCase().includes(search) || option.phone.includes(search)
+                  );
+                }}
+                onChange={(e, nv) => {
+                  onCustomerChange(nv);
+                  setErrors((err) => ({ ...err, customer_guid: "" }));
+                }}
+                renderInput={(params) => (
+                  <div ref={params.InputProps.ref} style={{ position: "relative" }}>
+                    <input
+                      {...params.inputProps}
+                      placeholder="Search name or phone..."
+                      disabled={isView}
+                      style={inputSx(!!errors.customer_guid)}
+                    />
+                    <ChevronDown size={16} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none" }} />
+                  </div>
+                )}
               />
-            </Box>
-          </Grid> */}
-        </Grid>
+            </Field>
+
+            <Field label="Vehicle *" icon={Car} error={errors.vehicle_guid}>
+              <Autocomplete
+                freeSolo
+                disabled={isView}
+                options={vehicles}
+                value={vehicles.find((v) => v.value === form.vehicle_guid) || null}
+                filterOptions={(options, { inputValue }) => {
+                  const search = inputValue.toLowerCase();
+                  return options.filter((opt) =>
+                    opt.label.toLowerCase().includes(search) || opt.regNo?.toLowerCase().includes(search)
+                  );
+                }}
+                getOptionLabel={(option) => typeof option === "string" ? option : (option.label || "")}
+                onChange={async (e, newValue) => {
+                  if (newValue && typeof newValue === "object") {
+                    setForm((f) => ({ ...f, vehicle_guid: newValue.value }));
+                    setErrors((err) => ({ ...err, vehicle_guid: "" }));
+                    return;
+                  }
+                  if (typeof newValue === "string" && newValue.trim()) {
+                    const vehicleNo = newValue.trim().toUpperCase();
+                    if (!isValidVehicleNumber(vehicleNo)) {
+                      showSnackbar("Invalid vehicle number", "error");
+                      return;
+                    }
+                    if (!form.customer_guid) {
+                      showSnackbar("Select customer first", "error");
+                      return;
+                    }
+                    try {
+                      const res = await fetch(`${apiEndpoints.usersdata}?table=vehicles&todo=insert`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ registration_number: newValue, customer_guid: form.customer_guid }),
+                      });
+                      const data = await res.json();
+                      const newVehicle = { value: data.vehicle_guid, label: data.label || newValue, regNo: newValue };
+                      setVehicles((prev) => [...prev, newVehicle]);
+                      setForm((f) => ({ ...f, vehicle_guid: data.vehicle_guid }));
+                    } catch (err) { console.error(err); }
+                  }
+                }}
+                renderInput={(params) => (
+                  <div ref={params.InputProps.ref} style={{ position: "relative" }}>
+                    <input
+                      {...params.inputProps}
+                      placeholder="Reg No or Select..."
+                      disabled={isView}
+                      style={inputSx(!!errors.vehicle_guid)}
+                    />
+                    <ChevronDown size={16} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none" }} />
+                  </div>
+                )}
+              />
+            </Field>
+
+            <Field label="Repair Category *" icon={Wrench} error={errors.repair_category_id}>
+              <select
+                disabled={isView}
+                value={form.repair_category_id || ""}
+                style={inputSx(!!errors.repair_category_id)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, repair_category_id: e.target.value }));
+                  setErrors((err) => ({ ...err, repair_category_id: "" }));
+                }}
+              >
+                <option value="">-- Select --</option>
+                {repairCategories.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Service Type" icon={DollarSign} error={errors.service_type}>
+              <select
+                disabled={isView}
+                value={form.service_type || "Paid"}
+                style={inputSx(!!errors.service_type)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, service_type: e.target.value }));
+                  setErrors((err) => ({ ...err, service_type: "" }));
+                }}
+              >
+                <option value="Paid">Paid</option>
+                <option value="Free">Free</option>
+              </select>
+            </Field>
+
+            <Field label="Branch *" icon={Building2} error={errors.branch_id}>
+              <select
+                disabled={isView}
+                value={form.branch_id || ""}
+                style={inputSx(!!errors.branch_id)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, branch_id: e.target.value }));
+                  setErrors((err) => ({ ...err, branch_id: "" }));
+                }}
+              >
+                <option value="">-- Select Branch --</option>
+                {branches.map((b) => (
+                  <option key={b.value} value={b.value}>{b.label}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Arrival Date" icon={Calendar} error={errors.arrival_date}>
+              <input
+                type="date"
+                disabled={isView}
+                value={form.arrival_date}
+                style={inputSx(!!errors.arrival_date)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, arrival_date: e.target.value }));
+                  setErrors((err) => ({ ...err, arrival_date: "" }));
+                }}
+              />
+            </Field>
+
+            <Field label="Est. Delivery Date *" icon={Clock} error={errors.estimate_date}>
+              <input
+                type="date"
+                disabled={isView}
+                value={form.estimate_date || ""}
+                style={inputSx(!!errors.estimate_date)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, estimate_date: e.target.value }));
+                  setErrors((err) => ({ ...err, estimate_date: "" }));
+                }}
+              />
+            </Field>
+
+            <Field label="Assign To *" icon={User} error={errors.assign_to}>
+              <select
+                disabled={isView}
+                value={form.assign_to || ""}
+                style={inputSx(!!errors.assign_to)}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, assign_to: e.target.value }));
+                  setErrors((err) => ({ ...err, assign_to: "" }));
+                }}
+              >
+                <option value="">-- Select Employee --</option>
+                {employees.map((emp) => (
+                  <option key={emp.value} value={emp.value}>{emp.label}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Additional Options" icon={MoreHorizontal}>
+              <input
+                placeholder="Ex: Wash Bay, MOT Test"
+                disabled={isView}
+                value={Object.keys(form.additional_options || {}).join(", ")}
+                style={inputSx(false)}
+                onChange={(e) => {
+                  const arr = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+                  const obj = {};
+                  arr.forEach((k) => (obj[k] = true));
+                  setForm((f) => ({ ...f, additional_options: obj }));
+                }}
+              />
+            </Field>
+          </div>
+        </SectionCard>
       </Box>
     );
   }

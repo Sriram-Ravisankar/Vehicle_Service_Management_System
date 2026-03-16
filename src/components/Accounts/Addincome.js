@@ -4,6 +4,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiEndpoints from '../../apiconfig';
 
 const AddIncome = () => {
   const navigate = useNavigate();
@@ -22,7 +23,27 @@ const AddIncome = () => {
 
   const [incomeFields, setIncomeFields] = useState([{ incomeEntry: '', incomeLabel: '' }]);
 
+  const [invoices, setInvoices] = useState([]);
+  const [branches, setBranches] = useState([]);
+
   useEffect(() => {
+    const fetchData = async () => {
+      const token = sessionStorage.getItem("token");
+      try {
+        const invRes = await fetch(`${apiEndpoints.Invoice}?list=1`, { headers: { Authorization: `Bearer ${token}` } });
+        const invData = await invRes.json();
+        setInvoices(Array.isArray(invData) ? invData : []);
+
+        const brRes = await fetch(apiEndpoints.branches, { headers: { Authorization: `Bearer ${token}` } });
+        const brData = await brRes.json();
+        const branchList = brData.data || brData;
+        setBranches(Array.isArray(branchList) ? branchList : []);
+      } catch (err) {
+        console.error("Fetch form data failed:", err);
+      }
+    };
+    fetchData();
+
     if (rowToEdit) {
       setFormData({
         invoice: rowToEdit.invoice || '',
@@ -53,32 +74,42 @@ const AddIncome = () => {
     setIncomeFields([...incomeFields, { incomeEntry: '', incomeLabel: '' }]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const incomeData = JSON.parse(sessionStorage.getItem('incomeData')) || [];
-  
-    if (rowToEdit) {
-      // Editing existing entry
-      const updatedEntry = { ...formData, incomeFields, id: rowToEdit.id };
-      const updatedData = incomeData.map((row) =>
-        row.id === rowToEdit.id ? updatedEntry : row
-      );
-      sessionStorage.setItem('incomeData', JSON.stringify(updatedData));
-    } else {
-      // Adding new entry with unique id
-      const newId = Date.now(); // or you can use a UUID for more uniqueness
-      const newEntry = { ...formData, incomeFields, id: newId };
-      incomeData.push(newEntry);
-      sessionStorage.setItem('incomeData', JSON.stringify(incomeData));
+    const token = sessionStorage.getItem("token");
+    const payload = {
+        ...formData,
+        incomeFields,
+        id: rowToEdit?.id
+    };
+
+    try {
+        const res = await fetch(apiEndpoints.income, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+            navigate('/income');
+        }
+    } catch (err) {
+        console.error("Save income failed:", err);
     }
-  
-    navigate('/income');
   };
   
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <Box sx={{ 
+      px: { xs: 3, sm: 4, md: 6 }, 
+      py: { xs: 2.5, sm: 4 },
+      width: '100%',
+      maxWidth: '100%',
+      overflowX: 'hidden'
+    }}>
       <Paper sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -106,8 +137,9 @@ const AddIncome = () => {
                 displayEmpty
               >
                 <MenuItem value="">Select Invoice</MenuItem>
-                <MenuItem value="00000001">00000001</MenuItem>
-                <MenuItem value="00000002">00000002</MenuItem>
+                {invoices.map((inv) => (
+                    <MenuItem key={inv.invoice_guid} value={inv.invoice_no}>{inv.invoice_no}</MenuItem>
+                ))}
               </Select>
             </Box>
 
@@ -186,8 +218,9 @@ const AddIncome = () => {
                 displayEmpty
               >
                 <MenuItem value="">Select Branch</MenuItem>
-                <MenuItem value="Main Branch">Main Branch</MenuItem>
-                <MenuItem value="Sub Branch">Sub Branch</MenuItem>
+                {branches.map((br) => (
+                    <MenuItem key={br.branch_guid} value={br.branch_name}>{br.branch_name}</MenuItem>
+                ))}
               </Select>
             </Box>
           </Box>
@@ -240,7 +273,7 @@ const AddIncome = () => {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 2, bgcolor: 'rgba(249, 115, 22, 0.9)', '&:hover': { bgcolor: 'rgba(249, 115, 22, 0.9)' } }}
+            sx={{ mt: 2, bgcolor: 'rgba(139, 92, 246, 0.9)', '&:hover': { bgcolor: 'rgba(139, 92, 246, 0.9)' } }}
           >
             {rowToEdit ? "UPDATE" : "SUBMIT"}
           </Button>

@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SectionHeader from '../common/Header';
+import apiEndpoints from '../../apiconfig';
 
 const PaymentMethod = () => {
     const navigate = useNavigate();
@@ -42,39 +43,22 @@ const PaymentMethod = () => {
         ), [paymentMethods]
     );
 
+    const fetchPaymentMethods = async () => {
+        try {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(apiEndpoints.paymentMethods, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setPaymentMethods(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch payment methods:", err);
+        }
+    };
+
     useEffect(() => {
-        const storedPayments = JSON.parse(sessionStorage.getItem('paymentMethods')) || [];
-
-        setPaymentMethods(storedPayments);
-
-        const newPayment = JSON.parse(sessionStorage.getItem('newPaymentMethod'));
-        const updatePayment = JSON.parse(sessionStorage.getItem('updatePaymentMethod'));
-
-        let updatedList = [...storedPayments];
-
-        if (newPayment?.isNew) {
-            const newType = newPayment.paymentType.trim();
-            const normalizedNew = newType.toLowerCase();
-            if (!normalizedPaymentTypes.includes(normalizedNew)) {
-                updatedList.push({ id: newPayment.id, paymentType: newType });
-            } else {
-                setSnackbarOpen(true);
-            }
-            sessionStorage.removeItem('newPaymentMethod');
-        }
-
-        if (updatePayment?.isUpdate) {
-            updatedList = updatedList.map((item) =>
-                item.id === updatePayment.id
-                    ? { ...item, paymentType: updatePayment.paymentType }
-                    : item
-            );
-            sessionStorage.removeItem('updatePaymentMethod');
-        }
-
-        sessionStorage.setItem('paymentMethods', JSON.stringify(updatedList));
-        setPaymentMethods(updatedList);
-    }, [location.key]); // Reacts to route changes!
+        fetchPaymentMethods();
+    }, [location.key]);
 
     // Remove duplicates from table display
     const uniquePaymentMethods = useMemo(() => {
@@ -124,12 +108,7 @@ const PaymentMethod = () => {
 
     const handleEdit = () => {
         const toEdit = paymentMethods.find((m) => m.id === selectedId);
-        sessionStorage.setItem('editPaymentMethod', JSON.stringify({
-            paymentType: toEdit.paymentType,
-            id: toEdit.id,
-            isEdit: true
-        }));
-        navigate('/addpayments');
+        navigate('/addpayments', { state: { toEdit, isEdit: true } });
         handleMenuClose();
     };
     const handleSelectAll = () => {
@@ -138,19 +117,26 @@ const PaymentMethod = () => {
 
         setSelected(newSelected);
     };
-    const handleDeleteSelected = () => {
-        const updatedList = paymentMethods.filter((method) => !selected.includes(method.id));
-        setPaymentMethods(updatedList);
+    const handleDeleteSelected = async () => {
+        const token = sessionStorage.getItem("token");
+        for (const id of selected) {
+            await fetch(`${apiEndpoints.paymentMethods}&id=${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        }
         setSelected([]);
-        sessionStorage.setItem('paymentMethods', JSON.stringify(updatedList));
+        fetchPaymentMethods();
     };
 
-    const handleDelete = () => {
-        const filteredPaymentMethods = paymentMethods.filter((method) => !selected.includes(method.id));
-        setPaymentMethods(filteredPaymentMethods);
-        sessionStorage.setItem('paymentMethods', JSON.stringify(filteredPaymentMethods));
-        setSelected([]);
-        setIsSelectAll(false); // Reset select all state after deletion
+    const handleDelete = async () => {
+        const token = sessionStorage.getItem("token");
+        await fetch(`${apiEndpoints.paymentMethods}&id=${selectedId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchPaymentMethods();
+        handleMenuClose();
     };
 
     const handleAdd = () => {
@@ -254,8 +240,8 @@ const PaymentMethod = () => {
                             variant="contained"
                             onClick={handleSelectAll}
                             sx={{
-                                bgcolor: "rgba(249, 115, 22, 0.9)",
-                                "&:hover": { bgcolor: "rgba(249, 115, 22, 0.9)" },
+                                bgcolor: "rgba(139, 92, 246, 0.9)",
+                                "&:hover": { bgcolor: "rgba(139, 92, 246, 0.9)" },
                                 display: "flex",
                                 alignItems: "center",
                                 px: 2,
