@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Circle
 } from "lucide-react";
+import apiEndpoints from "../../apiconfig";
 
 // ── tiny helpers ─────────────────────────────────────────────────────────────
 const SectionCard = ({ title, children, icon: Icon }) => (
@@ -63,59 +64,113 @@ export default function Step3_PartsLabour({
   showSnackbar,
 }) {
 
+  const [products, setProducts] = React.useState([]);
+  const [workers, setWorkers] = React.useState([]);
+
   React.useEffect(() => {
+    const fetchRequiredData = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        // Fetch Products
+        const prodRes = await fetch(apiEndpoints.product, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const prodData = await prodRes.json();
+        if (prodData.success) setProducts(prodData.data);
+
+        // Fetch Workers (Mechanics)
+        const workerRes = await fetch(apiEndpoints.workerManagement + "?action=workers", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const workerData = await workerRes.json();
+        setWorkers(Array.isArray(workerData) ? workerData : []);
+      } catch (err) {
+        console.error("Fetch error in Step3:", err);
+      }
+    };
+    fetchRequiredData();
+
     if (!form.parts || form.parts.length === 0) {
       setForm((f) => ({
         ...f,
-        parts: [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
+        parts: [{ id: Date.now(), product_id: "", name: "", qty: 1, rate: 0, amount: 0 }],
       }));
     }
     if (!form.labour || form.labour.length === 0) {
       setForm((f) => ({
         ...f,
-        labour: [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }],
+        labour: [{ id: Date.now() + 1, title: "", mechanic_guid: "", hours: 1, rate: 0, amount: 0 }],
       }));
     }
   }, []);
 
   const addPart = () => {
-    const item = { id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 };
+    const item = { id: Date.now(), product_id: "", name: "", qty: 1, rate: 0, amount: 0 };
     setForm((f) => ({ ...f, parts: [...(f.parts || []), item] }));
   };
 
   const addLabour = () => {
-    const item = { id: Date.now(), title: "", hours: 1, rate: 0, amount: 0 };
+    const item = { id: Date.now(), title: "", mechanic_guid: "", hours: 1, rate: 0, amount: 0 };
     setForm((f) => ({ ...f, labour: [...(f.labour || []), item] }));
   };
 
   const updatePart = (id, key, val) => {
-    setForm((f) => ({
-      ...f,
-      parts: f.parts.map((p) =>
-        p.id === id
-          ? {
-            ...p,
-            [key]: val,
-            amount: Number(key === "qty" ? val : p.qty) * Number(key === "rate" ? val : p.rate),
+    setForm((f) => {
+      const parts = (f.parts || []).map((p) => {
+        if (p.id !== id) return p;
+        let updated = { ...p, [key]: val };
+
+        if (key === "product_id" && val) {
+          // Check for duplication
+          const isDuplicate = (f.parts || []).some(existing => existing.id !== id && String(existing.product_id) === String(val));
+          if (isDuplicate) {
+            showSnackbar("This product is already added. Please increase the quantity of the existing row.", "warning");
+            updated.product_id = "";
+            return updated;
           }
-          : p
-      ),
-    }));
+          
+          const prod = products.find(prod => String(prod.id) === String(val));
+          if (prod) {
+            const avail = Number(prod.available_stock || 0);
+            if (avail <= 0) {
+              showSnackbar(`Out of Stock! ${prod.product_name} has 0 available.`, "error");
+              updated.product_id = "";
+              return updated;
+            }
+            updated.name = prod.product_name;
+            updated.rate = Number(prod.price || 0);
+            if (!updated.qty || updated.qty < 1) updated.qty = 1;
+          }
+        }
+
+        if (key === "qty" && updated.product_id) {
+          const prod = products.find(prod => String(prod.id) === String(updated.product_id));
+          if (prod) {
+            const avail = Number(prod.available_stock || 0);
+            if (Number(val) > avail) {
+              showSnackbar(`Not enough stock! Only ${avail} available for ${prod.product_name}.`, "error");
+              updated.qty = avail;
+            }
+          }
+        }
+
+        updated.amount = Number(updated.qty || 0) * Number(updated.rate || 0);
+        return updated;
+      });
+      return { ...f, parts };
+    });
   };
 
   const updateLabour = (id, key, val) => {
-    setForm((f) => ({
-      ...f,
-      labour: f.labour.map((l) =>
-        l.id === id
-          ? {
-            ...l,
-            [key]: val,
-            amount: Number(key === "hours" ? val : l.hours) * Number(key === "rate" ? val : l.rate),
-          }
-          : l
-      ),
-    }));
+    setForm((f) => {
+      const labour = (f.labour || []).map((l) => {
+        if (l.id !== id) return l;
+        let updated = { ...l, [key]: val };
+        updated.amount = Number(updated.hours || 0) * Number(updated.rate || 0);
+        return updated;
+      });
+      return { ...f, labour };
+    });
   };
 
   const removePart = (id) =>
@@ -150,10 +205,30 @@ export default function Step3_PartsLabour({
     <div>
       <SectionCard title="Parts Inventory" icon={Package}>
         <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "850px" }}>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 80px 120px 120px 40px", gap: 12, padding: "0 4px", borderBottom: "1px solid #F3F4F6", paddingBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Select Product</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Part Name</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Qty</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Rate</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", textAlign: "right" }}>Amount</span>
+              <span></span>
+            </div>
             {form.parts?.map((p, idx) => (
-              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
-                <input placeholder="Part Name..." value={p.name} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
+              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 80px 120px 120px 40px", gap: 12, alignItems: "center" }}>
+                <select 
+                  value={p.product_id || ""} 
+                  disabled={isView} 
+                  style={inputSx(false)} 
+                  onChange={(e) => updatePart(p.id, "product_id", e.target.value)}
+                >
+                  <option value="">-- Select Product --</option>
+                  {products.map(prod => (
+                    <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.product_number})</option>
+                  ))}
+                </select>
+                <input placeholder="Short Desc..." value={p.name} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
                 <input type="number" placeholder="Qty" value={p.qty} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
                 <input type="number" placeholder="Rate" value={p.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(p.amount)}</div>
@@ -165,8 +240,27 @@ export default function Step3_PartsLabour({
               </div>
             ))}
             {!isView && (
-              <button onClick={addPart} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1.5px dashed #E5E7EB", background: "#F9FAFB", color: "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-                <Plus size={16} /> Add Part Row
+              <button 
+                onClick={addPart} 
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  padding: "8px 18px", 
+                  borderRadius: 10, 
+                  border: "none", 
+                  background: "#F5F3FF", 
+                  color: "#8B5CF6", 
+                  fontSize: 13, 
+                  fontWeight: 700, 
+                  cursor: "pointer", 
+                  marginTop: 12,
+                  width: "fit-content",
+                  boxShadow: "0 1px 2px rgba(139, 92, 246, 0.1)",
+                  transition: "all 0.2s"
+                }}
+              >
+                <Plus size={16} color="#8B5CF6" strokeWidth={3} /> Add Part
               </button>
             )}
           </div>
@@ -175,10 +269,32 @@ export default function Step3_PartsLabour({
 
       <SectionCard title="Labour Services" icon={Wrench}>
         <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "850px" }}>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 80px 120px 120px 40px", gap: 12, padding: "0 4px", borderBottom: "1px solid #F3F4F6", paddingBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Labour Title</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Assign Mechanic</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Hour</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Rate</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", textAlign: "right" }}>Amount</span>
+              <span></span>
+            </div>
             {form.labour?.map((l) => (
-              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 80px 120px 120px 40px", gap: 12, alignItems: "center" }}>
                 <input placeholder="Labour Title..." value={l.title} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
+                <select 
+                  value={l.mechanic_guid || ""} 
+                  disabled={isView} 
+                  style={inputSx(false)} 
+                  onChange={(e) => updateLabour(l.id, "mechanic_guid", e.target.value)}
+                >
+                  <option value="">-- Select Mechanic --</option>
+                  {workers
+                    .filter(w => String(w.role_id) === "4")
+                    .map(w => (
+                      <option key={w.user_guid} value={w.user_guid}>{w.first_name} {w.last_name}</option>
+                    ))}
+                </select>
                 <input type="number" placeholder="Hours" value={l.hours} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
                 <input type="number" placeholder="Rate" value={l.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
@@ -190,8 +306,27 @@ export default function Step3_PartsLabour({
               </div>
             ))}
             {!isView && (
-              <button onClick={addLabour} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1.5px dashed #E5E7EB", background: "#F9FAFB", color: "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-                <Plus size={16} /> Add Labour Row
+              <button 
+                onClick={addLabour} 
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  padding: "8px 18px", 
+                  borderRadius: 10, 
+                  border: "none", 
+                  background: "#F5F3FF", 
+                  color: "#8B5CF6", 
+                  fontSize: 13, 
+                  fontWeight: 700, 
+                  cursor: "pointer", 
+                  marginTop: 12,
+                  width: "fit-content",
+                  boxShadow: "0 1px 2px rgba(139, 92, 246, 0.1)",
+                  transition: "all 0.2s"
+                }}
+              >
+                <Plus size={16} color="#8B5CF6" strokeWidth={3} /> Add Labour
               </button>
             )}
           </div>
@@ -221,22 +356,23 @@ export default function Step3_PartsLabour({
                 style={{ 
                   display: "flex", 
                   alignItems: "center", 
-                  gap: 12, 
-                  padding: "12px", 
-                  background: form.totals.includeGST ? "#F5F3FF" : "#F9FAFB", 
+                  gap: 8, 
+                  padding: "6px 14px", 
+                  background: form.totals.includeGST ? "#EEF2FF" : "#F9FAFB", 
                   borderRadius: 10,
                   cursor: isView ? "default" : "pointer",
-                  border: `1px solid ${form.totals.includeGST ? "#DDD6FE" : "transparent"}`,
+                  border: `1px solid ${form.totals.includeGST ? "#C7D2FE" : "#E5E7EB"}`,
+                  width: "fit-content",
                   transition: "all 0.2s"
                 }}
               >
-                <div style={{ color: form.totals.includeGST ? "#8B5CF6" : "#D1D5DB" }}>
-                  {form.totals.includeGST ? <CheckCircle2 size={20} fill="#8B5CF6" color="#fff" /> : <Circle size={20} />}
+                <div style={{ color: form.totals.includeGST ? "#6366F1" : "#D1D5DB" }}>
+                  {form.totals.includeGST ? <CheckCircle2 size={18} fill="#6366F1" color="#fff" /> : <Circle size={18} />}
                 </div>
-                <label style={{ fontSize: 14, fontWeight: 600, color: form.totals.includeGST ? "#111827" : "#374151", cursor: "pointer" }}>Apply GST (18%)</label>
+                <label style={{ fontSize: 13, fontWeight: 700, color: form.totals.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
                 {form.totals.includeGST && (
-                  <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: "auto" }}>
-                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 80 }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
+                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
                   </div>
                 )}
               </div>

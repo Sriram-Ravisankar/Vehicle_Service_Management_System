@@ -57,7 +57,30 @@ export default function ReportsTabs() {
   // Handle tab click
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
+    // Reset filters when switching tabs for consistency
+    setFilters({
+      search: "",
+      fromDate: "",
+      toDate: "",
+      status: "All",
+    });
   };
+
+  const getAvailableStatuses = () => {
+    switch (activeTab) {
+      case "SERVICES":
+      case "EMP_SERVICES":
+        return ["All", "Pending", "Completed", "Delivered"];
+      case "UPCOMING_SERVICES":
+        return ["All", "Pending", "Approval Pending"];
+      case "PRODUCT_STOCK":
+        return ["All", "In Stock", "Out of Stock", "Low Stock"];
+      default:
+        return null;
+    }
+  };
+
+  const availableStatuses = getAvailableStatuses();
 
   // Render tab content
   const renderTabContent = () => {
@@ -112,31 +135,198 @@ export default function ReportsTabs() {
           </div>
         </div>
 
-        {/* Filters Section */}
-        <div style={styles.filtersContainer(isMobile)}>
-          <div style={styles.filtersHeader(isMobile)}>
-            <h3 style={styles.filtersTitle}>Filters & Search</h3>
-            <div style={styles.filterButtons(isMobile)}>
-              <button
-                style={styles.clearButton(isMobile)}
-                onClick={() =>
-                  setFilters({
-                    search: "",
-                    fromDate: "",
-                    toDate: "",
-                    status: "All",
-                  })
-                }
-              >
-                Clear
-              </button>
-
-              {/* <button style={styles.applyButton(isMobile)}>
-                Apply Filters
-              </button> */}
+        {/* Dynamic Hero Header based on activeTab */}
+        {activeTab === "SERVICES" && (
+          <div style={{
+            background: "linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%)",
+            borderRadius: 16,
+            padding: isMobile ? "20px" : "32px",
+            color: "#fff",
+            boxShadow: "0 10px 30px rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            position: "relative",
+            overflow: "hidden",
+            marginBottom: "16px",
+            animation: "fadeIn 0.4s ease-out"
+          }}>
+            <div style={{ position: "absolute", top: -20, right: -20, opacity: 0.1 }}>
+              <HomeRepairServiceRoundedIcon style={{ fontSize: 180 }} />
+            </div>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: 16,
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <HomeRepairServiceRoundedIcon style={{ fontSize: 32, color: "#fff" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>Service Reports</h2>
+              <div style={{ fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
+                Quick check on recent service jobs and mechanical tasks.
+              </div>
             </div>
           </div>
+        )}
+        {activeTab === "PRODUCT_STOCK" && (
+          <div style={{
+            background: "linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%)",
+            borderRadius: 16,
+            padding: isMobile ? "20px" : "32px",
+            color: "#fff",
+            boxShadow: "0 10px 30px rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            position: "relative",
+            overflow: "hidden",
+            marginBottom: "16px",
+            animation: "fadeIn 0.4s ease-out"
+          }}>
+            <div style={{ position: "absolute", top: -20, right: -20, opacity: 0.1 }}>
+              <Inventory2RoundedIcon style={{ fontSize: 180 }} />
+            </div>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: 16,
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Inventory2RoundedIcon style={{ fontSize: 32, color: "#fff" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>Inventory Stock Report</h2>
+              <div style={{ fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
+                Real-time tracking of current stock levels and purchase history.
+              </div>
+            </div>
+          </div>
+        )}
 
+        {activeTab === "PRODUCT_USAGE" && (
+          <div style={{
+            background: "linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%)",
+            borderRadius: 16,
+            padding: isMobile ? "20px" : "32px",
+            color: "#fff",
+            boxShadow: "0 10px 30px rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            position: "relative",
+            overflow: "hidden",
+            marginBottom: "16px",
+            animation: "fadeIn 0.4s ease-out"
+          }}>
+            <div style={{ position: "absolute", top: -20, right: -20, opacity: 0.1 }}>
+              <QueryStatsRoundedIcon style={{ fontSize: 180 }} />
+            </div>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: 16,
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <QueryStatsRoundedIcon style={{ fontSize: 32, color: "#fff" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>Product Usage Report</h2>
+              <div style={{ fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
+                Comprehensive analytics on product consumption.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "EMP_SERVICES" && (
+          <div style={{
+            background: "linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%)",
+            borderRadius: 16,
+            padding: isMobile ? "20px" : "32px",
+            color: "#fff",
+            boxShadow: "0 10px 30px rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            position: "relative",
+            overflow: "hidden",
+            marginBottom: "16px",
+            animation: "fadeIn 0.4s ease-out"
+          }}>
+            <div style={{ position: "absolute", top: -20, right: -20, opacity: 0.1 }}>
+              <Groups2RoundedIcon style={{ fontSize: 180 }} />
+            </div>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: 16,
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Groups2RoundedIcon style={{ fontSize: 32, color: "#fff" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>Employee Services Report</h2>
+              <div style={{ fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
+                Detailed breakdown of services rendered per employee.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "UPCOMING_SERVICES" && (
+          <div style={{
+            background: "linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%)",
+            borderRadius: 16,
+            padding: isMobile ? "20px" : "32px",
+            color: "#fff",
+            boxShadow: "0 10px 30px rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            position: "relative",
+            overflow: "hidden",
+            marginBottom: "16px",
+            animation: "fadeIn 0.4s ease-out"
+          }}>
+            <div style={{ position: "absolute", top: -20, right: -20, opacity: 0.1 }}>
+              <EventAvailableRoundedIcon style={{ fontSize: 180 }} />
+            </div>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: 16,
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <EventAvailableRoundedIcon style={{ fontSize: 32, color: "#fff" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>Upcoming Services Report</h2>
+              <div style={{ fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
+                Schedules and forecasts of uncompleted or impending services.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters Section */}
+        <div style={styles.filtersContainer(isMobile)}>
           <div style={styles.filtersContent(isMobile)}>
             {/* Search Input */}
             <div style={styles.filterItem}>
@@ -179,22 +369,41 @@ export default function ReportsTabs() {
               </div>
             </div>
 
-            {/* Status Filter */}
-            <div style={styles.filterItem}>
-              <label style={styles.filterLabel}>Status</label>
-              <select
-                style={styles.dropdown(isMobile)}
-                value={filters.status}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, status: e.target.value }))
+            {/* Status Filter - Only show if relevant */}
+            {availableStatuses && (
+              <div style={styles.filterItem}>
+                <label style={styles.filterLabel}>Status</label>
+                <select
+                  style={styles.dropdown(isMobile)}
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                >
+                  {availableStatuses.map((s) => (
+                    <option key={s} value={s}>
+                      {s === "All" ? "All Status" : s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Clear Button inline on desktop */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <button
+                style={styles.clearButton(isMobile)}
+                onClick={() =>
+                  setFilters({
+                    search: "",
+                    fromDate: "",
+                    toDate: "",
+                    status: "All",
+                  })
                 }
               >
-                <option value="All">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Completed">Completed</option>
-                <option value="Pending">Pending</option>
-              </select>
-
+                Clear
+              </button>
             </div>
           </div>
         </div>
@@ -241,24 +450,20 @@ const styles = {
 
   // Tabs styles
   tabsContainer: (isMobile) => ({
-    padding: isMobile ? "8px" : "12px",
-    marginBottom: isMobile ? "8px" : "12px",
+    padding: "6px",
+    marginBottom: isMobile ? "12px" : "16px",
     borderRadius: "16px",
-    background: "rgba(255,255,255,0.95)",
-    backdropFilter: "saturate(180%) blur(8px)",
-    border: "1px solid rgba(255,255,255,0.2)",
-    boxShadow: "0 6px 18px rgba(2,6,23,0.04)",
-    overflow: "hidden",
+    background: "#ffffff",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+    display: "inline-flex",
+    maxWidth: "100%",
   }),
 
   tabsWrapper: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "6px",
     overflowX: "auto",
-    padding: "4px 2px",
-    boxSizing: "border-box",
-    width: "100%",
     scrollbarWidth: "none",
     msOverflowStyle: "none",
   },
@@ -267,7 +472,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    padding: isMobile ? "10px 14px" : "12px 18px",
+    padding: isMobile ? "8px 14px" : "10px 18px",
     borderRadius: "12px",
     border: "none",
     cursor: "pointer",
@@ -276,13 +481,14 @@ const styles = {
     whiteSpace: "nowrap",
     minWidth: "fit-content",
     flexShrink: 0,
+    transition: "all 0.2s",
   }),
 
   activeTab: {
-    color: "rgba(139, 92, 246, 0.9)",
-    background: "rgba(249, 115, 22, 0.15)",
+    color: "#0ea5e9",
+    background: "#f0f9ff",
+    boxShadow: "0 2px 8px rgba(14, 165, 233, 0.15)",
   },
-
 
   inactiveTab: {
     color: "#64748b",
@@ -309,19 +515,11 @@ const styles = {
   filtersHeader: (isMobile) => ({
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: isMobile ? "stretch" : "center",
     marginBottom: "16px",
     gap: isMobile ? "12px" : "0",
   }),
-
-  filtersTitle: {
-    margin: "0",
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "rgba(139, 92, 246, 0.9)",
-    textAlign: "center",
-  },
 
 
   filterButtons: (isMobile) => ({
@@ -335,6 +533,7 @@ const styles = {
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
     gap: isMobile ? "16px" : "20px",
+    alignItems: isMobile ? "stretch" : "flex-end",
   }),
 
   filterItem: {
@@ -389,9 +588,8 @@ const styles = {
     padding: "0 8px",
   },
 
-  // Dropdown with extra spacing
   dropdown: (isMobile) => ({
-    padding: isMobile ? "12px 10px" : "12px 14px",
+    padding: isMobile ? "12px 10px" : "10px 14px",
     fontSize: isMobile ? "16px" : "14px",
     borderRadius: "10px",
     border: "1.5px solid #e2e8f0",
@@ -399,10 +597,10 @@ const styles = {
     cursor: "pointer",
     width: "100%",
     boxSizing: "border-box",
-    margin: "4px 0",
+    margin: 0,
+    height: isMobile ? "auto" : "41px",
   }),
 
-  // Button styles
   clearButton: (isMobile) => ({
     padding: isMobile ? "14px 16px" : "10px 20px",
     borderRadius: "10px",
@@ -412,8 +610,8 @@ const styles = {
     fontWeight: "600",
     fontSize: isMobile ? "15px" : "14px",
     cursor: "pointer",
-    flex: isMobile ? "1" : "none",
     width: isMobile ? "100%" : "auto",
+    height: isMobile ? "auto" : "41px",
   }),
 
 

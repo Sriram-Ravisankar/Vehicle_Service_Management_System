@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
-import { useLoading } from "../../pages/LoadingContext";
+
 const COLUMNS = [
   "S.No",
   "Product Number",
@@ -12,249 +12,232 @@ const COLUMNS = [
 ];
 
 export default function ProductUsageTab({filters}) {
-const { show, hide } = useLoading();
   const [isSmall, setIsSmall] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 720 : false
   );
   const [data, setData] = useState([]);
-  // update isSmall on resize for responsiveness
+
   useEffect(() => {
     const onResize = () => setIsSmall(window.innerWidth <= 720);
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-useEffect(() => {
-  const fetchStock = async () => {
-    try {
-      show(); // 🌍 turn ON global loader
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
 
-      const token = sessionStorage.getItem("token");
+        const res = await fetch(apiEndpoints.report, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      const res = await fetch(apiEndpoints.report, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        const json = await res.json();
 
-      const json = await res.json();
+        if (json.success && json.stock_reports) {
+          const formatted = json.stock_reports.map((row, index) => ({
+            "S.No": index + 1,
+            "Product Number": row["Product Number"],
+            "Supplier Name": row["Supplier Name"],
+            "Purchase Date": row["Purchase Date"],
+            "Product Name": row["Product Name"],
+            "Quantity sold": row["Quantity Sold"] ?? 0,
+          }));
 
-      if (json.success && json.stock_reports) {
-        const formatted = json.stock_reports.map((row, index) => ({
-          "S.No": index + 1,
-          "Product Number": row["Product Number"],
-          "Supplier Name": row["Supplier Name"],
-          "Purchase Date": row["Purchase Date"],
-          "Product Name": row["Product Name"],
-          "Quantity Sold": row["Quantity Sold"] ?? 0, // ✅ safe fallback
-        }));
-
-        setData(formatted);
-      } else {
-        console.error("No stock data found");
+          setData(formatted);
+        } else {
+          console.error("No usage data found");
+        }
+      } catch (err) {
+        console.error("Error fetching usage:", err);
       }
-    } catch (err) {
-      console.error("Error fetching stock:", err);
-    } finally {
-      hide(); // 🌍 turn OFF global loader
+    };
+
+    fetchUsage();
+  }, []);
+
+  // --- Filter based on search term & dates ---
+  const filtered = useMemo(() => {
+    let rows = [...data];
+
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      rows = rows.filter((row) =>
+        Object.values(row).some((val) =>
+          String(val).toLowerCase().includes(q)
+        )
+      );
     }
-  };
 
-  fetchStock();
-}, []);
+    if (filters.fromDate || filters.toDate) {
+      const from = filters.fromDate ? new Date(filters.fromDate) : null;
+      const to = filters.toDate ? new Date(filters.toDate + "T23:59:59.999") : null;
 
+      rows = rows.filter((row) => {
+        const rowDate = new Date(row["Purchase Date"]);
+        if (from && rowDate < from) return false;
+        if (to && rowDate > to) return false;
+        return true;
+      });
+    }
 
-  // --- Filter based on search term ---
-const filtered = useMemo(() => {
-  let rows = [...data];
-
-  // 1️⃣ Search filter
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    rows = rows.filter((row) =>
-      Object.values(row).some((val) =>
-        String(val).toLowerCase().includes(q)
-      )
-    );
-  }
-
-  // 2️⃣ Date range filter (INCLUSIVE to-date)
-  if (filters.fromDate || filters.toDate) {
-    const from = filters.fromDate
-      ? new Date(filters.fromDate)
-      : null;
-
-    const to = filters.toDate
-      ? new Date(filters.toDate + "T23:59:59.999")
-      : null;
-
-    rows = rows.filter((row) => {
-      const rowDate = new Date(row["Purchase Date"]);
-      if (from && rowDate < from) return false;
-      if (to && rowDate > to) return false;
-      return true;
+    // Badge styling for table rendering
+    const badgeStyle = (qty) => ({
+      background: Number(qty) > 0 ? "#eff6ff" : "#f1f5f9",
+      color: Number(qty) > 0 ? "#3b82f6" : "#64748b",
+      padding: "6px 14px",
+      borderRadius: "20px",
+      fontWeight: '700',
+      fontSize: "13px",
+      display: "inline-block",
+      border: `1px solid ${Number(qty) > 0 ? '#bfdbfe' : '#e2e8f0'}`
     });
-  }
 
-  return rows;
-}, [data, filters]);
-
+    return rows.map(r => ({
+      ...r,
+      "Quantity sold": (
+        <span style={badgeStyle(r["Quantity sold"])}>
+          {r["Quantity sold"]} Units
+        </span>
+      ),
+      "RawQty": r["Quantity sold"] // Keep raw for mobile view
+    }));
+  }, [data, filters]);
 
   const styles = {
     page: {
       margin: "0 auto",
       boxSizing: "border-box",
-      fontFamily: "Montserrat",
       color: "#0f172a",
-    },
-
-    headerRow: {
       display: "flex",
-      flexDirection: isSmall ? "column" : "row",
-      alignItems: isSmall ? "stretch" : "center",
-      justifyContent: "space-between",
-      gap: isSmall ? 12 : 24,
-      marginBottom: 12,
-    },
-    titleBlock: { display: "flex", flexDirection: "column", gap: 4 },
-    title: { fontSize: 20, fontWeight: 800, margin: 0 },
-    subtitle: { fontSize: 13, color: "#6b7280", margin: 0 },
-
-    searchRow: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      width: isSmall ? "100%" : 420,
-      marginLeft: isSmall ? 0 : "auto",
-    },
-    searchInput: {
-      flex: 1,
-      padding: "10px 12px",
-      fontSize: 14,
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
-    },
-    clearBtn: {
-      padding: "8px 12px",
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 700,
-      color: "#475569",
-      whiteSpace: "nowrap",
+      flexDirection: "column",
+      gap: 24,
+      animation: "fadeIn 0.4s ease-out",
     },
 
+    // panel containing table/cards
     panel: {
       background: "#ffffff",
-      borderRadius: 12,
-      boxShadow: "0 8px 24px rgba(2,6,23,0.04)",
-      border: "1px solid rgba(0,0,0,0.04)",
+      borderRadius: 16,
+      boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+      border: "1px solid #f1f5f9",
       overflow: "hidden",
     },
 
-    // table wrapper for desktop; keeps horizontal scroll on small widths
     tableWrapper: {
       width: "100%",
       overflowX: "auto",
-      padding: isSmall ? 12 : 16,
+      padding: isSmall ? 12 : 20,
       boxSizing: "border-box",
     },
 
-    // mobile card list (one card per row)
+    // mobile card list
     cardList: {
       display: "grid",
-      gap: 12,
-      padding: 12,
+      gap: 16,
+      padding: 16,
       boxSizing: "border-box",
       gridTemplateColumns: "1fr",
     },
     card: {
-      borderRadius: 12,
-      background: "#f8fafc",
-      padding: 12,
-      border: "1px solid #e6eef8",
-      boxShadow: "0 4px 12px rgba(2,6,23,0.03)",
+      borderRadius: 16,
+      background: "#ffffff",
+      padding: 20,
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
       display: "flex",
       flexDirection: "column",
-      gap: 8,
+      gap: 12,
+      transition: "transform 0.2s, box-shadow 0.2s",
     },
     cardRow: {
       display: "flex",
       justifyContent: "space-between",
-      gap: 8,
+      gap: 12,
       alignItems: "center",
+      borderBottom: "1px solid #f1f5f9",
+      paddingBottom: 12,
     },
-    metaLabel: { color: "#6b7280", fontSize: 12, fontWeight: 700 },
-    metaValue: { color: "#0f172a", fontSize: 14, fontWeight: 700 },
+    metaLabel: { color: "#64748b", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" },
+    metaValue: { color: "#0f172a", fontSize: 15, fontWeight: 700, mt: 4 },
+    qtyBadge: (qty) => ({
+      background: Number(qty) > 0 ? "#eff6ff" : "#f1f5f9",
+      color: Number(qty) > 0 ? "#3b82f6" : "#64748b",
+      padding: "4px 10px",
+      borderRadius: 20,
+      fontWeight: 800,
+      fontSize: 14,
+      display: "inline-block",
+      border: `1px solid ${Number(qty) > 0 ? '#bfdbfe' : '#e2e8f0'}`
+    }),
 
     footer: {
-      padding: "12px 16px",
-      fontSize: 13,
-      color: "#475569",
+      padding: "16px 24px",
+      fontSize: 14,
+      color: "#64748b",
       fontWeight: 600,
+      background: "#f8fafc",
+      borderTop: "1px solid #f1f5f9",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     },
   };
 
   return (
     <div style={styles.page}>
-      {/* Header (not sticky, scrolls with page) */}
-      <div style={styles.headerRow}>
-        <div style={styles.titleBlock}>
-          <h2 style={styles.title}>Product Usage Report</h2>
-          <div style={styles.subtitle}>
-            Usage details by job. Search across all fields.
-          </div>
-        </div>
-      </div>
-
+      
       <div style={styles.panel}>
-        {/* Desktop/tablet: Table view */}
         {!isSmall ? (
           <div style={styles.tableWrapper}>
             <ReportTable columns={COLUMNS} data={filtered} className="w-full" />
           </div>
         ) : (
-          /* Mobile: card list view for easy reading */
           <div style={styles.cardList}>
             {filtered.map((row, idx) => (
               <div key={idx} style={styles.card}>
                 <div style={styles.cardRow}>
                   <div>
                     <div style={styles.metaLabel}>Product No</div>
-                    <div style={styles.metaValue}>{row["Product Number"]}</div>
+                    <div style={{...styles.metaValue, color: "#0ea5e9"}}>{row["Product Number"]}</div>
                   </div>
-                  <div>
+                  <div style={{ textAlign: "right" }}>
                     <div style={styles.metaLabel}>Date</div>
                     <div style={styles.metaValue}>{row["Purchase Date"]}</div>
                   </div>
                 </div>
 
                 <div>
-                  <div style={styles.metaLabel}>Supplier</div>
-                  <div style={styles.metaValue}>{row["Supplier Name"]}</div>
+                  <div style={styles.metaLabel}>Product Name</div>
+                  <div style={{...styles.metaValue, fontSize: 16}}>{row["Product Name"]}</div>
                 </div>
 
-                <div>
-                  <div style={styles.metaLabel}>Product</div>
-                  <div style={styles.metaValue}>{row["Product Name"]}</div>
+                <div style={styles.cardRow}>
+                  <div style={{ border: "none" }}>
+                    <div style={styles.metaLabel}>Supplier</div>
+                    <div style={styles.metaValue}>{row["Supplier Name"]}</div>
+                  </div>
+                  <div style={{ textAlign: "right", border: "none" }}>
+                    <div style={styles.metaLabel}>Quantity Sold</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span style={styles.qtyBadge(row.RawQty)}>
+                        {row.RawQty} Units
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <div style={styles.metaLabel}>Quantity sold</div>
-                  <div style={styles.metaValue}>{row["Quantity sold"]}</div>
-                </div>
               </div>
             ))}
           </div>
         )}
 
         <div style={styles.footer}>
-          {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          <span>{filtered.length} record{filtered.length !== 1 ? "s" : ""} found</span>
+          <span style={{ fontSize: 13, color: "#94a3b8" }}>Last updated instantly</span>
         </div>
       </div>
     </div>

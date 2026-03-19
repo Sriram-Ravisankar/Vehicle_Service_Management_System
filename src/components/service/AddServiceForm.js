@@ -212,7 +212,9 @@ export default function AddServiceForm({
   const [form, setForm] = useState({
     // Step1
     customer_guid: "",
+    customer_name: "",
     vehicle_guid: "",
+    vehicle_name: "",
     repair_category_id: "",
     service_type: "Paid",
     arrival_date: new Date().toISOString().slice(0, 10),
@@ -278,8 +280,10 @@ export default function AddServiceForm({
         // Map row fields onto form. Parse JSON fields if stored as strings.
         const mapped = {
           // step1
-          customer_guid: row.customer_guid || row.customer_guid || "",
-          vehicle_guid: row.vehicle_guid || row.vehicle_guid || "",
+          customer_guid: row.customer_guid || "",
+          customer_name: row.customer_name || "",
+          vehicle_guid: row.vehicle_guid || "",
+          vehicle_name: row.vehicle_name && row.vehicle_name.trim() ? `${row.vehicle_name} - ${row.registration_number}` : (row.registration_number || ""),
           repair_category_id:
             row.repair_category_id || row.repair_category_id || "",
           service_type: row.service_type || "Paid",
@@ -393,6 +397,7 @@ export default function AddServiceForm({
 
   const buildQuotationFromJobCard = (form) => {
     const parts = (form.parts || []).map((p) => ({
+      product_id: p.product_id || "",
       name: p.name || p.product || "",
       qty: Number(p.qty || 0),
       rate: Number(p.rate || 0),
@@ -402,6 +407,7 @@ export default function AddServiceForm({
 
     const labour = (form.labour || []).map((l) => ({
       title: l.title || l.name || "",
+      mechanic_guid: l.mechanic_guid || "",
       hours: Number(l.hours || 1),
       rate: Number(l.rate || 0),
       amount: Number(l.amount || 0),

@@ -266,7 +266,10 @@ const Step1_ServiceDetails = forwardRef(
               <Autocomplete
                 options={customers}
                 disabled={isView}
-                value={customers.find((c) => c.value === form.customer_guid) || null}
+                value={
+                  customers.find((c) => c.value === form.customer_guid) || 
+                  (form.customer_name ? { value: form.customer_guid, label: form.customer_name } : null)
+                }
                 filterOptions={(options, { inputValue }) => {
                   const search = inputValue.toLowerCase();
                   return options.filter((option) =>
@@ -296,7 +299,10 @@ const Step1_ServiceDetails = forwardRef(
                 freeSolo
                 disabled={isView}
                 options={vehicles}
-                value={vehicles.find((v) => v.value === form.vehicle_guid) || null}
+                value={
+                  vehicles.find((v) => v.value === form.vehicle_guid) || 
+                  (form.vehicle_name ? { value: form.vehicle_guid, label: form.vehicle_name } : null)
+                }
                 filterOptions={(options, { inputValue }) => {
                   const search = inputValue.toLowerCase();
                   return options.filter((opt) =>

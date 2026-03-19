@@ -48,10 +48,11 @@ import TemplateSelectionModal from "../../../components/Billing/TemplateSelectio
 // Constants for colors
 const STATUS_COLORS = {
   "Approval Pending": { bg: "#FFF7ED", text: "#EA580C", icon: <Clock size={16} /> },
+  "Approved": { bg: "#E0E7FF", text: "#4338CA", icon: <CheckCircle size={16} /> },
   "Work In Progress": { bg: "#EFF6FF", text: "#3B82F6", icon: <TrendingUp size={16} /> },
-  "Completed": { bg: "#ECFDF5", text: "#10B981", icon: <CheckCircle size={16} /> },
+  "Completed": { bg: "#ECFDF5", text: "#059669", icon: <CheckCircle size={16} /> },
   "Delivered": { bg: "#F5F3FF", text: "#8B5CF6", icon: <CheckCircle size={16} /> },
-  "Rejected": { bg: "#FEF2F2", text: "#EF4444", icon: <XCircle size={16} /> },
+  "Cancelled": { bg: "#FEF2F2", text: "#EF4444", icon: <XCircle size={16} /> },
 };
 
 export default function QuotationList() {
@@ -76,7 +77,7 @@ export default function QuotationList() {
   /* ---------------- LOAD LIST ---------------- */
   const loadQuotations = async () => {
     try {
-      show();
+      // show();
       const res = await fetch(apiEndpoints.Quotation + "?list=1", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -85,7 +86,7 @@ export default function QuotationList() {
     } catch (e) {
       console.error("Quotation list failed:", e);
     } finally {
-      hide();
+      // hide();
     }
   };
 
@@ -97,7 +98,7 @@ export default function QuotationList() {
   const stats = useMemo(() => {
     return {
       total: quotations.length,
-      pending: quotations.filter(q => q.status === "Approval Pending").length,
+      pending: quotations.filter(q => q.status === "Approval Pending" || q.status === "Approved").length,
       completed: quotations.filter(q => q.status === "Completed" || q.status === "Delivered").length,
       wip: quotations.filter(q => q.status === "Work In Progress").length,
     };
@@ -127,8 +128,8 @@ export default function QuotationList() {
       return;
     }
 
-    if (newStatus === "Rejected") {
-      if (!window.confirm("Are you sure you want to reject this quotation?")) {
+    if (newStatus === "Cancelled") {
+      if (!window.confirm("Are you sure you want to cancel this quotation?")) {
         return;
       }
     }

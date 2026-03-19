@@ -113,7 +113,7 @@ const ProfilePage = () => {
 
   const fetchProfile = async () => {
     try {
-      show();
+      // show();
       const token = sessionStorage.getItem("token");
       if (!token) {
         throw new Error("No authentication token found");
@@ -158,7 +158,7 @@ const ProfilePage = () => {
       console.error("Profile fetch error:", err);
       setError(err.message);
     } finally {
-      hide();
+      // hide();
     }
   };
 
@@ -211,7 +211,7 @@ const ProfilePage = () => {
 
     try {
       setIsLoading(true);
-      show();
+      // show();
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
 
@@ -251,7 +251,7 @@ const ProfilePage = () => {
       showSnackbar(err.message || "Failed to update profile", "error");
     } finally {
       setIsLoading(false);
-      hide();
+      // hide();
     }
   };
 

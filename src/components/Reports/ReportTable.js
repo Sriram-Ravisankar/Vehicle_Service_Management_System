@@ -34,20 +34,17 @@ const ReportTable = ({ columns = [], data = [], onCheckChange, onDelete }) => {
   };
 
   return (
-    <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
+    <TableContainer component={Paper} sx={{ overflowX: "auto", boxShadow: "none" }}>
       <Table sx={{ minWidth: 650 }} aria-label="report table">
-        <TableHead>
-          <TableRow sx={{ backgroundColor: "white", borderBottom: "1px solid #e5e7eb" }}>
+        <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+          <TableRow>
             {columns.map((col, index) => (
               <TableCell
                 key={index}
                 sx={{
-                  px: 2,
-                  py: 3,
-                  color: "#374151",
-                  fontWeight: 500,
+                  color: "#000",
+                  fontWeight: "bold",
                   textAlign: "left",
-                  borderBottom: "1px solid #e5e7eb",
                 }}
               >
                 {col === "Selected" ? <p></p> : col}

@@ -46,17 +46,32 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     return { regularItems, logoutItem };
   }, [menuItems]);
 
-  const currentPath = location.pathname;
+  const currentPath = location.pathname.toLowerCase();
 
-  const isRouteActive = (route) =>
-    route && (currentPath === route || currentPath.startsWith(route + "/"));
+  const isRouteActive = (item) => {
+    if (!item) return false;
+    const route = item.route ? item.route.toLowerCase() : "";
+    
+    // Check main route
+    if (route && (currentPath === route || currentPath.startsWith(route + "/"))) return true;
+    
+    // Check active paths if defined
+    if (item.activePaths && Array.isArray(item.activePaths)) {
+      return item.activePaths.some(path => {
+        const p = path.toLowerCase();
+        return currentPath === p || currentPath.startsWith(p + "/") || currentPath.includes(p);
+      });
+    }
+    
+    return false;
+  };
 
   useEffect(() => {
     const newOpenMenus = {};
     regularItems.forEach(({ label, subItems }) => {
       if (
         subItems?.length &&
-        subItems.some((item) => isRouteActive(item.route))
+        subItems.some((item) => isRouteActive(item))
       ) {
         newOpenMenus[label] = true;
       }
@@ -309,13 +324,13 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
             .map((item) => {
               const { label, icon: IconComponent, route, subItems } = item;
               const Icon = IconComponent || (() => null);
-              const isActive = isRouteActive(route);
+              const isActive = isRouteActive(item);
               const hasSubmenu = Array.isArray(subItems) && subItems.length > 0;
               const isSubmenuOpen = !!openSubMenus[label];
 
               if (hasSubmenu) {
                 const hasActiveChild = subItems.some((subItem) =>
-                  isRouteActive(subItem.route)
+                  isRouteActive(subItem)
                 );
 
                 return (
@@ -342,9 +357,7 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
                         {subItems
                           .filter((subItem) => canAccess(subItem))
                           .map((subItem) => {
-                            const isSubItemActive = isRouteActive(
-                              subItem.route
-                            );
+                            const isSubItemActive = isRouteActive(subItem);
                             const SubIcon = subItem.icon || (() => null);
 
                             return (

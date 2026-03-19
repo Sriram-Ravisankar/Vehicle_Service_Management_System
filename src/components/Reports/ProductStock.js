@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
+import { Package, Search, Calendar, Tag, AlertCircle } from "lucide-react";
+
 const COLUMNS = [
   "S.No",
   "Product Number",
@@ -17,237 +19,252 @@ export default function ProductStockTab({filters}) {
     typeof window !== "undefined" ? window.innerWidth <= 720 : false
   );
   const [data, setData] = useState([]);
-  // update mobile check on resize
+  
   useEffect(() => {
     const onResize = () => setIsSmall(window.innerWidth <= 720);
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-useEffect(() => {
-  const fetchStockReport = async () => {
-    try {
-      show(); // 🌍 GLOBAL LOADER ON
+  useEffect(() => {
+    const fetchStockReport = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        const res = await fetch(apiEndpoints.report, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      const token = sessionStorage.getItem("token");
-      const res = await fetch(apiEndpoints.report, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+        const json = await res.json();
 
-      const json = await res.json();
-
-      if (json.success && json.stock_reports) {
-        const formatted = json.stock_reports.map((row, index) => ({
-          "S.No": index + 1,
-          "Product Number": row["Product Number"],
-          "Supplier Name": row["Supplier Name"],
-          "Purchase Date": row["Purchase Date"],
-          "Product Name": row["Product Name"],
-          "Available Quantity": row["Available Quantity"],
-        }));
-        setData(formatted);
-      } else {
-        console.error("No stock data found");
+        if (json.success && json.stock_reports) {
+          const formatted = json.stock_reports.map((row, index) => ({
+            "S.No": index + 1,
+            "Product Number": row["Product Number"],
+            "Supplier Name": row["Supplier Name"],
+            "Purchase Date": row["Purchase Date"],
+            "Product Name": row["Product Name"],
+            "Available Quantity": row["Available Quantity"],
+          }));
+          setData(formatted);
+        } else {
+          console.error("No stock data found");
+        }
+      } catch (err) {
+        console.error("Error fetching stock:", err);
       }
-    } catch (err) {
-      console.error("Error fetching stock:", err);
-    } finally {
-      hide(); // 🌍 GLOBAL LOADER OFF
+    };
+
+    fetchStockReport();
+  }, []);
+
+  // --- Filter based on search term & dates ---
+  const filtered = useMemo(() => {
+    let rows = [...data];
+
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      rows = rows.filter((row) =>
+        Object.values(row).some((val) =>
+          String(val).toLowerCase().includes(q)
+        )
+      );
     }
-  };
 
-  fetchStockReport();
-}, []);
+    if (filters.status && filters.status !== "All") {
+      rows = rows.filter((row) => {
+        const qty = Number(row["Available Quantity"]);
+        if (filters.status === "In Stock") return qty > 0;
+        if (filters.status === "Out of Stock") return qty <= 0;
+        if (filters.status === "Low Stock") return qty > 0 && qty <= 5;
+        return true;
+      });
+    }
 
+    if (filters.fromDate || filters.toDate) {
+      const from = filters.fromDate ? new Date(filters.fromDate) : null;
+      const to = filters.toDate ? new Date(filters.toDate + "T23:59:59.999") : null;
 
-  // --- Filter based on search term ---
-const filtered = useMemo(() => {
-  let rows = [...data];
+      rows = rows.filter((row) => {
+        const rowDate = new Date(row["Purchase Date"]);
+        if (from && rowDate < from) return false;
+        if (to && rowDate > to) return false;
+        return true;
+      });
+    }
 
-  // 1️⃣ Search filter
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    rows = rows.filter((row) =>
-      Object.values(row).some((val) =>
-        String(val).toLowerCase().includes(q)
-      )
-    );
-  }
-
-  // 2️⃣ Date range filter (INCLUSIVE to-date)
-  if (filters.fromDate || filters.toDate) {
-    const from = filters.fromDate
-      ? new Date(filters.fromDate)
-      : null;
-
-    const to = filters.toDate
-      ? new Date(filters.toDate + "T23:59:59.999")
-      : null;
-
-    rows = rows.filter((row) => {
-      const rowDate = new Date(row["Purchase Date"]);
-      if (from && rowDate < from) return false;
-      if (to && rowDate > to) return false;
-      return true;
+    // Badge styling for table rendering
+    const badgeStyle = (qty) => ({
+      background: Number(qty) <= 0 ? "#fef2f2" : "#f0fdf4",
+      color: Number(qty) <= 0 ? "#ef4444" : "#16a34a",
+      padding: "6px 14px",
+      borderRadius: "20px",
+      fontWeight: '700',
+      fontSize: "13px",
+      display: "inline-block",
+      border: `1px solid ${Number(qty) <= 0 ? '#fecaca' : '#bbf7d0'}`
     });
-  }
 
-  return rows;
-}, [data, filters]);
-
+    return rows.map(r => ({
+      ...r,
+      "Available Quantity": (
+        <span style={badgeStyle(r["Available Quantity"])}>
+          {r["Available Quantity"]} Units
+        </span>
+      ),
+      "RawQty": r["Available Quantity"] // Keep raw for mobile view
+    }));
+  }, [data, filters]);
 
   const styles = {
     page: {
       margin: "0 auto",
       boxSizing: "border-box",
-      fontFamily: "Montserrat",
       color: "#0f172a",
+      display: "flex",
+      flexDirection: "column",
+      gap: 24,
+      animation: "fadeIn 0.4s ease-out",
     },
 
-    headerRow: {
+    headerCard: {
+      background: "linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)",
+      borderRadius: 16,
+      padding: isSmall ? "20px" : "32px",
+      color: "#fff",
+      boxShadow: "0 10px 30px rgba(67, 56, 202, 0.2)",
       display: "flex",
-      flexDirection: isSmall ? "column" : "row",
-      alignItems: isSmall ? "stretch" : "center",
-      justifyContent: "space-between",
-      gap: isSmall ? 12 : 24,
-      marginBottom: 12,
-    },
-
-    titleBlock: { display: "flex", flexDirection: "column", gap: 4 },
-    title: { fontSize: 20, fontWeight: 800, margin: 0 },
-    subtitle: { fontSize: 13, color: "#6b7280", margin: 0 },
-
-    searchRow: {
-      display: "flex",
-      gap: 8,
       alignItems: "center",
-      width: isSmall ? "100%" : 400,
-      marginLeft: isSmall ? 0 : "auto",
+      gap: 20,
+      position: "relative",
+      overflow: "hidden",
     },
-    searchInput: {
-      flex: 1,
-      padding: "10px 12px",
-      fontSize: 14,
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
+
+    iconBox: {
+      background: "rgba(255, 255, 255, 0.1)",
+      backdropFilter: "blur(10px)",
+      padding: 16,
+      borderRadius: 14,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
-    clearBtn: {
-      padding: "8px 12px",
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 700,
-      color: "#475569",
-      whiteSpace: "nowrap",
-    },
+
+    titleBlock: { display: "flex", flexDirection: "column", gap: 6, zIndex: 1 },
+    title: { fontSize: isSmall ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-0.5px" },
+    subtitle: { fontSize: 14, color: "#cbd5e1", margin: 0, fontWeight: 500 },
 
     // panel containing table/cards
     panel: {
       background: "#ffffff",
-      borderRadius: 12,
-      boxShadow: "0 8px 24px rgba(2,6,23,0.04)",
-      border: "1px solid rgba(0,0,0,0.04)",
+      borderRadius: 16,
+      boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+      border: "1px solid #f1f5f9",
       overflow: "hidden",
     },
 
-    // table wrapper keeps horizontal scroll on small screens
     tableWrapper: {
       width: "100%",
       overflowX: "auto",
-      padding: isSmall ? 12 : 16,
+      padding: isSmall ? 12 : 20,
       boxSizing: "border-box",
     },
 
     // mobile card list
     cardList: {
       display: "grid",
-      gap: 12,
-      padding: 12,
+      gap: 16,
+      padding: 16,
       boxSizing: "border-box",
       gridTemplateColumns: "1fr",
     },
     card: {
-      borderRadius: 12,
-      background: "#f8fafc",
-      padding: 12,
-      border: "1px solid #e6eef8",
-      boxShadow: "0 4px 12px rgba(2,6,23,0.03)",
+      borderRadius: 16,
+      background: "#ffffff",
+      padding: 20,
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
       display: "flex",
       flexDirection: "column",
-      gap: 8,
+      gap: 12,
+      transition: "transform 0.2s, box-shadow 0.2s",
     },
     cardRow: {
       display: "flex",
       justifyContent: "space-between",
-      gap: 8,
+      gap: 12,
       alignItems: "center",
+      borderBottom: "1px solid #f1f5f9",
+      paddingBottom: 12,
     },
-    metaLabel: { color: "#6b7280", fontSize: 12, fontWeight: 700 },
-    metaValue: { color: "#0f172a", fontSize: 14, fontWeight: 700 },
+    metaLabel: { color: "#64748b", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" },
+    metaValue: { color: "#0f172a", fontSize: 15, fontWeight: 700, mt: 4 },
+    qtyBadge: (qty) => ({
+      background: Number(qty) <= 0 ? "#fef2f2" : "#f0fdf4",
+      color: Number(qty) <= 0 ? "#ef4444" : "#16a34a",
+      padding: "4px 10px",
+      borderRadius: 20,
+      fontWeight: 800,
+      fontSize: 14,
+      display: "inline-block",
+      border: `1px solid ${Number(qty) <= 0 ? '#fecaca' : '#bbf7d0'}`
+    }),
 
     footer: {
-      padding: "12px 16px",
-      fontSize: 13,
-      color: "#475569",
+      padding: "16px 24px",
+      fontSize: 14,
+      color: "#64748b",
       fontWeight: 600,
+      background: "#f8fafc",
+      borderTop: "1px solid #f1f5f9",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     },
   };
 
   return (
     <div style={styles.page}>
-      {/* header */}
-      <div style={styles.headerRow}>
-        <div style={styles.titleBlock}>
-          <h2 style={styles.title}>Product Stock Report</h2>
-          <div style={styles.subtitle}>
-            Stock & order details. Search across all columns.
-          </div>
-        </div>
-      </div>
-
+      
       <div style={styles.panel}>
-        {/* Desktop/tablet: table */}
         {!isSmall ? (
           <div style={styles.tableWrapper}>
             <ReportTable columns={COLUMNS} data={filtered} className="w-full" />
           </div>
         ) : (
-          /* Mobile: card list */
           <div style={styles.cardList}>
             {filtered.map((row, idx) => (
               <div key={idx} style={styles.card}>
                 <div style={styles.cardRow}>
                   <div>
                     <div style={styles.metaLabel}>Product No</div>
-                    <div style={styles.metaValue}>{row["Product Number"]}</div>
+                    <div style={{...styles.metaValue, color: "#4338ca"}}>{row["Product Number"]}</div>
                   </div>
-                  <div>
+                  <div style={{ textAlign: "right" }}>
                     <div style={styles.metaLabel}>Date</div>
                     <div style={styles.metaValue}>{row["Purchase Date"]}</div>
                   </div>
                 </div>
 
                 <div>
-                  <div style={styles.metaLabel}>Supplier</div>
-                  <div style={styles.metaValue}>{row["Supplier Name"]}</div>
+                  <div style={styles.metaLabel}>Product Name</div>
+                  <div style={{...styles.metaValue, fontSize: 16}}>{row["Product Name"]}</div>
                 </div>
 
-                <div>
-                  <div style={styles.metaLabel}>Product</div>
-                  <div style={styles.metaValue}>{row["Product Name"]}</div>
-                </div>
-
-                <div>
-                  <div style={styles.metaLabel}>Available Qty</div>
-                  <div style={styles.metaValue}>
-                    {row["Available Quantity"]}
+                <div style={styles.cardRow}>
+                  <div style={{ border: "none" }}>
+                    <div style={styles.metaLabel}>Supplier</div>
+                    <div style={styles.metaValue}>{row["Supplier Name"]}</div>
+                  </div>
+                  <div style={{ textAlign: "right", border: "none" }}>
+                    <div style={styles.metaLabel}>Available Qty</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span style={styles.qtyBadge(row.RawQty)}>
+                        {row.RawQty} Units
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -256,9 +273,17 @@ const filtered = useMemo(() => {
         )}
 
         <div style={styles.footer}>
-          {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          <span>{filtered.length} Record{filtered.length !== 1 ? "s" : ""} Found</span>
+          {filtered.length === 0 && <span style={{ color: "#ef4444" }}>No data matches criteria</span>}
         </div>
       </div>
+      
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -103,6 +103,19 @@ const AddProduct = ({ fetchData }) => {
         price:          p.price          || "",
         warranty:       p.warranty       || "",
       });
+    } else {
+      const fetchNextNo = async () => {
+        try {
+          const res = await fetch(`${apiEndpoints.product}?next_product_number=true`, {
+            headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+          });
+          const data = await res.json();
+          if(data.success) {
+            setFormData(prev => ({ ...prev, product_number: data.next_product_number }));
+          }
+        } catch(e) {}
+      };
+      fetchNextNo();
     }
   }, [fetchUnits, fetchBranches, location.state]);
 
@@ -120,7 +133,6 @@ const AddProduct = ({ fetchData }) => {
 
   const validate = () => {
     const errs = {};
-    if (!formData.product_number.trim()) errs.product_number = "Required";
     if (!formData.product_name.trim())   errs.product_name   = "Required";
     if (!formData.price)                 errs.price          = "Required";
     if (!formData.unit)                  errs.unit           = "Required";
@@ -194,9 +206,9 @@ const AddProduct = ({ fetchData }) => {
         <SectionCard title="Product Information">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))", gap: 20 }}>
 
-            <Field label="Product Number *" icon={Hash} error={errors.product_number}>
-              <input name="product_number" value={formData.product_number} onChange={handleChange}
-                placeholder="e.g. PRD-001" style={inputSx(!!errors.product_number)} />
+            <Field label="Product Number" icon={Hash} error={errors.product_number}>
+              <input name="product_number" value={formData.product_number} onChange={handleChange} disabled
+                placeholder={"Fetching..."} style={{...inputSx(!!errors.product_number), cursor: "not-allowed"}} />
             </Field>
 
             <Field label="Product Name *" icon={Tag} error={errors.product_name}>

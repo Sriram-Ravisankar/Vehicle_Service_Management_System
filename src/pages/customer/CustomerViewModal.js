@@ -21,14 +21,21 @@ import {
  * Modern User View Modal following the UI/UX style of products/invoices
  * Handles Customers, Employees, Support Staff, and Accountants
  */
-const UserViewModal = ({ open, onClose, user }) => {
+const UserViewModal = ({ open, onClose, user, type }) => {
     if (!user) return null;
 
-    // Detect user type based on available fields
-    const isEmployee = !!user.position || !!user.employee_code || !!user.monthly_salary || !!user.monthlySalary;
-    const isSupport = !!user.role && !user.position;
-    const isAccountant = !!user.qualifications || !!user.specialization;
-    const isCustomer = !isEmployee && !isSupport && !isAccountant;
+    // Detect user type based on explicit type or fallback to field detection
+    let isEmployee = type === "Employees";
+    let isSupport = type === "Support Staff";
+    let isAccountant = type === "Accountants";
+    let isCustomer = type === "Customers";
+
+    if (!type) {
+        isEmployee = !!user.position || !!user.employee_code;
+        isSupport = !!user.role && !user.position;
+        isAccountant = !!user.qualifications || !!user.specialization;
+        isCustomer = !isEmployee && !isSupport && !isAccountant;
+    }
 
     const infoItemStyle = {
         background: "#F8FAFC",
@@ -149,9 +156,9 @@ const UserViewModal = ({ open, onClose, user }) => {
                             background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)", 
                             p: 2.5, borderRadius: "24px", 
                             border: "1px solid #DDD6FE",
-                            display: "flex", flexDirection: "column", gap: 2
+                            display: "flex", flexDirection: "column", gap: 3
                         }}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                                 <Box sx={{ 
                                     width: 48, height: 48, borderRadius: "16px", background: "#8B5CF6",
                                     display: "flex", alignItems: "center", justifyContent: "center", 
@@ -161,30 +168,53 @@ const UserViewModal = ({ open, onClose, user }) => {
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: 11, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                        Registered Vehicle
+                                        Registered Vehicles
                                     </Typography>
-                                    <Typography sx={{ fontSize: 18, fontWeight: 900, color: "#4C1D95", lineHeight: 1.2 }}>
-                                        {user.vehicle_number || user.extraValue || "Not Designated"}
+                                    <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#6D28D9" }}>
+                                        {user.vehicles?.length || 1} Vehicle(s) on file
                                     </Typography>
                                 </Box>
                             </Box>
-                            
-                            {(user.vehicle_model || user.vehicle_brand) && (
-                                <Box sx={{ display: "flex", gap: 3, pl: 0.5 }}>
-                                    <Box>
-                                        <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>Brand / Model</Typography>
-                                        <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#5B21B6" }}>
-                                            {user.vehicle_brand} {user.vehicle_model}
-                                        </Typography>
-                                    </Box>
-                                    {user.vehicle_year && (
-                                        <Box>
-                                            <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>Year</Typography>
-                                            <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#5B21B6" }}>{user.vehicle_year}</Typography>
+
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                {(user.vehicles?.length > 0 ? user.vehicles : [user]).map((v, idx) => {
+                                    const fuelType = v.fuel_type || v.vehicle_fuel_type || v.fuel_Type || "N/A";
+                                    const color = v.color || v.vehicle_color || "Standard";
+                                    const year = v.year || v.vehicle_year || v.year_of_manufacture || "";
+                                    const regNo = v.registration_number || v.registrationNumber || v.vehicle_number || v.extraValue || "N/A";
+
+                                    return (
+                                        <Box key={idx} sx={{ 
+                                            pb: idx < (user.vehicles?.length || 1) - 1 ? 2 : 0,
+                                            borderBottom: idx < (user.vehicles?.length || 1) - 1 ? "1px dashed #DDD6FE" : "none"
+                                        }}>
+                                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                                                <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#4C1D95" }}>
+                                                    {regNo}
+                                                </Typography>
+                                                <Box sx={{ background: "#8B5CF6", color: "#fff", px: 1, py: 0.2, borderRadius: "6px", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
+                                                    {fuelType}
+                                                </Box>
+                                            </Box>
+                                            
+                                            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                                                <Box>
+                                                    <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>Brand / Model</Typography>
+                                                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#5B21B6" }}>
+                                                        {v.make || v.vehicle_make || "-"} {v.model || v.vehicle_model || "-"}
+                                                    </Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>Color & Year</Typography>
+                                                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#5B21B6" }}>
+                                                        {color} {year ? `• ${year}` : ""}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
                                         </Box>
-                                    )}
-                                </Box>
-                            )}
+                                    );
+                                })}
+                            </Box>
                         </Box>
                     )}
 
@@ -300,9 +330,23 @@ const UserViewModal = ({ open, onClose, user }) => {
                                 <Calendar size={14} color="#64748B" />
                             </Box>
                             <Box>
-                                <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>Joined Date</Typography>
+                                <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" }}>{isCustomer ? "Created Date" : "Joined Date"}</Typography>
                                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>
-                                    {user.date_of_joining || user.created_on ? new Date(user.date_of_joining || user.created_on).toLocaleDateString() : "Internal Record"}
+                                    {(() => {
+                                        const dateVal = user.createdOn || user.date_of_joining || user.created_on || user.created_at || user.reg_date;
+                                        if (!dateVal) return "Internal Record";
+                                        try {
+                                            const d = new Date(dateVal);
+                                            if (isNaN(d.getTime())) return dateVal;
+                                            return d.toLocaleDateString("en-GB", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric"
+                                            });
+                                        } catch (e) {
+                                            return dateVal;
+                                        }
+                                    })()}
                                 </Typography>
                             </Box>
                         </Box>

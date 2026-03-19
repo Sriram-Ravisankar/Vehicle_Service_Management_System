@@ -186,6 +186,10 @@ function UserList({
       monthlySalary: user.monthly_salary ?? user.monthlySalary ?? user.salary ?? "0",
       image: `${apiEndpoints.blob}${user.image_path}` || user.image_path,
       extraValue: user[detailsKey] || user.vehicle_number || user.position || user.role || user.qualifications || "-",
+      // Force vehicle fields into the object for the modal
+      fuel_type: user.vehicle_fuel_type || user.fuel_type,
+      color: user.vehicle_color || user.color,
+      year: user.vehicle_year || user.year_of_manufacture,
     }));
   }, [users, detailsKey]);
 
@@ -323,6 +327,7 @@ function UserList({
         open={viewOpen} 
         onClose={() => setViewOpen(false)} 
         user={selectedUser} 
+        type={title}
       />
     </Box>
   );

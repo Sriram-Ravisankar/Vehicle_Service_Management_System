@@ -14,7 +14,7 @@ export default function InvoicePage() {
 
 const fetchInvoices = async () => {
   try {
-    show(); // 🌍 GLOBAL LOADER ON
+    // show(); // 🌍 GLOBAL LOADER ON
 
     const res = await fetch(apiEndpoints.Invoice + "?list=1", {
       headers: { Authorization: `Bearer ${token}` },
@@ -38,7 +38,7 @@ const fetchInvoices = async () => {
   } catch (err) {
     console.error("Failed to fetch invoices:", err);
   } finally {
-    hide(); // 🌍 GLOBAL LOADER OFF
+    // hide(); // 🌍 GLOBAL LOADER OFF
   }
 };
 

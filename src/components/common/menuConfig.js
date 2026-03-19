@@ -41,24 +41,28 @@ const menuItems = [
       {
         label: "Supplier",
         route: "/supplier",
+        activePaths: ["/add-supplier", "/supplier-view"],
         icon: GroupIcon,
         permissions: ["manage_suppliers"],
       },
       {
         label: "Product",
         route: "/product",
+        activePaths: ["/add-product", "/editproduct"],
         icon: EngineeringIcon,
         permissions: ["manage_products"],
       },
       {
         label: "Purchase",
         route: "/purchase",
+        activePaths: ["/add-purchase", "/purchase-view"],
         icon: SupportIcon,
         permissions: ["manage_purchase"],
       },
       {
         label: "Stock",
         route: "/stock",
+        activePaths: ["/add-stock"],
         icon: AccountBalanceIcon,
         permissions: ["manage_stock"],
       },
@@ -73,24 +77,28 @@ const menuItems = [
       {
         label: "Customers",
         route: "/customers",
+        activePaths: ["/Adduser", "/edit-user"],
         icon: GroupIcon,
         permissions: ["view_customers"],
       },
       {
         label: "Employees",
         route: "/employees",
+        activePaths: ["/add-employee", "/edit-employee"],
         icon: EngineeringIcon,
         permissions: ["view_employees"],
       },
       {
         label: "Support Staff",
         route: "/support-staff",
+        activePaths: ["/add-support-staff", "/edit-support-staff"],
         icon: SupportIcon,
         permissions: ["view_support_staff"],
       },
       {
         label: "Accountants",
         route: "/accountants",
+        activePaths: ["/add-accountant", "/edit-accountant"],
         icon: AccountBalanceIcon,
         permissions: ["view_accountants"],
       },
@@ -101,6 +109,7 @@ const menuItems = [
     label: "Services",
     icon: BuildIcon,
     route: "/services",
+    activePaths: ["/services-form", "/edit-job-card", "/jobcard"],
     permissions: ["view_services"],
   },
 
@@ -108,6 +117,7 @@ const menuItems = [
     label: "Quotations",
     icon: DescriptionIcon,
     route: "/quotations",
+    activePaths: ["/addQuotation", "/Quatation"],
     permissions: ["view_quotations"],
   },
 
@@ -115,6 +125,7 @@ const menuItems = [
     label: "Invoices",
     icon: ReceiptIcon,
     route: "/invoices",
+    activePaths: ["/add-invoice", "/invoicedetails", "/ViewInvoice"],
     permissions: ["view_invoices"],
   },
 
@@ -129,40 +140,12 @@ const menuItems = [
     label: "Branches",
     icon: AccountTreeIcon,
     route: "/branches",
+    activePaths: ["/add-branch", "/edit-branch"],
     permissions: ["view_branches"],
   },
 
-/*
   {
-    label: "Accounts",
-    icon: MonetizationOnIcon,
-    subItems: [
-      {
-        label: "Income",
-        route: "/income",
-        icon: TrendingUpIcon,
-      },
-      {
-        label: "Expenses",
-        route: "/expenses",
-        icon: TrendingDownIcon,
-      },
-      {
-        label: "Tax Rates",
-        route: "/taxrates",
-        icon: ReceiptIcon,
-      },
-      {
-        label: "Payment Methods",
-        route: "/payment-methods",
-        icon: PaymentIcon,
-      },
-    ],
-  },
-*/
-
-  {
-    label: "WorkersManagement",
+    label: "Workers Management",
     icon: PeopleIcon,
     route: "/workersmanagement",
     permissions: ["manage_workers"],
@@ -174,11 +157,5 @@ const menuItems = [
     route: "/profile-settings",
     permissions: ["manage_settings"],
   },
-
-  // {
-  //   label: "Logout",
-  //   icon: PowerSettingsNewIcon,
-  //   action: "logout",
-  // },
 ];
 export default menuItems;

@@ -12,15 +12,21 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import {
+  TrendingUp as TrendingUpIcon,
+  AttachMoney as AttachMoneyIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Inventory as InventoryIcon,
+} from "@mui/icons-material";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 
 const COLORS = [
-  "rgba(229, 56, 53, 0.5)",
-  "rgba(0, 171, 193, 0.5)",
-  "rgba(255, 179, 0, 0.5)",
-  "rgba(67, 160, 71, 0.5)",
-  "rgba(30, 136, 229, 0.5)",
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#6366f1", // Indigo
+  "#f59e0b", // Amber
+  "#ec4899", // Pink
 ];
 
 const MONTHS = [
@@ -46,7 +52,7 @@ export default function GraphDashboard() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        show();
+        // show();
         const token = sessionStorage.getItem("token");
         const res = await fetch(`${apiEndpoints.report}?action=dashboard`, {
           headers: {
@@ -64,7 +70,7 @@ export default function GraphDashboard() {
         console.error("Dashboard API error:", err);
         setDashboard(null);
       } finally {
-        hide();
+        // hide();
       }
     };
 
@@ -94,8 +100,8 @@ export default function GraphDashboard() {
   const grid = {
     display: "grid",
     gridTemplateColumns:
-      width < 640 ? "1fr" : width < 992 ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-    gap: 20,
+      width < 800 ? "1fr" : "repeat(2, 1fr)",
+    gap: 24,
     alignItems: "stretch",
   };
 
@@ -119,25 +125,42 @@ export default function GraphDashboard() {
     marginBottom: 12,
   };
 
-  const statCard = {
-    background: "rgba(249, 115, 22, 0.8)",
-    borderRadius: 12,
-    padding: 18,
-    color: "#fff",
-    minHeight: 110,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    boxShadow: "0 12px 28px rgba(16,170,223,0.14)",
+  const statCard = (type) => {
+    return {
+      background: "#ffffff",
+      borderRadius: 16,
+      padding: "20px 24px",
+      color: "#0f172a",
+      minHeight: 110,
+      display: "flex",
+      alignItems: "center",
+      gap: 20,
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+      border: "1px solid #f1f5f9",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      cursor: "pointer",
+    };
   };
 
-  const statNumber = { fontSize: 24, fontWeight: 800, margin: 0 };
+  const iconContainer = (color) => ({
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: `${color}15`, // 15% opacity
+    color: color,
+  });
+
+  const statNumber = { fontSize: 24, fontWeight: 800, margin: 0, color: "#0f172a" };
   const statLabel = {
     fontSize: 13,
-    opacity: 0.95,
-    marginTop: 6,
+    color: "#64748b",
     fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    marginBottom: 4,
   };
 
   const sectionTitle = {
@@ -168,8 +191,8 @@ export default function GraphDashboard() {
     value: parseFloat(item.value) || 0
   })) || [];
   
-  // Process productTypeData - converting string values to numbers
-  const productTypeData = dashboard?.productTypeData?.map(item => ({
+  // Process supplierSpendData
+  const supplierSpendData = dashboard?.supplierSpendData?.map(item => ({
     name: item.name || "Unknown",
     value: parseFloat(item.value) || 0
   })) || [];
@@ -187,7 +210,7 @@ export default function GraphDashboard() {
   // Check if any chart has data
   const hasChartData = 
     productLineData.length > 0 || 
-    productTypeData.length > 0 || 
+    supplierSpendData.length > 0 || 
     paddedLineData.some(item => item.Revenue > 0);
 
   if (!dashboard) {
@@ -208,47 +231,50 @@ export default function GraphDashboard() {
   return (
     <div style={page}>
       {/* Statistics Cards */}
-      <div style={{ ...statRow, marginBottom: 24 }}>
-        <div
-          style={{
-            ...statCard,
-          }}
-          onMouseEnter={() => setHovered("totalProfit")}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 700 }}>
-            Total Profit
+      <div style={{ 
+        display: "grid",
+        gridTemplateColumns: width < 640 ? "1fr" : width < 1024 ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 20,
+        marginBottom: 32 
+      }}>
+        <div style={statCard()}>
+          <div style={iconContainer("#10b981")}>
+            <TrendingUpIcon sx={{ fontSize: 32 }} />
           </div>
-          <div style={statNumber}>₹{estimatedProfit.toLocaleString()}</div>
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
-            Total Revenue: ₹{totalRevenue.toLocaleString()}
-          </div>
-        </div>
-
-        <div
-          style={{ ...statCard}}
-          onMouseEnter={() => setHovered("totalRevenue")}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 700 }}>
-            Total Revenue
-          </div>
-          <div style={statNumber}>₹{totalRevenue.toLocaleString()}</div>
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
-            Total Purchase: ₹{totalPurchase.toLocaleString()}
+          <div>
+            <div style={statLabel}>Total Profit</div>
+            <div style={statNumber}>₹{estimatedProfit.toLocaleString()}</div>
           </div>
         </div>
 
-        <div
-          style={{ ...statCard}}
-          onMouseEnter={() => setHovered("totalQty")}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 700 }}>
-            Total Products
+        <div style={statCard()}>
+          <div style={iconContainer("#3b82f6")}>
+            <AttachMoneyIcon sx={{ fontSize: 32 }} />
           </div>
-          <div style={statNumber}>{totalCurrentQuantity.toLocaleString()}</div>
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>Units in inventory</div>
+          <div>
+            <div style={statLabel}>Total Revenue</div>
+            <div style={statNumber}>₹{totalRevenue.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={statCard()}>
+          <div style={iconContainer("#ef4444")}>
+            <ShoppingCartIcon sx={{ fontSize: 32 }} />
+          </div>
+          <div>
+            <div style={statLabel}>Total Purchase</div>
+            <div style={statNumber}>₹{totalPurchase.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={statCard()}>
+          <div style={iconContainer("#6366f1")}>
+            <InventoryIcon sx={{ fontSize: 32 }} />
+          </div>
+          <div>
+            <div style={statLabel}>Total Products</div>
+            <div style={statNumber}>{totalCurrentQuantity.toLocaleString()}</div>
+          </div>
         </div>
       </div>
 
@@ -285,11 +311,11 @@ export default function GraphDashboard() {
               }}>
                 <div>
                   <h3 style={sectionTitle}>Revenue by Category</h3>
-                  <div style={sectionSub}>Total: ₹{totalRevenue.toLocaleString()}</div>
+                  <div style={sectionSub}>Total Distributed: ₹{totalRevenue.toLocaleString()}</div>
                 </div>
-                <div style={{ minWidth: 140, textAlign: "right" }}>
-                  <div style={{ fontSize: 12, color: "#64748b" }}>
-                    {productLineData.length} categories
+                <div style={{ minWidth: 100, textAlign: "right" }}>
+                  <div style={{ fontSize: 12, color: "#0ea5e9", fontWeight: 700 }}>
+                    {productLineData.length} SECMENTS
                   </div>
                 </div>
               </div>
@@ -341,44 +367,50 @@ export default function GraphDashboard() {
             </div>
           )}
 
-          {/* Product Type Bar Chart */}
-          {productTypeData.length > 0 && (
+          {/* Top Suppliers Bar Chart */}
+          {supplierSpendData.length > 0 && (
             <div
               style={{
                 ...cardBase,
               }}
-              onMouseEnter={() => setHovered("productType")}
+              onMouseEnter={() => setHovered("supplierSpend")}
               onMouseLeave={() => setHovered(null)}
             >
-              <h3 style={sectionTitle}>Revenue by Product Type</h3>
-              <div style={{ ...sectionSub, marginBottom: 12 }}>
-                {productTypeData.length} product types
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h3 style={sectionTitle}>Supplier Purchases</h3>
+                  <div style={sectionSub}>Last 5 main suppliers</div>
+                </div>
+                <div style={{ textAlign: "right", fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                  Top Vendors
+                </div>
               </div>
 
-              <div style={{ flex: 1, minHeight: width < 640 ? 160 : 200 }}>
+              <div style={{ flex: 1, minHeight: 220, marginTop: 12 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={productTypeData}
+                    data={supplierSpendData}
                     layout="vertical"
-                    margin={{ left: 8, right: 8 }}
+                    margin={{ left: 10, right: 30, top: 10, bottom: 10 }}
                   >
                     <XAxis 
                       type="number" 
-                      tick={{ fill: "#6b7280" }}
-                      tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                      hide
                     />
                     <YAxis
                       type="category"
                       dataKey="name"
-                      width={width < 640 ? 70 : 100}
-                      tick={{ fontSize: width < 640 ? 11 : 13 }}
+                      width={100}
+                      tick={{ fontSize: 12, fontWeight: 600, fill: "#4b5563" }}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip 
-                      formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Revenue']}
-                      labelFormatter={(label) => `Product Type: ${label}`}
+                      formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Total Spend']}
+                      contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 6, 6]}>
-                      {productTypeData.map((entry, index) => (
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24}>
+                      {supplierSpendData.map((entry, index) => (
                         <Cell
                           key={`bar-${index}`}
                           fill={COLORS[index % COLORS.length]}
@@ -389,8 +421,8 @@ export default function GraphDashboard() {
                 </ResponsiveContainer>
               </div>
               
-              <div style={{ marginTop: 12, fontSize: 13, color: "#6b7280" }}>
-                Total: ₹{productTypeData.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+              <div style={{ marginTop: 12, fontSize: 13, color: "#6b7280", fontWeight: 600 }}>
+                Total Cost: ₹{totalPurchase.toLocaleString()}
               </div>
             </div>
           )}
@@ -425,11 +457,11 @@ export default function GraphDashboard() {
                     <Line
                       type="monotone"
                       dataKey="Revenue"
-                      stroke="#00ACC1"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                      animationDuration={800}
+                      stroke="#0ea5e9"
+                      strokeWidth={4}
+                      dot={{ r: 5, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 8, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }}
+                      animationDuration={1000}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -453,58 +485,58 @@ export default function GraphDashboard() {
             </div>
 
             <div style={{ marginTop: 6 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-                  <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: "#374151" }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <div style={{ width: 80, fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
                     Revenue
                   </div>
-                  <div style={{ flex: 1, height: 12, borderRadius: 8, background: "#eef2f7", overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 10, borderRadius: 10, background: "#f1f5f9", overflow: "hidden" }}>
                     <div style={{ 
                       width: "100%", 
                       height: "100%", 
-                      background: "#00ACC1",
-                      borderRadius: 8 
+                      background: "linear-gradient(90deg, #3b82f6, #60a5fa)",
+                      borderRadius: 10 
                     }} />
                   </div>
-                  <div style={{ width: 40, textAlign: "right", fontSize: 13, color: "#374151" }}>
+                  <div style={{ width: 70, textAlign: "right", fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
                     ₹{totalRevenue.toLocaleString()}
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-                  <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: "#374151" }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <div style={{ width: 80, fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
                     Purchase
                   </div>
-                  <div style={{ flex: 1, height: 12, borderRadius: 8, background: "#eef2f7", overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 10, borderRadius: 10, background: "#f1f5f9", overflow: "hidden" }}>
                     <div style={{ 
-                      width: `${totalPurchase > 0 ? (totalPurchase / totalRevenue * 100) : 0}%`, 
+                      width: `${totalPurchase > 0 ? (Math.min(totalPurchase / totalRevenue * 100, 100)) : 0}%`, 
                       height: "100%", 
-                      background: "#E53935",
-                      borderRadius: 8 
+                      background: "linear-gradient(90deg, #ef4444, #f87171)",
+                      borderRadius: 10 
                     }} />
                   </div>
-                  <div style={{ width: 40, textAlign: "right", fontSize: 13, color: "#374151" }}>
+                  <div style={{ width: 70, textAlign: "right", fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
                     ₹{totalPurchase.toLocaleString()}
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-                  <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: "#374151" }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <div style={{ width: 80, fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
                     Profit
                   </div>
-                  <div style={{ flex: 1, height: 12, borderRadius: 8, background: "#eef2f7", overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 10, borderRadius: 10, background: "#f1f5f9", overflow: "hidden" }}>
                     <div style={{ 
-                      width: `${estimatedProfit > 0 ? (estimatedProfit / totalRevenue * 100) : 0}%`, 
+                      width: `${estimatedProfit > 0 ? (Math.min(estimatedProfit / totalRevenue * 100, 100)) : 0}%`, 
                       height: "100%", 
-                      background: "#43A047",
-                      borderRadius: 8 
+                      background: "linear-gradient(90deg, #10b981, #34d399)",
+                      borderRadius: 10 
                     }} />
                   </div>
-                  <div style={{ width: 40, textAlign: "right", fontSize: 13, color: "#374151" }}>
+                  <div style={{ width: 70, textAlign: "right", fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
                     ₹{estimatedProfit.toLocaleString()}
                   </div>
                 </div>

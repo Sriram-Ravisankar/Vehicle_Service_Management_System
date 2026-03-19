@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
-import { useLoading } from "../../pages/LoadingContext";
+
 const COLUMNS = [
   "S.No",
-  "Employee Code",
+  "Employee Name",
   "Repair Category",
   "Arrival Date",
   "Estimated Date",
@@ -12,7 +12,6 @@ const COLUMNS = [
 ];
 
 export default function EmpServicesTab({filters}) {
-  const { show, hide } = useLoading();
   const [isSmall, setIsSmall] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 720 : false
   );
@@ -28,7 +27,6 @@ export default function EmpServicesTab({filters}) {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        show();
         const token = sessionStorage.getItem("token");
         const res = await fetch(`${apiEndpoints.report}?action=employee_jobs`, {
           headers: {
@@ -39,79 +37,84 @@ export default function EmpServicesTab({filters}) {
         if (data.success) setJobs(data.employee_jobs);
       } catch (err) {
         console.error("Failed to fetch employee jobs:", err);
-      } finally {
-        hide();
       }
     };
     fetchJobs();
   }, []);
 
   // Filter data (case-insensitive search over all fields)
-const filtered = useMemo(() => {
-  let rows = [...jobs];
+  const filtered = useMemo(() => {
+    let rows = [...jobs];
 
-  // 1️⃣ Search filter (global)
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    rows = rows.filter((row) =>
-      Object.values(row).some((v) =>
-        String(v).toLowerCase().includes(q)
-      )
-    );
-  }
-
-  // 2️⃣ Status filter
-if (filters.status && filters.status !== "All") {
-  rows = rows.filter((row) => {
-    const status = String(row.Status).toLowerCase();
-
-    if (filters.status === "Pending") {
-      return status === "pending" || status === "approval pending";
+    // 1️⃣ Search filter (global)
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      rows = rows.filter((row) =>
+        Object.values(row).some((v) =>
+          String(v).toLowerCase().includes(q)
+        )
+      );
     }
 
-    return status === filters.status.toLowerCase();
-  });
-}
+    // 2️⃣ Status filter
+    if (filters.status && filters.status !== "All") {
+      rows = rows.filter((row) => {
+        const status = String(row.Status).toLowerCase();
 
+        if (filters.status === "Pending") {
+          return status === "pending" || status === "approval pending";
+        }
 
-  // 3️⃣ Date range filter (Arrival Date – inclusive)
-  if (filters.fromDate || filters.toDate) {
-    const from = filters.fromDate
-      ? new Date(filters.fromDate)
-      : null;
+        return status === filters.status.toLowerCase();
+      });
+    }
 
-    const to = filters.toDate
-      ? new Date(filters.toDate + "T23:59:59.999")
-      : null;
+    // 3️⃣ Date range filter (Arrival Date – inclusive)
+    if (filters.fromDate || filters.toDate) {
+      const from = filters.fromDate
+        ? new Date(filters.fromDate)
+        : null;
 
-    rows = rows.filter((row) => {
-      const rowDate = new Date(row["Arrival Date"]);
-      if (from && rowDate < from) return false;
-      if (to && rowDate > to) return false;
-      return true;
-    });
-  }
+      const to = filters.toDate
+        ? new Date(filters.toDate + "T23:59:59.999")
+        : null;
 
-  return rows;
-}, [jobs, filters]);
+      rows = rows.filter((row) => {
+        const rowDate = new Date(row["Arrival Date"]);
+        if (from && rowDate < from) return false;
+        if (to && rowDate > to) return false;
+        return true;
+      });
+    }
+
+    return rows;
+  }, [jobs, filters]);
 
 
   const badgeStyleFor = (status) => {
     const base = {
       display: "inline-block",
-      padding: "6px 10px",
-      borderRadius: 999,
-      fontWeight: 700,
-      fontSize: 12,
+      padding: "6px 14px",
+      borderRadius: "20px",
+      fontWeight: '700',
+      fontSize: "13px",
       color: "#fff",
-      minWidth: 72,
       textAlign: "center",
+      border: "none",
     };
-    if (status === "Delivered")
-      return { ...base, background: "linear-gradient(90deg,#10B981,#059669)" };
-    if (status === "Work In Progress")
-      return { ...base, background: "linear-gradient(90deg,#3B82F6,#2563EB)" };
-    return { ...base, background: "linear-gradient(90deg,#F59E0B,#8B5CF6)" };
+    const s = String(status).toLowerCase();
+    
+    if (s.includes("delivered"))
+      return { ...base, background: "linear-gradient(90deg,#8b5cf6,#a855f7)", color: "#fff", boxShadow: "0 4px 10px rgba(168, 85, 247, 0.2)" };
+    if (s.includes("completed"))
+      return { ...base, background: "linear-gradient(90deg,#10B981,#059669)", color: "#fff", boxShadow: "0 4px 10px rgba(16, 185, 129, 0.2)" };
+    if (s.includes("progress") || s.includes("active"))
+      return { ...base, background: "linear-gradient(90deg,#3B82F6,#2563EB)", color: "#fff", boxShadow: "0 4px 10px rgba(59, 130, 246, 0.2)" };
+    if (s.includes("approval"))
+      return { ...base, background: "linear-gradient(90deg,#64748b,#475569)", color: "#fff", boxShadow: "0 4px 10px rgba(100, 116, 139, 0.2)" };
+      
+    // default (pending)
+    return { ...base, background: "linear-gradient(90deg,#F59E0B,#D97706)", color: "#fff", boxShadow: "0 4px 10px rgba(245, 158, 11, 0.2)" };
   };
 
   // Badge node for table and cards
@@ -129,112 +132,74 @@ if (filters.status && filters.status !== "All") {
     page: {
       margin: "0 auto",
       boxSizing: "border-box",
-      fontFamily: "Montserrat",
       color: "#0f172a",
-    },
-    headerRow: {
       display: "flex",
-      flexDirection: isSmall ? "column" : "row",
-      alignItems: isSmall ? "stretch" : "center",
-      justifyContent: "space-between",
-      gap: isSmall ? 12 : 24,
-      marginBottom: 12,
-    },
-    titleBlock: { display: "flex", flexDirection: "column", gap: 4 },
-    title: { fontSize: 20, fontWeight: 800, margin: 0 },
-    subtitle: { fontSize: 13, color: "#6b7280", margin: 0 },
-
-    searchRow: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      width: isSmall ? "100%" : 420,
-      marginLeft: isSmall ? 0 : "auto",
-    },
-    searchInput: {
-      flex: 1,
-      padding: "10px 12px",
-      fontSize: 14,
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
-    },
-    clearBtn: {
-      padding: "8px 12px",
-      borderRadius: 10,
-      border: "1px solid #e6eef8",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 700,
-      color: "#475569",
-      whiteSpace: "nowrap",
+      flexDirection: "column",
+      gap: 24,
+      animation: "fadeIn 0.4s ease-out",
     },
 
     panel: {
       background: "#ffffff",
-      borderRadius: 12,
-      boxShadow: "0 8px 24px rgba(2,6,23,0.04)",
-      border: "1px solid rgba(0,0,0,0.04)",
+      borderRadius: 16,
+      boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+      border: "1px solid #f1f5f9",
       overflow: "hidden",
     },
 
-    // table wrapper for desktop; keeps horizontal scroll on narrow widths
     tableWrapper: {
       width: "100%",
       overflowX: "auto",
-      padding: isSmall ? 12 : 16,
+      padding: isSmall ? 12 : 20,
       boxSizing: "border-box",
     },
 
-    // mobile card list view
     cardList: {
       display: "grid",
-      gap: 12,
-      padding: 12,
+      gap: 16,
+      padding: 16,
       boxSizing: "border-box",
       gridTemplateColumns: "1fr",
     },
     card: {
-      borderRadius: 12,
-      background: "#f8fafc",
-      padding: 12,
-      border: "1px solid #e6eef8",
-      boxShadow: "0 4px 12px rgba(2,6,23,0.03)",
+      borderRadius: 16,
+      background: "#ffffff",
+      padding: 20,
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
       display: "flex",
       flexDirection: "column",
-      gap: 8,
+      gap: 12,
+      transition: "transform 0.2s, box-shadow 0.2s",
     },
     cardRow: {
       display: "flex",
       justifyContent: "space-between",
-      gap: 8,
+      gap: 12,
       alignItems: "center",
+      borderBottom: "1px solid #f1f5f9",
+      paddingBottom: 12,
     },
-    metaLabel: { color: "#6b7280", fontSize: 12, fontWeight: 700 },
-    metaValue: { color: "#0f172a", fontSize: 14, fontWeight: 700 },
+    metaLabel: { color: "#64748b", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" },
+    metaValue: { color: "#0f172a", fontSize: 15, fontWeight: 700, mt: 4 },
 
     footer: {
-      padding: "12px 16px",
-      fontSize: 13,
-      color: "#475569",
+      padding: "16px 24px",
+      fontSize: 14,
+      color: "#64748b",
       fontWeight: 600,
+      background: "#f8fafc",
+      borderTop: "1px solid #f1f5f9",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     },
   };
 
   return (
     <div style={styles.page}>
-      {/* Header (not sticky) */}
-      <div style={styles.headerRow}>
-        <div style={styles.titleBlock}>
-          <h2 style={styles.title}>Employee Services Report</h2>
-          <div style={styles.subtitle}>Search</div>
-        </div>
-      </div>
-
+      
       <div style={styles.panel}>
-        {/* Desktop/tablet: table view (keeps ReportTable usage) */}
         {!isSmall ? (
           <div style={styles.tableWrapper}>
             <ReportTable
@@ -244,38 +209,43 @@ if (filters.status && filters.status !== "All") {
             />
           </div>
         ) : (
-          /* Mobile: card list for better readability */
           <div style={styles.cardList}>
             {filtered.map((row, idx) => (
               <div key={idx} style={styles.card}>
                 <div style={styles.cardRow}>
+                  <div>
+                    <div style={styles.metaLabel}>Employee Name</div>
+                    <div style={{...styles.metaValue, color: "#10b981"}}>{row["Employee Name"]}</div>
+                  </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={styles.metaLabel}>Code</div>
-                    <div style={styles.metaValue}>{row["Employee Code"]}</div>
+                    <div style={styles.metaLabel}>Status</div>
+                    <div style={{ marginTop: 6 }}>{renderBadge(row.Status)}</div>
                   </div>
                 </div>
+
                 <div>
                   <div style={styles.metaLabel}>Repair Category</div>
-                  <div style={styles.metaValue}>{row["Repair Category"]}</div>
+                  <div style={{...styles.metaValue, fontSize: 16}}>{row["Repair Category"]}</div>
                 </div>
+
                 <div style={styles.cardRow}>
-                  <div>
+                  <div style={{ border: "none" }}>
                     <div style={styles.metaLabel}>Arrival Date</div>
                     <div style={styles.metaValue}>{row["Arrival Date"]}</div>
                   </div>
-                  <div>
+                  <div style={{ textAlign: "right", border: "none" }}>
                     <div style={styles.metaLabel}>Estimated Date</div>
                     <div style={styles.metaValue}>{row["Estimated Date"]}</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 6 }}>{renderBadge(row.Status)}</div>
               </div>
             ))}
           </div>
         )}
 
         <div style={styles.footer}>
-          {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          <span>{filtered.length} record{filtered.length !== 1 ? "s" : ""} found</span>
+          <span style={{ fontSize: 13, color: "#94a3b8" }}>Last updated instantly</span>
         </div>
       </div>
     </div>

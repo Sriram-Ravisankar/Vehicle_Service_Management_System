@@ -8,7 +8,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { Add, Settings, MoreHoriz, FlashOn, Bolt, Navigation, Route } from "@mui/icons-material";
+import { Add, Settings, MoreHoriz, FlashOn, Bolt, Navigation, Route, ArrowBack } from "@mui/icons-material";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -189,6 +189,8 @@ const DEFAULT_ADD_MENU = [
 
 export default function SectionHeader({
   title,
+  showBack = false,
+  onBack,
   addMenu = DEFAULT_ADD_MENU,
   showAdd = true,
   showSettings = true,
@@ -204,6 +206,11 @@ export default function SectionHeader({
 
   const [addAnchor, setAddAnchor] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
+
+  const handleBack = () => {
+    if (onBack) onBack();
+    else navigate(-1);
+  };
 
   // Get the appropriate add route based on current path
   const getAddRoute = () => {
@@ -304,6 +311,18 @@ export default function SectionHeader({
       >
         {/* Title with Single Add Button */}
         <Stack direction="row" alignItems="center" spacing={1}>
+          {showBack && (
+            <IconButton 
+              onClick={handleBack} 
+              sx={{ 
+                mr: 1, 
+                color: "rgba(139, 92, 246, 0.9)",
+                "&:hover": { color: "primary.main", bgcolor: "rgba(0,0,0,0.04)" }
+              }}
+            >
+              <ArrowBack />
+            </IconButton>
+          )}
           <Typography
             sx={{ fontSize: { xs: 20, sm: 24 } }}
             fontWeight="bold"

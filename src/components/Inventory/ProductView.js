@@ -125,7 +125,7 @@ const ProductViewModal = ({ open, onClose, data }) => {
         <Divider sx={{ mb: 2 }} />
 
         {/* detail rows */}
-        <DetailRow icon={Hash}       label="Global SKU / Serial" value={number} />
+        <DetailRow icon={Hash}       label="Product Number" value={number} />
         <DetailRow icon={DollarSign} label="Market Price"        value={`₹${Number(price).toLocaleString()}`} />
         {mfg   && <DetailRow icon={Tag} label="Manufacturer"     value={mfg} />}
         {color && <DetailRow icon={Tag} label="Variant / Colour" value={color} />}

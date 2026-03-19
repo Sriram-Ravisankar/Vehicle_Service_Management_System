@@ -12,12 +12,15 @@ import {
   Alert,
   CircularProgress,
   Divider as MuiDivider,
+  TextField,
 } from "@mui/material";
 
 import {
   ArrowLeft,
   Plus,
   Trash2,
+  CheckCircle2,
+  Circle,
   FileText,
   Package,
   Wrench,
@@ -103,9 +106,10 @@ export default function AddQuotation() {
     job_guid: fromJob || "",
     jobcardNo: fromJobNo || "",
     customer_guid: "",
+    customer_name: "",
     vehicle_guid: "",
-    parts: [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
-    labour: [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }],
+    parts: [{ id: Date.now(), product_id: "", name: "", qty: 1, rate: 0, amount: 0 }],
+    labour: [{ id: Date.now() + 1, title: "", mechanic_guid: "", hours: 1, rate: 0, amount: 0 }],
     totals: {
       partsTotal: 0,
       labourTotal: 0,
@@ -122,6 +126,9 @@ export default function AddQuotation() {
     terms: "1. Quotation is valid for 7 days\n2. Estimation may vary during actual service\n3. GST applicable as per norms",
     status: "Approval Pending",
   });
+
+  const [products, setProducts] = useState([]);
+  const [workers, setWorkers] = useState([]);
 
   const safeParse = (v, fallback = []) => {
     if (!v) return fallback;
@@ -140,6 +147,29 @@ export default function AddQuotation() {
       } catch (err) { console.error(err); }
     };
     fetchJobCards();
+
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(apiEndpoints.product, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success) setProducts(json.data || []);
+      } catch (err) { console.error("Product fetch error:", err); }
+    };
+
+    const fetchWorkers = async () => {
+      try {
+        const res = await fetch(apiEndpoints.workerManagement + "?action=workers", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setWorkers(Array.isArray(data) ? data : []);
+      } catch (err) { console.error("Worker fetch error:", err); }
+    };
+
+    fetchProducts();
+    fetchWorkers();
   }, [token]);
 
   useEffect(() => {
@@ -184,6 +214,7 @@ export default function AddQuotation() {
           jobcardNo: data.jobcardNo || f.jobcardNo,
           job_guid: data.job_guid || f.job_guid,
           customer_guid: data.customer_guid || f.customer_guid,
+          customer_name: data.customer_name || "",
           vehicle_guid: data.vehicle_guid || f.vehicle_guid,
           parts: partsData.length ? partsData.map(p => ({ ...p, id: p.id || Math.random() })) : f.parts,
           labour: labourData.length ? labourData.map(l => ({ ...l, id: l.id || Math.random() })) : f.labour,
@@ -240,27 +271,35 @@ export default function AddQuotation() {
   }, [form.parts, form.labour, form.totals?.discountType, form.totals?.discountValue, form.totals?.gstRate, form.totals?.includeGST]);
 
   const addPart = () => {
-    const item = { id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 };
+    const item = { id: Date.now(), product_id: "", name: "", qty: 1, rate: 0, amount: 0 };
     setForm((f) => ({ ...f, parts: [...(f.parts || []), item] }));
   };
 
   const addLabour = () => {
-    const item = { id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 };
+    const item = { id: Date.now() + 1, title: "", mechanic_guid: "", hours: 1, rate: 0, amount: 0 };
     setForm((f) => ({ ...f, labour: [...(f.labour || []), item] }));
   };
 
   const updatePart = (id, key, val) => {
     setForm((f) => ({
       ...f,
-      parts: f.parts.map((p) =>
-        p.id === id
-          ? {
-            ...p,
-            [key]: val,
-            amount: Number(key === "qty" ? val : p.qty) * Number(key === "rate" ? val : p.rate),
+      parts: f.parts.map((p) => {
+        if (p.id !== id) return p;
+        
+        const update = { ...p, [key]: val };
+        
+        // Auto-detect price if product_id changes
+        if (key === "product_id") {
+          const prod = products.find(prod => String(prod.id) === String(val));
+          if (prod) {
+            update.name = prod.product_name;
+            update.rate = Number(prod.price || 0);
           }
-          : p
-      ),
+        }
+        
+        update.amount = Number(key === "qty" ? val : update.qty) * Number(key === "rate" ? val : update.rate);
+        return update;
+      }),
     }));
   };
 
@@ -285,27 +324,37 @@ export default function AddQuotation() {
   const applyJobCardToForm = (row) => {
     const partsArr = safeParse(row.parts, []);
     const labourArr = safeParse(row.labour, []);
+    const totalsData = safeParse(row.totals, {});
     
     setForm(f => ({
       ...f,
       job_guid: row.job_guid,
       jobcardNo: row.jobcardNo,
       customer_guid: row.customer_guid || "",
+      customer_name: row.customer_name || "",
       vehicle_guid: row.vehicle_guid || "",
       parts: partsArr.length ? partsArr.map(p => ({
         id: Math.random(),
         name: p.name || p.product || "",
+        product_id: p.product_id || "",
         qty: Number(p.qty || 1),
         rate: Number(p.rate || 0),
         amount: Number(p.amount || 0)
-      })) : [{ id: Date.now(), name: "", qty: 1, rate: 0, amount: 0 }],
+      })) : [{ id: Date.now(), product_id: "", name: "", qty: 1, rate: 0, amount: 0 }],
       labour: labourArr.length ? labourArr.map(l => ({
         id: Math.random(),
         title: l.title || l.name || "",
+        mechanic_guid: l.mechanic_guid || "",
         hours: 1,
         rate: Number(l.amount || l.rate || 0),
         amount: Number(l.amount || 0)
-      })) : [{ id: Date.now() + 1, title: "", hours: 1, rate: 0, amount: 0 }]
+      })) : [{ id: Date.now() + 1, title: "", mechanic_guid: "", hours: 1, rate: 0, amount: 0 }],
+      totals: {
+        ...f.totals,
+        ...totalsData,
+        includeGST: totalsData.includeGST ?? f.totals.includeGST,
+        gstRate: totalsData.gstRate ?? f.totals.gstRate,
+      }
     }));
   };
 
@@ -401,7 +450,11 @@ export default function AddQuotation() {
                 onChange={(e) => handleJobCardChange(e.target.value)}
               >
                 <option value="">-- Select Job Card --</option>
-                {jobCards.map(jc => <option key={jc.job_guid} value={jc.job_guid}>{jc.jobcardNo}</option>)}
+                {jobCards.map(jc => (
+                  <option key={jc.job_guid} value={jc.job_guid}>
+                    {jc.jobcardNo} {jc.customer_name ? `(${jc.customer_name})` : ""}
+                  </option>
+                ))}
               </select>
             </Box>
           </Grid>
@@ -436,6 +489,8 @@ export default function AddQuotation() {
                 <option value="Approval Pending">Approval Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Work In Progress">Work In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Delivered">Delivered</option>
                 <option value="Cancelled">Cancelled</option>
               </select>
             </Box>
@@ -446,9 +501,29 @@ export default function AddQuotation() {
       {/* Parts Inventory */}
       <SectionCard title="Parts Inventory" icon={Package}>
         <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "850px" }}>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, padding: "0 4px", borderBottom: "1px solid #F3F4F6", paddingBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Select Product</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Part Name / Description</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Qty</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Rate</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", textAlign: "right" }}>Amount</span>
+              <span></span>
+            </div>
             {form.parts?.map((p) => (
-              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+                <select 
+                  value={p.product_id || ""} 
+                  disabled={isViewMode} 
+                  style={inputSx(false)} 
+                  onChange={(e) => updatePart(p.id, "product_id", e.target.value)}
+                >
+                  <option value="">-- Select Product --</option>
+                  {products.map(prod => (
+                    <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.product_number})</option>
+                  ))}
+                </select>
                 <input placeholder="Part Name..." value={p.name} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
                 <input type="number" placeholder="Qty" value={p.qty} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
                 <input type="number" placeholder="Rate" value={p.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
@@ -487,10 +562,34 @@ export default function AddQuotation() {
       {/* Labour Services */}
       <SectionCard title="Labour Services" icon={Wrench}>
         <Box sx={{ overflowX: "auto", width: "100%", pb: 1 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "600px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: "850px" }}>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, padding: "0 4px", borderBottom: "1px solid #F3F4F6", paddingBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Service Title</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Mechanic</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Hours</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Rate</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", textAlign: "right" }}>Amount</span>
+              <span></span>
+            </div>
             {form.labour?.map((l) => (
-              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
+              <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
                 <input placeholder="Labour Title..." value={l.title} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
+                <select 
+                  value={l.mechanic_guid || ""} 
+                  disabled={isViewMode} 
+                  style={inputSx(false)} 
+                  onChange={(e) => updateLabour(l.id, "mechanic_guid", e.target.value)}
+                >
+                  <option value="">-- Assign Mechanic --</option>
+                  {workers
+                    .filter(w => String(w.role_id) === "4")
+                    .map(w => (
+                      <option key={w.user_guid} value={w.user_guid}>
+                        {w.first_name} {w.last_name}
+                      </option>
+                    ))}
+                </select>
                 <input type="number" placeholder="Hours" value={l.hours} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
                 <input type="number" placeholder="Rate" value={l.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
@@ -543,11 +642,31 @@ export default function AddQuotation() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>GST Rate (%)</label>
-                  <input type="number" disabled={isViewMode} value={form.totals?.gstRate || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+              <div 
+                onClick={() => !isViewMode && setForm(f => ({ ...f, totals: { ...f.totals, includeGST: !f.totals.includeGST }}))}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  padding: "6px 14px", 
+                  background: form.totals.includeGST ? "#EEF2FF" : "#F9FAFB", 
+                  borderRadius: 10,
+                  cursor: isViewMode ? "default" : "pointer",
+                  border: `1px solid ${form.totals.includeGST ? "#C7D2FE" : "#E5E7EB"}`,
+                  width: "fit-content",
+                  transition: "all 0.2s",
+                  marginTop: 8
+                }}
+              >
+                <div style={{ color: form.totals.includeGST ? "#6366F1" : "#D1D5DB" }}>
+                  {form.totals.includeGST ? <CheckCircle2 size={18} fill="#6366F1" color="#fff" /> : <Circle size={18} />}
                 </div>
+                <label style={{ fontSize: 13, fontWeight: 700, color: form.totals.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
+                {form.totals.includeGST && (
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
+                     <input type="number" disabled={isViewMode} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                  </div>
+                )}
               </div>
             </div>
           </SectionCard>

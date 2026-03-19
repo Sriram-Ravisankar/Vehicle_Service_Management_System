@@ -162,7 +162,7 @@ const ServiceMain = () => {
   const rowsPerPage = 8;
 
   const fetchJobCards = async () => {
-    show();
+    // show();
     try {
       const res = await fetch(apiEndpoints.JobCard, {
         headers: { Authorization: `Bearer ${token}` },
@@ -172,7 +172,7 @@ const ServiceMain = () => {
     } catch (error) {
       console.error("Error loading jobcards:", error);
     } finally {
-      hide();
+      // hide();
     }
   };
 

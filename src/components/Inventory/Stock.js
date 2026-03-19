@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Search, Filter, RefreshCw, Package, Truck, AlertTriangle, Plus } from "lucide-react";
+import { Search, Filter, RefreshCw, Package, Truck, AlertTriangle, Plus, IndianRupee } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 import SectionHeader from "../common/Header";
@@ -9,22 +9,27 @@ function getStatus(row) {
   const qty = Number(row.available_quantity ?? 0);
   const total = Number(row.quantity_purchased ?? qty);
   
-  if (qty === 0) return "Out of Stock";
+  if (qty <= 0) return "Out of Stock";
   if (qty <= (total * 0.3) || qty <= 5) return "Low Stock"; // Red
   return "In Stock"; // Green
 }
 
 const statusStyle = {
   "In Stock":    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  "Low Stock":   "bg-rose-50 text-rose-700 border border-rose-200",
-  "Out of Stock":"bg-slate-100 text-slate-600 border border-slate-300",
+  "Low Stock":   "bg-amber-50 text-amber-700 border border-amber-200",
+  "Out of Stock":"bg-rose-50 text-rose-700 border border-rose-200",
 };
 
 // ─── sub-components ──────────────────────────────────────────────────────────
-const StatCard = ({ label, value, valueClass = "text-gray-900" }) => (
-  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-    <p className="text-sm text-gray-500 mb-1">{label}</p>
-    <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+const StatCard = ({ label, value, valueClass = "text-gray-900", icon: Icon, colorClass = "bg-blue-600" }) => (
+  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all duration-300">
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase letter-spacing-wider mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+    </div>
+    <div className={`${colorClass} p-3 rounded-xl text-white shadow-lg shadow-opacity-20`}>
+      <Icon size={24} />
+    </div>
   </div>
 );
 
@@ -102,22 +107,7 @@ const Stock = ({ stock = [], fetchData }) => {
       <SectionHeader title="Stock" />
 
       <div className="space-y-6" style={{ marginTop: 16 }}>
-        {/* ── page header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* <p className="text-gray-500">Track parts, stock levels, and supplier information.</p> */}
-          <button
-            onClick={() => fetchData?.()}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "8px 16px", fontSize: 14, fontWeight: 500,
-              color: "#374151", background: "#fff",
-              border: "1px solid #E5E7EB", borderRadius: 8,
-              cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            }}
-          >
-            <RefreshCw size={16} /> Refresh
-          </button>
-        </div>
+        {/* ── page header removed refresh button ── */}
 
         {/* ── tabs ── */}
         <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB" }}>
@@ -133,11 +123,33 @@ const Stock = ({ stock = [], fetchData }) => {
         {activeTab === "items" && (
           <>
             {/* stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 16 }}>
-              <StatCard label="Total Items"    value={allRows.length} />
-              <StatCard label="Total Value"    value={`₹${totalValue.toLocaleString()}`} />
-              <StatCard label="Low Stock Items" value={lowStockCount} valueClass="text-blue-600" />
-              <StatCard label="Out of Stock"   value={outOfStock}    valueClass="text-red-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard 
+                label="Total Items" 
+                value={allRows.length} 
+                icon={Package} 
+                colorClass="bg-[#8B5CF6]" 
+              />
+              <StatCard 
+                label="Total Value" 
+                value={`₹${totalValue.toLocaleString()}`} 
+                icon={IndianRupee} 
+                colorClass="bg-[#3B82F6]" 
+              />
+              <StatCard 
+                label="Low Stock Items" 
+                value={lowStockCount} 
+                valueClass="text-amber-600" 
+                icon={AlertTriangle} 
+                colorClass="bg-[#F59E0B]"
+              />
+              <StatCard 
+                label="Out of Stock" 
+                value={outOfStock} 
+                valueClass="text-rose-600" 
+                icon={AlertTriangle} 
+                colorClass="bg-[#EF4444]"
+              />
             </div>
 
             {/* table card */}
