@@ -11,7 +11,7 @@ header("Content-Type: application/json");
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
-}
+} 
 
 require_once 'config.php';
 
@@ -77,33 +77,17 @@ if (!$validation['success']) {
     exit;
 }
 
-// Extract user_guid from token
+// Extract user_guid and role_id from token
 $decodedToken = $validation['data'];
-$adminGuid = null;
-if ($decodedToken && isset($decodedToken->user_guid)) {
+$tokenGuid = $decodedToken->user_guid ?? null;
+$roleId = $decodedToken->role_id ?? 0;
 
-    if ($decodedToken->role_id == 1) {
-        $adminGuid = $decodedToken->user_guid;
-    } else {
-
-        $adminGuid = $decodedToken->user_guid;
-
-        $result = $conn->query("
-            SELECT admin_guid 
-            FROM users
-            WHERE user_guid = '$adminGuid'
-            AND isDeleted = FALSE
-            LIMIT 1
-        ");
-
-        if ($result && $row = $result->fetch_assoc()) {
-            $adminGuid = $row['admin_guid'];
-        }
-    }
-}
+// Resolve primary admin_guid for reports visibility
+$adminGuid = getAdminGuid($conn, $tokenGuid, $roleId);
 
 if (!$adminGuid) {
-    echo json_encode(["success" => false, "message" => "Admin not found"]);
+    http_response_code(400);
+    echo json_encode(["error" => "No admin profile found for this user"]);
     exit;
 }
 
@@ -127,7 +111,81 @@ try {
     $action = $_GET['action'] ?? '';
 
     /* =====================================================
-       🔹 ACTION: DASHBOARD REPORTS (NEW)
+       🔹 ACTION: MECHANIC DASHBOARD (NEW)
+    ====================================================== */
+    if ($action === 'mechanic_dashboard') {
+
+        // 1. Total Assigned (Active)
+        $assignedSql = "SELECT COUNT(*) as count FROM job_card 
+                        WHERE assign_to = '$tokenGuid' AND isDeleted = 0 
+                        AND status NOT IN ('Completed', 'Cancelled')";
+        $assignedCount = $conn->query($assignedSql)->fetch_assoc()['count'] ?? 0;
+
+        // 2. Pending (Assigned but not yet started)
+        $pendingSql = "SELECT COUNT(*) as count FROM job_card 
+                       WHERE assign_to = '$tokenGuid' AND isDeleted = 0 
+                       AND status NOT IN ('Work In Progress', 'Completed', 'Cancelled', 'Delivered')";
+        $pendingCount = $conn->query($pendingSql)->fetch_assoc()['count'] ?? 0;
+
+        // 3. Work In Progress
+        $wipSql = "SELECT COUNT(*) as count FROM job_card 
+                   WHERE assign_to = '$tokenGuid' AND isDeleted = 0 
+                   AND status = 'Work In Progress'";
+        $wipCount = $conn->query($wipSql)->fetch_assoc()['count'] ?? 0;
+
+        // 4. Completed Today
+        $completedTodaySql = "SELECT COUNT(*) as count FROM job_card 
+                              WHERE assign_to = '$tokenGuid' AND isDeleted = 0 
+                              AND status = 'Completed' AND DATE(completed_date) = CURDATE()";
+        $completedTodayCount = $conn->query($completedTodaySql)->fetch_assoc()['count'] ?? 0;
+
+        // 4. Active Job List
+        $jobsSql = "
+            SELECT 
+                jc.job_guid, jc.jobcardNo, jc.status, jc.service_type, jc.arrival_date,
+                u.first_name, u.last_name, 
+                v.registration_number, v.make, v.model
+            FROM job_card jc
+            LEFT JOIN users u ON u.user_guid = jc.customer_guid
+            LEFT JOIN vehicles v ON v.vehicle_guid = jc.vehicle_guid
+            WHERE jc.assign_to = '$tokenGuid' 
+              AND jc.isDeleted = 0 
+              AND jc.status NOT IN ('Completed', 'Cancelled')
+            ORDER BY jc.arrival_date ASC
+        ";
+        $jobsResult = $conn->query($jobsSql);
+        $jobs = [];
+        if ($jobsResult) {
+            while ($row = $jobsResult->fetch_assoc()) {
+                $jobs[] = [
+                    "id" => $row["job_guid"],
+                    "jobcardNo" => $row["jobcardNo"],
+                    "customer" => $row["first_name"] . " " . $row["last_name"],
+                    "vehicle" => $row["registration_number"] . " (" . $row["make"] . " " . $row["model"] . ")",
+                    "task" => $row["service_type"],
+                    "status" => $row["status"],
+                    "initials" => strtoupper(substr($row["first_name"], 0, 1)),
+                    "statusColor" => ($row["status"] === 'Work In Progress' ? '#f59e0b' : 
+                                      ($row["status"] === 'Approved' ? '#4338ca' : '#6b7280'))
+                ];
+            }
+        }
+
+        echo json_encode([
+            "success" => true,
+            "stats" => [
+                ["label" => "Assigned Services", "value" => (int)$assignedCount, "color" => "#3b82f6", "bgColor" => "#eff6ff"],
+                ["label" => "Pending Tasks", "value" => (int)$pendingCount, "color" => "#f59e0b", "bgColor" => "#fffbeb"],
+                ["label" => "Work In Progress", "value" => (int)$wipCount, "color" => "#0EA5E9", "bgColor" => "#f5f3ff"],
+                ["label" => "Completed Today", "value" => (int)$completedTodayCount, "color" => "#10b981", "bgColor" => "#ecfdf5"]
+            ],
+            "jobs" => $jobs
+        ]);
+        exit;
+    }
+
+    /* =====================================================
+       🔹 ACTION: DASHBOARD REPORTS (ADMIN)
     ====================================================== */
     if ($action === 'dashboard') {
 
@@ -146,9 +204,31 @@ try {
             SELECT SUM(pi.amount) AS totalPurchase 
             FROM purchase_items pi
             LEFT JOIN purchases p ON p.purchase_id = pi.purchase_id
-            WHERE p.admin_guid = '$adminGuid'
+            WHERE p.admin_guid = '$adminGuid' AND p.isDeleted = 0
         ";
         $purchaseRow = $conn->query($purchaseSql)->fetch_assoc();
+
+        // Supplier Spend Breakdown
+        $supplierSpendSql = "
+            SELECT 
+                IFNULL(s.supplier_name, 'Unknown Vendor') AS name,
+                SUM(pi.amount) AS value
+            FROM purchases p
+            LEFT JOIN purchase_items pi ON p.purchase_id = pi.purchase_id
+            LEFT JOIN suppliers s ON s.supplier_id = p.supplier
+            WHERE p.admin_guid = '$adminGuid' AND p.isDeleted = 0
+            GROUP BY p.supplier
+            ORDER BY value DESC
+            LIMIT 5
+        ";
+        $supplierSpendData = $conn->query($supplierSpendSql);
+        $supplierSpend = [];
+        if ($supplierSpendData) {
+            while ($row = $supplierSpendData->fetch_assoc()) {
+                $supplierSpend[] = $row;
+            }
+        }
+        $supplierSpendData = $supplierSpend;
         // Fetch all invoices to process items in PHP (avoid JSON_TABLE for MariaDB compatibility)
         $invoiceItemsSql = "SELECT items FROM invoice WHERE admin_guid = '$adminGuid' AND isdelete = 0";
         $invoiceItemsRes = $conn->query($invoiceItemsSql);
@@ -204,7 +284,13 @@ GROUP BY MONTH(i.created_on)
 ORDER BY month_no;
 
         ";
-        $trendData = $conn->query($trendSql)->fetch_all(MYSQLI_ASSOC);
+        $trendDataResult = $conn->query($trendSql);
+        $trendData = [];
+        if ($trendDataResult) {
+            while ($row = $trendDataResult->fetch_assoc()) {
+                $trendData[] = $row;
+            }
+        }
 
         echo json_encode([
             "success" => true,
@@ -216,6 +302,7 @@ ORDER BY month_no;
                 (float) ($purchaseRow['totalPurchase'] ?? 0),
             "productLineData" => $productLineData,
             "productTypeData" => $productTypeData,
+            "supplierSpendData" => $supplierSpendData,
             "trendData" => $trendData
         ]);
 
@@ -229,15 +316,18 @@ ORDER BY month_no;
             SELECT 
                 jc.jobcardNo AS job_no,
                 CONCAT(u.first_name, ' ', u.last_name) AS customer_name, 
+                CONCAT(e.first_name, ' ', e.last_name) AS mechanic_name,
                 jc.EntryDate AS entry_date,
-                rc.name AS repair_category
+                rc.name AS repair_category,
+                jc.status
                 FROM job_card jc
                 LEFT JOIN repair_category rc ON jc.repair_category_id = rc.id
-                left join users u ON u.user_guid = jc.customer_guid
-                where jc.admin_guid = '$adminGuid'
-                AND jc.status = 'Approval Pending'
+                LEFT JOIN users u ON u.user_guid = jc.customer_guid
+                LEFT JOIN users e ON e.user_guid = jc.assign_to
+                WHERE jc.admin_guid = '$adminGuid'
                 AND jc.isDeleted = 0
                 AND jc.isActive = 1
+                AND (jc.status = 'Approval Pending' OR jc.status = 'Pending')
                 ORDER BY jc.EntryDate DESC
         ";
 
@@ -249,9 +339,10 @@ ORDER BY month_no;
                 "S.No" => $sno++,
                 "Job No" => $row["job_no"],
                 "Customer Name" => $row["customer_name"],
+                "Assigned Mechanic" => $row["mechanic_name"] ?? "Not Assigned",
                 "Date" => $row["entry_date"],
                 "Subject" => $row["repair_category"] ?? "N/A",
-                "Status" => "Pending"
+                "Status" => $row["status"]
             ];
         }
 
@@ -264,13 +355,13 @@ ORDER BY month_no;
 
         $empQuery = "
             SELECT 
-                e.employee_code,
+                CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
                 rc.name AS repair_category,
                 jc.arrival_date,
                 jc.estimate_date,
                 jc.status
             FROM job_card jc
-            LEFT JOIN employees e ON e.user_guid = jc.assign_to
+            LEFT JOIN users u ON u.user_guid = jc.assign_to
             LEFT JOIN repair_category rc ON rc.id = jc.repair_category_id
             WHERE jc.admin_guid = '$adminGuid' and jc.isActive = 1 AND jc.isDeleted = 0
             ORDER BY jc.EntryDate DESC
@@ -283,7 +374,7 @@ ORDER BY month_no;
         while ($row = $result->fetch_assoc()) {
             $empJobs[] = [
                 "S.No" => $sno++,
-                "Employee Code" => $row["employee_code"] ?? "N/A",
+                "Employee Name" => $row["employee_name"] ?? "N/A",
                 "Repair Category" => $row["repair_category"] ?? "N/A",
                 "Arrival Date" => $row["arrival_date"] ?? "N/A",
                 "Estimated Date" => $row["estimate_date"] ?? "N/A",
@@ -332,7 +423,7 @@ ORDER BY month_no;
 
         $stockQuery = "
             SELECT product_number, supplier_name, purchase_date,
-                   product_name, available_quantity, quantity_sold
+                   product_name, (IFNULL(quantity_purchased,0) - IFNULL(quantity_sold,0)) AS available_quantity, quantity_sold
             FROM stock st
             where admin_guid = '$adminGuid'
             ORDER BY purchase_date DESC

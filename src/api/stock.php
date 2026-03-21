@@ -28,9 +28,13 @@ function authenticate() {
 
     try {
         $decoded = JWT::decode($token, new Key($jwt_secret, "HS256"));
+        
+        $tokenGuid = (string)$decoded->user_guid;
+        $roleId = $decoded->role_id ?? 0;
 
-        // RETURN user_guid from token
-        return $decoded->user_guid;
+        // Resolve primary admin_guid for data visibility
+        global $conn;
+        return getAdminGuid($conn, $tokenGuid, $roleId);
 
     } catch (Exception $e) {
         http_response_code(401);

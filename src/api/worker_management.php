@@ -1,7 +1,7 @@
 <?php
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
@@ -177,6 +177,7 @@ if ($_GET["action"] === "workers" && $_SERVER["REQUEST_METHOD"] === "GET") {
         FROM users u
         LEFT JOIN profile_crud p ON p.user_guid = u.user_guid
         WHERE u.admin_guid = '$user_guid'
+        AND u.isDeleted = FALSE
         ORDER BY u.first_name, u.last_name
     ";
 
@@ -354,6 +355,44 @@ if ($_GET["action"] === "update_worker" && $_SERVER["REQUEST_METHOD"] === "PUT")
                 ]);
             }
         }
+
+        $pdo->commit();
+        echo json_encode(["success" => true]);
+
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode(["error" => $e->getMessage()]);
+    }
+
+    exit;
+}
+
+if ($_GET["action"] === "delete_worker" && $_SERVER["REQUEST_METHOD"] === "DELETE") {
+    $id = $_GET["id"] ?? null;
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing user ID"]);
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // Get user_guid first
+        $stmt = $pdo->prepare("SELECT user_guid FROM users WHERE id = :id");
+        $stmt->execute([":id" => $id]);
+        $ug = $stmt->fetchColumn();
+
+        if (!$ug) throw new Exception("Worker not found");
+
+        // Soft delete user
+        $pdo->prepare("UPDATE users SET isDeleted = TRUE, isActive = FALSE WHERE id = :id")
+            ->execute([":id" => $id]);
+
+        // Soft delete profile/login if exists
+        $pdo->prepare("UPDATE profile_crud SET isDeleted = TRUE, isActive = FALSE WHERE user_guid = :ug")
+            ->execute([":ug" => $ug]);
 
         $pdo->commit();
         echo json_encode(["success" => true]);

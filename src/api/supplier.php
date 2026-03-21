@@ -27,12 +27,16 @@ if (isset($headers['Authorization'])) {
 try {
     // Decode token
     $decoded = JWT::decode($token, new Key($jwt_secret, 'HS256'));
-    $admin_guid = $decoded->user_guid ?? null;
+    $tokenGuid = $decoded->user_guid ?? null;
+    $roleId = $decoded->role_id ?? 0;
 
-    if (!$admin_guid) {
-        echo json_encode(["success" => false, "message" => "Invalid token (no admin_guid)"]);
+    if (!$tokenGuid) {
+        echo json_encode(["success" => false, "message" => "Invalid token (no user_guid)"]);
         exit;
     }
+
+    // Resolve primary admin_guid for data visibility
+    $admin_guid = getAdminGuid($conn, $tokenGuid, $roleId);
 
 } catch (Exception $e) {
     echo json_encode(["success" => false, "message" => "Invalid or expired token"]);

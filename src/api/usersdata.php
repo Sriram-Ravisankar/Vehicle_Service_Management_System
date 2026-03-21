@@ -47,9 +47,12 @@ if (isset($headers['Authorization'])) {
         $token = substr($authHeader, 7);
 
         try {
-            // Correct JWT decode syntax
             $decoded = JWT::decode($token, new Key($jwt_secret, 'HS256'));
             $loggedInUserGuid = $decoded->user_guid;
+            $loggedInUserRole = $decoded->role_id ?? 0;
+
+            // Resolve the primary admin_guid for data visibility
+            $adminGuid = getAdminGuid($conn, $loggedInUserGuid, $loggedInUserRole);
 
         } catch (Exception $e) {
             http_response_code(401);
@@ -164,7 +167,7 @@ switch ($method) {
                 // Get user basic info
                 $userSql = "SELECT * FROM users 
             WHERE user_guid = '$userGuid' 
-            AND admin_guid = '$loggedInUserGuid'
+            AND admin_guid = '$adminGuid'
             AND isDeleted = FALSE";
 
                 $userResult = $conn->query($userSql);
@@ -232,7 +235,7 @@ switch ($method) {
                 FROM users u
                 LEFT JOIN employees e ON e.user_guid = u.user_guid
                 WHERE u.isDeleted = FALSE 
-                AND u.admin_guid = '$loggedInUserGuid'
+                AND u.admin_guid = '$adminGuid'
                 AND u.user_type = 'employee'
                 ORDER BY u.createdOn DESC
             ";
@@ -244,11 +247,14 @@ switch ($method) {
                        v.vehicle_guid,
                        v.registration_number AS vehicle_number,
                        v.make AS vehicle_make,
-                       v.model AS vehicle_model
+                       v.model AS vehicle_model,
+                       v.fuel_type AS vehicle_fuel_type,
+                       v.color AS vehicle_color,
+                       v.year_of_manufacture AS vehicle_year
                 FROM users u
                 LEFT JOIN vehicles v ON v.user_guid = u.user_guid AND v.isDeleted = 0
                 WHERE u.isDeleted = FALSE 
-                AND u.admin_guid = '$loggedInUserGuid'
+                AND u.admin_guid = '$adminGuid'
                 AND u.user_type = 'customer'
                 ORDER BY u.createdOn DESC
             ";
@@ -260,7 +266,7 @@ switch ($method) {
                 FROM users u
                 LEFT JOIN support_staff s ON s.user_guid = u.user_guid
                 WHERE u.isDeleted = FALSE 
-                AND u.admin_guid = '$loggedInUserGuid'
+                AND u.admin_guid = '$adminGuid'
                 AND u.user_type = 'support_staff'
                 ORDER BY u.createdOn DESC
             ";
@@ -272,7 +278,7 @@ switch ($method) {
                 FROM users u
                 LEFT JOIN accountants a ON a.user_guid = u.user_guid
                 WHERE u.isDeleted = FALSE 
-                AND u.admin_guid = '$loggedInUserGuid'
+                AND u.admin_guid = '$adminGuid'
                 AND u.user_type = 'accountant'
                 ORDER BY u.createdOn DESC
             ";
@@ -284,7 +290,7 @@ switch ($method) {
                 SELECT * 
                 FROM users 
                 WHERE isDeleted = FALSE 
-                AND admin_guid = '$loggedInUserGuid'
+                AND admin_guid = '$adminGuid'
                 ORDER BY createdOn DESC
             ";
                         break;
@@ -330,7 +336,7 @@ switch ($method) {
                 $userGuid = $conn->real_escape_string($_POST['user_guid']);
             } else {
                 $userGuid = generateUUID();
-                $admin_guid = $loggedInUserGuid;  // ← logged-in user GUID from token
+                $admin_guid = $adminGuid;  // Resolved admin_guid
             }
 
             $userType = isset($_POST['user_type']) ? $conn->real_escape_string($_POST['user_type']) : 'customer';
