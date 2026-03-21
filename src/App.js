@@ -9,18 +9,17 @@ import { CssBaseline, Box } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 import theme from "./theme";
 // Common Components
-import Layout from "./components/common/SideBar/AppLayout"; // Make sure this is your Layout component
+import Layout from "./components/common/SideBar/AppLayout"; 
 import useAppData from "./useAppData";
 
 // Pages (your existing imports)
 import Dashboard from "./components/Dashboard/Dashboard";
-import OrderPage from "./Userinvoice/OrderPage";
+import MechanicDashboard from "./components/Dashboard/MechanicDashboard";
 import UserList from "./pages/customer/Customers";
 import EditJobCard from "./Userinvoice/EditJobCard";
 import AddInvoice from "./pages/billing/invoice/Addinvoice";
 import AddQuotation from "./pages/billing/quotation/Addquations";
 import InvoicePage from "./pages/billing/invoice/InvoicesPage";
-import InvoiceList from "./pages/billing/invoice/InvoiceList";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import JobQueue from "./pages/JobQueue";
 import AddUser from "./pages/customer/AddUser";
@@ -30,7 +29,6 @@ import Product from "./components/Inventory/Product";
 import Purchase from "./components/Inventory/Purchase";
 import Supplier from "./components/Inventory/Supplier";
 import ReportsTabs from "./components/Reports/ReportsTabs";
-import PartSellList from "./components/partsale/PartSellList";
 import MainLayout from "./Userinvoice/Mainlayout";
 import AddPurchase from "./components/Inventory/Addpurchase";
 import AddSupplier from "./components/Inventory/AddSuplier";
@@ -48,15 +46,7 @@ import BranchForm from "./components/branch/BranchForm";
 import Upcomingservices from "./components/Reports/upcomingservices";
 import ViewInvoice from "./pages/billing/invoice/ViewInvoice";
 
-import TaxRates from "./components/Accounts/TaxRates";
-import AddTax from "./components/Accounts/Addtax";
-import PaymentMethod from "./components/Accounts/payment-methods";
-import Addpayments from "./components/Accounts/Addpayments";
-import Income from "./components/Accounts/Income";
-import Addincome from "./components/Accounts/Addincome";
-import Expenses from "./components/Accounts/expenses";
-import Expensesdetail from "./components/Accounts/expensesdetail";
-import Addexpenses from "./components/Accounts/Addexpenses";
+
 
 import Login from "./components/login/Login";
 import ForgotPassword from "./components/forgotpassword/ForgotPassword";
@@ -67,6 +57,16 @@ import DynamicHeader from "./components/common/Dynamicheader";
 import GlobalLoader from "./components/common/GlobalLoader";
 import { useLoading } from "./pages/LoadingContext";
 
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -87,6 +87,7 @@ function AppContent() {
   if (isLoginPage) {
     return (
       <Box>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
@@ -98,10 +99,20 @@ function AppContent() {
   // For all other pages, use the Layout component
   return (
     <Layout>
+      <ScrollToTop />
       <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/dashboard"
+          element={
+            localStorage.getItem("role_id") === "4" ? (
+              <MechanicDashboard />
+            ) : (
+              <Dashboard />
+            )
+          }
+        />
+        <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
         <Route path="/dynamicheader" element={<DynamicHeader />} />
-        <Route path="/orderpage" element={<OrderPage />} />
         <Route
           path="/add-invoice"
           element={
@@ -156,18 +167,9 @@ function AppContent() {
         <Route path="/pms-checkups" element={<MainLayout />} />
         <Route path="/tyres-services" element={<MainLayout />} />
         <Route path="/details" element={<MainLayout />} />
-        <Route path="/part-sells" element={<PartSellList />} />
         <Route path="/observation-library" element={<AddObservation />} />
         <Route path="/profile-settings" element={<ProfileSettings />} />
-        <Route path="/TaxRates" element={<TaxRates />} />
-        <Route path="/Addtax" element={<AddTax />} />
-        <Route path="/payment-methods" element={<PaymentMethod />} />
-        <Route path="/addpayments" element={<Addpayments />} />
-        <Route path="/income" element={<Income />} />
-        <Route path="/Addincome" element={<Addincome />} />
-        <Route path="/expenses" element={<Expenses />} />
-        <Route path="/expensesdetail" element={<Expensesdetail />} />
-        <Route path="/Addexpenses" element={<Addexpenses />} />
+
         <Route path="/Adduser" element={<AddUser userType="Customers" />} />
         <Route path="/workersmanagement" element={<WorkersManagement />} />
         <Route
