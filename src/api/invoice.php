@@ -299,6 +299,30 @@ $totals = json_encode($totalsArray, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNIC
     );
 
     if ($stmt->execute()) {
+        // --- ADD STOCK UPDATE LOGIC ---
+        foreach ($itemsArray as $item) {
+            if (isset($item['category']) && $item['category'] === 'Product') {
+                $qty = (int)($item['qty'] ?? 0);
+                $name = $conn->real_escape_string($item['name'] ?? '');
+                
+                $productId = $item['product_id'] ?? null;
+                $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+                
+                if ($qty > 0 && ($productId || !empty($name))) {
+                    $stockSql = "
+                        UPDATE stock
+                        SET quantity_sold = IFNULL(quantity_sold, 0) + $qty,
+                            invoice_no = '$invoice_no',
+                            modifiedOn = NOW()
+                        WHERE $whereClause AND admin_guid = '$admin_guid'
+                        ORDER BY stock_id DESC LIMIT 1
+                    ";
+                    $conn->query($stockSql);
+                }
+            }
+        }
+        // ------------------------------
+
         echo json_encode([
             "success" => true,
             "message" => "Invoice Created",
@@ -319,6 +343,37 @@ if ($method === "POST" && isset($_GET["invoice_guid"])) {
 
     $body = $_POST;
     $invoice_guid = $_GET["invoice_guid"];
+
+    // 1. REVERSE STOCK FOR OLD ITEMS
+    $oldSql = "SELECT items, invoice_no FROM invoice WHERE invoice_guid = ? AND admin_guid = ?";
+    $oldStmt = $conn->prepare($oldSql);
+    $oldStmt->bind_param("ss", $invoice_guid, $admin_guid);
+    $oldStmt->execute();
+    $oldRes = $oldStmt->get_result();
+    $invoice_no = "";
+    if ($oldData = $oldRes->fetch_assoc()) {
+        $invoice_no = $oldData['invoice_no'];
+        $oldItems = json_decode($oldData['items'] ?? "[]", true) ?: [];
+        foreach ($oldItems as $item) {
+            if (isset($item['category']) && $item['category'] === 'Product') {
+                $qty = (int)($item['qty'] ?? 0);
+                $name = $conn->real_escape_string($item['name'] ?? '');
+                $productId = $item['product_id'] ?? null;
+                $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+
+                if ($qty > 0 && ($productId || !empty($name))) {
+                    $stockSql = "
+                        UPDATE stock
+                        SET quantity_sold = GREATEST(0, IFNULL(quantity_sold, 0) - $qty),
+                            modifiedOn = NOW()
+                        WHERE $whereClause AND admin_guid = '$admin_guid'
+                        ORDER BY stock_id DESC LIMIT 1
+                    ";
+                    $conn->query($stockSql);
+                }
+            }
+        }
+    }
 
     // ITEMS
     $itemsArr = json_decode($body["items"] ?? "[]", true) ?: [];
@@ -356,11 +411,32 @@ if ($method === "POST" && isset($_GET["invoice_guid"])) {
         $admin_guid
     );
 
-    echo json_encode(
-        $stmt->execute()
-        ? ["success" => true, "message" => "Invoice Updated"]
-        : ["success" => false, "message" => $stmt->error]
-    );
+    if ($stmt->execute()) {
+        // 2. ADD STOCK FOR NEW ITEMS
+        foreach ($itemsArr as $item) {
+            if (isset($item['category']) && $item['category'] === 'Product') {
+                $qty = (int)($item['qty'] ?? 0);
+                $name = $conn->real_escape_string($item['name'] ?? '');
+                $productId = $item['product_id'] ?? null;
+                $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+
+                if ($qty > 0 && ($productId || !empty($name))) {
+                    $stockSql = "
+                        UPDATE stock
+                        SET quantity_sold = IFNULL(quantity_sold, 0) + $qty,
+                            invoice_no = '" . $conn->real_escape_string($invoice_no) . "',
+                            modifiedOn = NOW()
+                        WHERE $whereClause AND admin_guid = '$admin_guid'
+                        ORDER BY stock_id DESC LIMIT 1
+                    ";
+                    $conn->query($stockSql);
+                }
+            }
+        }
+        echo json_encode(["success" => true, "message" => "Invoice Updated"]);
+    } else {
+        echo json_encode(["success" => false, "message" => $stmt->error]);
+    }
     exit;
 }
 
@@ -373,6 +449,32 @@ if ($method === "POST" && isset($_GET["invoice_guid"])) {
 if ($method === "DELETE" && isset($_GET["invoice_guid"])) {
 
     $guid = $_GET["invoice_guid"];
+
+    // 1. REVERSE STOCK FOR OLD ITEMS
+    $oldSql = "SELECT items FROM invoice WHERE invoice_guid = ? AND admin_guid = ?";
+    $oldStmt = $conn->prepare($oldSql);
+    $oldStmt->bind_param("ss", $guid, $admin_guid);
+    $oldStmt->execute();
+    $oldRes = $oldStmt->get_result();
+    if ($oldData = $oldRes->fetch_assoc()) {
+        $oldItems = json_decode($oldData['items'] ?? "[]", true) ?: [];
+        foreach ($oldItems as $item) {
+            if (isset($item['category']) && $item['category'] === 'Product') {
+                $qty = (int)($item['qty'] ?? 0);
+                $name = $conn->real_escape_string($item['name'] ?? '');
+                if ($qty > 0 && !empty($name)) {
+                    $stockSql = "
+                        UPDATE stock
+                        SET quantity_sold = GREATEST(0, IFNULL(quantity_sold, 0) - $qty),
+                            modifiedOn = NOW()
+                        WHERE product_name = '$name' AND admin_guid = '$admin_guid'
+                        ORDER BY stock_id DESC LIMIT 1
+                    ";
+                    $conn->query($stockSql);
+                }
+            }
+        }
+    }
 
     $sql = "UPDATE invoice SET isdelete = 1 WHERE invoice_guid = ? AND admin_guid = ?";
     $stmt = $conn->prepare($sql);

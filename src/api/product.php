@@ -48,9 +48,14 @@ $token = trim(str_ireplace('Bearer', '', $authHeader));
 try {
     $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));
     if (!isset($decoded->user_guid)) {
-        throw new Exception("Token doesn't contain admin_guid");
+        throw new Exception("Token doesn't contain user_guid");
     }
-    $admin_guid = (string)$decoded->user_guid;
+    
+    $tokenGuid = (string)$decoded->user_guid;
+    $roleId = $decoded->role_id ?? 0;
+    
+    // Resolve primary admin GUID for visibility
+    $admin_guid = getAdminGuid($conn, $tokenGuid, $roleId);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Invalid token: ' . $e->getMessage()]);
@@ -131,8 +136,27 @@ if ($method === 'POST') {
 
         // Prepare fields for insert/update
         // NOTE: For UPDATE we do NOT change admin_guid (keeps owner)
+        $productNumber = $_POST['product_number'] ?? null;
+        if (!$isUpdate) {
+            $stmtNo = $conn->prepare("SELECT product_number FROM products WHERE admin_guid = ? ORDER BY id DESC LIMIT 1");
+            $stmtNo->bind_param("s", $admin_guid);
+            $stmtNo->execute();
+            $resNo = $stmtNo->get_result();
+            if ($rowNo = $resNo->fetch_assoc()) {
+                if (preg_match("/PRD-(\d+)/", $rowNo["product_number"], $m)) {
+                    $next = intval($m[1]) + 1;
+                } else {
+                    $next = 1;
+                }
+            } else {
+                $next = 1;
+            }
+            $productNumber = "PRD-" . str_pad($next, 4, "0", STR_PAD_LEFT);
+            $stmtNo->close();
+        }
+
         $input = [
-            'product_number' => $_POST['product_number'] ?? null,
+            'product_number' => $productNumber,
             'product_name'   => $_POST['product_name'] ?? null,
             'unit'           => $_POST['unit'] ?? null,
             'image'          => $imagePath,
@@ -253,7 +277,25 @@ if ($method === 'POST') {
 // ---------- GET: list or single (only for admin_guid) ----------
 if ($method === 'GET') {
     try {
-        if (isset($_GET['id'])) {
+        if (isset($_GET['next_product_number'])) {
+            $stmtNo = $conn->prepare("SELECT product_number FROM products WHERE admin_guid = ? ORDER BY id DESC LIMIT 1");
+            $stmtNo->bind_param("s", $admin_guid);
+            $stmtNo->execute();
+            $resNo = $stmtNo->get_result();
+            if ($rowNo = $resNo->fetch_assoc()) {
+                if (preg_match("/PRD-(\d+)/", $rowNo["product_number"], $m)) {
+                    $next = intval($m[1]) + 1;
+                } else {
+                    $next = 1;
+                }
+            } else {
+                $next = 1;
+            }
+            $productNumber = "PRD-" . str_pad($next, 4, "0", STR_PAD_LEFT);
+            $stmtNo->close();
+            echo json_encode(['success' => true, 'next_product_number' => $productNumber]);
+            exit;
+        } elseif (isset($_GET['id'])) {
             $id = intval($_GET['id']);
             $stmt = $conn->prepare("SELECT * FROM products WHERE id = ? AND admin_guid = ? AND isDeleted = 0");
             $stmt->bind_param("is", $id, $admin_guid);
@@ -270,7 +312,10 @@ if ($method === 'GET') {
             exit;
         } else {
             $sql = "
-                SELECT p.*
+                SELECT p.*,
+                       COALESCE((SELECT SUM(IFNULL(s.quantity_purchased,0) - IFNULL(s.quantity_sold,0)) 
+                        FROM stock s 
+                        WHERE (s.product_id = p.id OR s.product_name = p.product_name) AND s.admin_guid = p.admin_guid), 0) AS available_stock
                 FROM products p
                 WHERE p.isDeleted = 0 AND p.admin_guid = ?
                 ORDER BY p.createdOn DESC

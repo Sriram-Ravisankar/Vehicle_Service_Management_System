@@ -568,6 +568,10 @@ switch ($method) {
             $completed_date_sql = ", completed_date='$cd'";
         }
         $conn->query("UPDATE job_card SET status='$status' $completed_date_sql, modifiedOn=NOW() WHERE job_guid='$job_guid'");
+
+        // 🔗 SYNC: Keep linked quotation status in sync
+        $conn->query("UPDATE quotation SET status='$status' WHERE job_guid='$job_guid' AND isdelete = 0");
+
         echo json_encode(["success" => true, "message" => "Status updated"]);
         break;
 

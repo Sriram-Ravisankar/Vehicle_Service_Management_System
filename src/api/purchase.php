@@ -72,10 +72,11 @@ function getAdminGUIDFromToken() {
     }
 
     if (!isset($decoded->user_guid)) {
-        throw new Exception("admin_guid missing in token");
+        throw new Exception("user_guid missing in token");
     }
 
-    return (string)$decoded->user_guid;
+    global $conn;
+    return getAdminGuid($conn, (string)$decoded->user_guid, $decoded->role_id ?? 0);
 }
 
 /**
