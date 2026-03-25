@@ -1,18 +1,15 @@
 // src/components/branch/BranchForm.js
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
-  Grid,
-  TextField,
   Typography,
   Button,
   Avatar,
-  IconButton,
-  Stack,
-  FormControlLabel,
-  Switch,
   CircularProgress,
-  Paper,
+  Snackbar,
+  Alert,
+  Switch,
+  IconButton,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -24,44 +21,93 @@ import {
   Save,
   Globe,
   Codesandbox,
-  Plus
+  X
 } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../common/Header";
-import { Snackbar, Alert } from "@mui/material";
 
-const SectionCard = ({ title, children, icon: Icon, action, style = {} }) => (
-  <div style={{
-    background: "#fff",
-    borderRadius: 16,
-    border: "1px solid #F3F4F6",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
-    ...style
-  }}>
-    <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
-      </div>
-      {action}
-    </div>
+// ── Shared UI Components ──────────────────────────────────────────────────────
+
+const Field = ({ label, icon: Icon, error, children, required }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ 
+      fontSize: 13, 
+      fontWeight: 600, 
+      color: "#475569", 
+      display: "flex", 
+      alignItems: "center", 
+      gap: 6 
+    }}>
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
+      {label}{required && " *"}
+    </label>
     {children}
+    {error && <span style={{ fontSize: 12, color: "#EF4444", fontWeight: 500 }}>{error}</span>}
   </div>
 );
 
-const inputSx = {
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "10px",
-    backgroundColor: "#F9FAFB",
-    transition: "0.2s",
-    "&:hover": { backgroundColor: "#F3F4F6" },
-    "&.Mui-focused": { backgroundColor: "#fff" }
+const inputSx = (hasError) => ({
+  width: "100%",
+  padding: "10px 14px",
+  fontSize: "14px",
+  border: `1px solid ${hasError ? "#FCA5A5" : "#E2E8F0"}`,
+  borderRadius: "10px",
+  outline: "none",
+  background: hasError ? "#FFF5F5" : "#fff",
+  color: "#1E293B",
+  fontWeight: 500,
+  transition: "all 0.2s ease",
+  "&:focus": {
+    borderColor: "#0EA5E9",
+    boxShadow: "0 0 0 3px rgba(14, 165, 233, 0.1)",
   }
-};
+});
 
-const labelStyle = { fontSize: 13, fontWeight: 600, color: "#475569", mb: 1 };
+const SectionCard = ({ title, children, icon: Icon }) => (
+  <Box sx={{
+    background: "#fff",
+    borderRadius: "20px",
+    border: "1px solid #F1F5F9",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03)",
+    p: { xs: 2, sm: 3 },
+    mb: 3,
+  }}>
+    <div style={{ 
+      borderBottom: "1px solid #F1F5F9", 
+      paddingBottom: "14px", 
+      marginBottom: "20px", 
+      display: "flex", 
+      alignItems: "center", 
+      gap: "10px" 
+    }}>
+      {Icon && (
+        <div style={{ 
+          width: 32, 
+          height: 32, 
+          borderRadius: "8px", 
+          background: "#F5F3FF", 
+          color: "#0EA5E9", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center" 
+        }}>
+          <Icon size={18} />
+        </div>
+      )}
+      <h3 style={{ 
+        margin: 0, 
+        fontSize: "14px", 
+        fontWeight: 700, 
+        color: "#1E293B", 
+        textTransform: "uppercase", 
+        letterSpacing: "0.025em" 
+      }}>
+        {title}
+      </h3>
+    </div>
+    {children}
+  </Box>
+);
 
 const BranchForm = () => {
   const navigate = useNavigate();
@@ -87,7 +133,6 @@ const BranchForm = () => {
   const [loading, setLoading] = useState(false);
   const [working, setWorking] = useState(false);
   const [errors, setErrors] = useState({});
-
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
@@ -140,7 +185,16 @@ const BranchForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.branchName || !formData.email || !formData.contactNumber) {
+    
+    // Simple validation
+    const newErrors = {};
+    if (!formData.branchName) newErrors.branchName = "Required";
+    if (!formData.email) newErrors.email = "Required";
+    if (!formData.contactNumber) newErrors.contactNumber = "Required";
+    if (!formData.address) newErrors.address = "Required";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setSnackbar({ open: true, message: "Please fill required fields", severity: "error" });
       return;
     }
@@ -167,138 +221,221 @@ const BranchForm = () => {
       });
       const result = await resp.json();
       if (result.success) {
-        setSnackbar({ open: true, message: editId ? "Branch updated!" : "Branch added!", severity: "success" });
+        setSnackbar({ open: true, message: editId ? "Branch updated successfully!" : "Branch created successfully!", severity: "success" });
         setTimeout(() => navigate("/branches"), 1200);
+      } else {
+        throw new Error(result.error || "Save failed");
       }
     } catch (err) {
-      setSnackbar({ open: true, message: "Save failed", severity: "error" });
+      setSnackbar({ open: true, message: err.message, severity: "error" });
     } finally { setWorking(false); }
   };
 
   if (loading) return (
     <Box sx={{ height: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <CircularProgress sx={{ color: "#8B5CF6" }} />
+      <CircularProgress sx={{ color: "#0EA5E9" }} />
     </Box>
   );
 
   return (
-    <Box sx={{ px: { xs: 1.5, md: 3 }, py: 3, backgroundColor: "#F9FAFB", minHeight: "100vh" }}>
-      <SectionHeader />
+    <Box sx={{ 
+      p: { xs: 1.5, sm: 3, md: 4 }, 
+      backgroundColor: "#F8FAFC", 
+      minHeight: "100vh",
+      width: "100%",
+      animation: "fadeInUp 0.6s ease-out forwards",
+      "@keyframes fadeInUp": {
+        "0%": { opacity: 0, transform: "translateY(20px)" },
+        "100%": { opacity: 1, transform: "translateY(0)" }
+      }
+    }}>
+      <SectionHeader title={editId ? "Edit Branch" : "Create New Branch"} showBack={true} />
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12}>
-          <SectionCard title="Core Identity & Branding" icon={Codesandbox}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography sx={labelStyle}>Branch Name *</Typography>
-                <TextField fullWidth size="small" name="branchName" value={formData.branchName} onChange={handleChange} sx={inputSx} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography sx={labelStyle}>Branch Code</Typography>
-                <TextField fullWidth size="small" name="branchCode" value={formData.branchCode} onChange={handleChange} sx={inputSx} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography sx={labelStyle}>Contact Number *</Typography>
-                <TextField fullWidth size="small" name="contactNumber" value={formData.contactNumber} onChange={handleChange} sx={inputSx} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography sx={labelStyle}>Email Address *</Typography>
-                <TextField fullWidth size="small" name="email" value={formData.email} onChange={handleChange} sx={inputSx} />
-              </Grid>
+      <Box sx={{ maxWidth: "1200px", mx: "auto", mt: 3 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
+          
+          {/* ── CORE IDENTITY ── */}
+          <SectionCard title="Branch Identity" icon={Codesandbox}>
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
+              gap: "24px" 
+            }}>
+              <Field label="Branch Name" icon={Building2} required error={errors.branchName}>
+                <input 
+                  autoFocus
+                  name="branchName" 
+                  value={formData.branchName} 
+                  onChange={handleChange} 
+                  style={inputSx(!!errors.branchName)} 
+                  placeholder="e.g. Downtown Motors" 
+                />
+              </Field>
 
-              <Grid item xs={12} md={6}>
-                <Box sx={{ 
-                  p: 2, bgcolor: "#F9FAFB", border: "1px solid #F3F4F6", borderRadius: "12px", 
-                  height: "100%", display: "flex", alignItems: "center" 
-                }}>
-                  <FormControlLabel
-                    control={<Switch checked={formData.isHeadOffice} onChange={(e) => setFormData(prev => ({ ...prev, isHeadOffice: e.target.checked }))} color="primary" />}
-                    label={
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, fontSize: 14 }}>Primary Head Office</Typography>
-                        <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>Master location for billing & reports</Typography>
-                      </Box>
-                    }
-                  />
-                </Box>
-              </Grid>
+              <Field label="Branch Code" icon={Globe}>
+                <input 
+                  name="branchCode" 
+                  value={formData.branchCode} 
+                  onChange={handleChange} 
+                  style={inputSx(false)} 
+                  placeholder="e.g. BR-01" 
+                />
+              </Field>
 
-              <Grid item xs={12} md={6}>
-                <Box sx={{ 
-                  border: "1px solid #F3F4F6", borderRadius: "12px", p: 2, 
-                  display: "flex", alignItems: "center", gap: 3, backgroundColor: "#fff"
-                }}>
-                  <Box sx={{ position: "relative" }}>
-                    {formData.imagePreview ? (
-                      <Avatar src={formData.imagePreview} sx={{ width: 64, height: 64, borderRadius: "10px" }} />
-                    ) : (
-                      <Box sx={{ width: 64, height: 64, borderRadius: "10px", bgcolor: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8" }}>
-                        <ImageIcon size={24} />
-                      </Box>
-                    )}
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1E293B", mb: 0.5 }}>Branch Profile Image</Typography>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      size="small"
-                      sx={{ textTransform: "none", borderRadius: "6px", color: "#8B5CF6", borderColor: "#8B5CF6", fontSize: 12 }}
-                    >
-                      Change Photo
-                      <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-                    </Button>
-                  </Box>
-                </Box>
-              </Grid>
-            </Grid>
+              <Field label="Contact Number" icon={Phone} required error={errors.contactNumber}>
+                <input 
+                  name="contactNumber" 
+                  value={formData.contactNumber} 
+                  onChange={handleChange} 
+                  style={inputSx(!!errors.contactNumber)} 
+                  placeholder="+1 (555) 000-0000" 
+                />
+              </Field>
+
+              <Field label="Email Address" icon={Mail} required error={errors.email}>
+                <input 
+                  name="email" 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  style={inputSx(!!errors.email)} 
+                  placeholder="branch@example.com" 
+                />
+              </Field>
+
+              <div style={{ padding: "16px", background: "#F8FAFC", borderRadius: "14px", border: "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <Typography sx={{ fontWeight: 700, fontSize: "14px", color: "#1E293B" }}>Head Office</Typography>
+                  <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 500 }}>Global master branch for billing</Typography>
+                </div>
+                <Switch 
+                  checked={formData.isHeadOffice} 
+                  onChange={(e) => setFormData(p => ({ ...p, isHeadOffice: e.target.checked }))}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#0EA5E9" },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#0EA5E9" }
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px", background: "#fff", borderRadius: "14px", border: "1px solid #F1F5F9" }}>
+                <div style={{ position: "relative" }}>
+                  {formData.imagePreview ? (
+                    <Avatar src={formData.imagePreview} sx={{ width: 56, height: 56, borderRadius: "12px", border: "2px solid #F1F5F9" }} />
+                  ) : (
+                    <div style={{ width: 56, height: 56, borderRadius: "12px", background: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8", border: "1.5px dashed #E2E8F0" }}>
+                      <ImageIcon size={24} />
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#1E293B", mb: 0.5 }}>Branch Logo</Typography>
+                  <Button
+                    variant="text"
+                    component="label"
+                    size="small"
+                    sx={{ textTransform: "none", fontSize: "12px", color: "#0EA5E9", p: 0, minWidth: 0, fontWeight: 700 }}
+                  >
+                    Upload Photo
+                    <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                  </Button>
+                </div>
+                {formData.imagePreview && (
+                  <IconButton onClick={() => setFormData(p => ({ ...p, image: null, imagePreview: "" }))} size="small" sx={{ color: "#EF4444" }}>
+                    <X size={16} />
+                  </IconButton>
+                )}
+              </div>
+            </div>
           </SectionCard>
-        </Grid>
 
-        <Grid item xs={12}>
-          <SectionCard title="Location & Access" icon={MapPin}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography sx={labelStyle}>Street Address *</Typography>
-                <TextField fullWidth multiline rows={3} name="address" value={formData.address} onChange={handleChange} placeholder="Full street address..." sx={inputSx} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <Typography sx={labelStyle}>City</Typography>
-                    <TextField fullWidth size="small" name="city" value={formData.city} onChange={handleChange} sx={inputSx} />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Typography sx={labelStyle}>State</Typography>
-                    <TextField fullWidth size="small" name="state" value={formData.state} onChange={handleChange} sx={inputSx} />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Typography sx={labelStyle}>Country</Typography>
-                    <TextField fullWidth size="small" name="country" value={formData.country} onChange={handleChange} sx={inputSx} />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
+          {/* ── LOCATION ── */}
+          <SectionCard title="Location & Address" icon={MapPin}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <Field label="Street Address" required error={errors.address}>
+                <textarea 
+                  name="address" 
+                  value={formData.address} 
+                  onChange={handleChange} 
+                  placeholder="Enter complete office address..." 
+                  style={{ 
+                    ...inputSx(!!errors.address), 
+                    minHeight: "80px", 
+                    resize: "vertical", 
+                    fontFamily: "inherit" 
+                  }} 
+                />
+              </Field>
+
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+                gap: "24px" 
+              }}>
+                <Field label="City">
+                  <input name="city" value={formData.city} onChange={handleChange} style={inputSx(false)} placeholder="e.g. Coimbatore" />
+                </Field>
+                <Field label="State / Province">
+                  <input name="state" value={formData.state} onChange={handleChange} style={inputSx(false)} placeholder="e.g. Tamilnadu" />
+                </Field>
+                <Field label="Country">
+                  <input name="country" value={formData.country} onChange={handleChange} style={inputSx(false)} placeholder="e.g. India" />
+                </Field>
+              </div>
+            </div>
           </SectionCard>
-        </Grid>
-      </Grid>
 
-      {!loading && (
-        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+        </div>
+
+        {/* ── ACTION FOOTER ── */}
+        <Box sx={{ 
+          mt: 4, 
+          pt: 4, 
+          borderTop: "1px solid #E2E8F0", 
+          display: "flex", 
+          justifyContent: "flex-end", 
+          gap: "16px",
+          pb: 8
+        }}>
+          {/* <Button
+            onClick={() => navigate("/branches")}
+            sx={{ 
+              borderRadius: "12px", 
+              textTransform: "none", 
+              fontWeight: 700, 
+              px: 4, 
+              color: "#64748B",
+              "&:hover": { background: "#F1F5F9" }
+            }}
+          >
+            Discard
+          </Button> */}
           <Button
             variant="contained"
             disabled={working}
             onClick={handleSubmit}
+            startIcon={working ? <CircularProgress size={16} color="inherit" /> : <Save size={18} />}
             sx={{ 
-              borderRadius: "12px", textTransform: "none", fontWeight: 700, px: 6, py: 1.5,
-              bgcolor: "rgba(139, 92, 246, 0.9)", boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.2)",
-              "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" }
+              borderRadius: "12px", 
+              textTransform: "none", 
+              fontWeight: 800, 
+              px: 6, 
+              py: 1.5,
+              fontSize: "14px",
+              background: "linear-gradient(135deg, #0EA5E9 0%, #7C3AED 100%)",
+              boxShadow: "0 10px 15px -3px rgba(14, 165, 233, 0.3)",
+              transition: "all 0.2s ease",
+              "&:hover": { 
+                transform: "translateY(-1px)",
+                boxShadow: "0 20px 25px -5px rgba(14, 165, 233, 0.4)",
+                background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
+              },
+              "&:disabled": { background: "#E2E8F0", color: "#94A3B8" }
             }}
           >
-            {working ? "Saving..." : editId ? "Update Branch" : "Save Branch"}
+            {working ? "Saving..." : editId ? "Update Branch" : "Create Branch"}
           </Button>
         </Box>
-      )}
+      </Box>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({...snackbar, open: false})} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
         <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "12px" }}>{snackbar.message}</Alert>

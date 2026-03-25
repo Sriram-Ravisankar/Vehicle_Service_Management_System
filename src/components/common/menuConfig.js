@@ -88,7 +88,7 @@ const menuItems = [
         icon: EngineeringIcon,
         permissions: ["view_employees"],
       },
-      {
+      /*{
         label: "Support Staff",
         route: "/support-staff",
         activePaths: ["/add-support-staff", "/edit-support-staff"],
@@ -101,7 +101,7 @@ const menuItems = [
         activePaths: ["/add-accountant", "/edit-accountant"],
         icon: AccountBalanceIcon,
         permissions: ["view_accountants"],
-      },
+      },*/
     ],
   },
 
@@ -152,7 +152,7 @@ const menuItems = [
   },
 
   {
-    label: "Profile",
+    label: "Settings",
     icon: SettingsIcon,
     route: "/profile-settings",
     permissions: ["manage_settings"],

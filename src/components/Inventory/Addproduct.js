@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Button, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, Snackbar, Alert,
 } from "@mui/material";
-import { Save, Upload, X, Tag, Hash, DollarSign, Calendar, GitBranch, Shield, Plus, Minus } from "lucide-react";
+import { Save, Upload, X, Tag, Hash, DollarSign, Calendar, GitBranch, Plus } from "lucide-react";
 import DynamicHeader from "../common/Dynamicheader";
 import apiEndpoints from "../../apiconfig";
 
@@ -12,7 +12,7 @@ import apiEndpoints from "../../apiconfig";
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -32,16 +32,16 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children }) => (
-  <div style={{
-    background: "#fff", borderRadius: 16, border: "1px solid #F3F4F6",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)", padding: "24px", marginBottom: 24,
+  <Box sx={{
+    background: "#fff", borderRadius: "16px", border: "1px solid #F3F4F6",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)", p: { xs: 2, md: 3 }, mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20 }}>
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827",
         textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 // ── main component ─────────────────────────────────────────────────────────────
@@ -127,6 +127,12 @@ const AddProduct = ({ fetchData }) => {
       setFormData((p) => ({ ...p, image: file, imagePreview: URL.createObjectURL(file) }));
       return;
     }
+    
+    // Prevent negative price
+    if (name === "price" && value !== "" && Number(value) < 0) {
+      return;
+    }
+
     setErrors((p) => ({ ...p, [name]: "" }));
     setFormData((p) => ({ ...p, [name]: value }));
   };
@@ -193,7 +199,7 @@ const AddProduct = ({ fetchData }) => {
 
   return (
     <Box sx={{ 
-      px: { xs: 3, sm: 4, md: 6 }, 
+      px: { xs: 1.5, sm: 4, md: 6 }, 
       py: { xs: 2, sm: 4 }, 
       width: "100%", 
       maxWidth: "100%", 
@@ -217,7 +223,7 @@ const AddProduct = ({ fetchData }) => {
             </Field>
 
             <Field label="Price *" icon={DollarSign} error={errors.price}>
-              <input name="price" type="number" value={formData.price} onChange={handleChange}
+              <input name="price" type="number" value={formData.price} onChange={handleChange} min="0"
                 placeholder="0.00" style={inputSx(!!errors.price)} />
             </Field>
 
@@ -240,7 +246,7 @@ const AddProduct = ({ fetchData }) => {
                   {unitOptions.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
                 <button type="button" onClick={() => setOpenUnitDialog(true)}
-                  style={{ ...purpleBtn, padding: "9px 14px", background: "rgba(139,92,246,0.9)", color: "#fff", borderRadius: 8 }}>
+                  style={{ ...purpleBtn, padding: "9px 14px", background: "rgba(14, 165, 233,0.9)", color: "#fff", borderRadius: 8 }}>
                   <Plus size={15} />
                 </button>
               </div>
@@ -252,7 +258,7 @@ const AddProduct = ({ fetchData }) => {
                 <label style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
                   padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: "1px solid #8B5CF6", color: "#8B5CF6", cursor: "pointer", background: "#fff",
+                  border: "1px solid #0EA5E9", color: "#0EA5E9", cursor: "pointer", background: "#fff",
                 }}>
                   <Upload size={14} /> Choose Image
                   <input type="file" name="image" accept="image/*" hidden onChange={handleChange} />
@@ -303,8 +309,8 @@ const AddProduct = ({ fetchData }) => {
             disabled={isLoading}
             startIcon={<Save size={16} />}
             sx={{
-              backgroundColor: "rgba(139, 92, 246, 0.9)",
-              "&:hover": { backgroundColor: "rgba(139, 92, 246, 1)" },
+              backgroundColor: "rgba(14, 165, 233, 0.9)",
+              "&:hover": { backgroundColor: "rgba(14, 165, 233, 1)" },
               color: "#fff", borderRadius: "10px", px: 4, py: 1.2,
               fontWeight: 600, textTransform: "none", fontSize: 14,
             }}
@@ -328,8 +334,8 @@ const AddProduct = ({ fetchData }) => {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setOpenUnitDialog(false)} sx={{ textTransform: "none" }}>Cancel</Button>
           <Button onClick={handleAddUnit} variant="contained"
-            sx={{ background: "rgba(139,92,246,0.9)", textTransform: "none", borderRadius: "8px",
-              "&:hover": { background: "rgba(139,92,246,1)" } }}>
+            sx={{ background: "rgba(14, 165, 233,0.9)", textTransform: "none", borderRadius: "8px",
+              "&:hover": { background: "rgba(14, 165, 233,1)" } }}>
             Add Unit
           </Button>
         </DialogActions>

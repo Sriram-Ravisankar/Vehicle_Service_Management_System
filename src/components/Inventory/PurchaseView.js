@@ -1,4 +1,3 @@
-import React from "react";
 import {
     Dialog,
     DialogTitle,
@@ -13,8 +12,7 @@ import {
     TableCell,
     TableBody,
 } from "@mui/material";
-import { ShoppingCart, Calendar, User, Hash, X, MapPin, FileText } from "lucide-react";
-import apiEndpoints from "../../apiconfig";
+import { ShoppingCart, Calendar, User, Hash, X, FileText } from "lucide-react";
 
 const PurchaseViewModal = ({ open, onClose, data }) => {
     if (!data) return null;

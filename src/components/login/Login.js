@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -15,17 +15,13 @@ import {
 import {
     Visibility,
     VisibilityOff,
-    BuildCircle,
-    DirectionsCarFilled,
-    Settings,
   } from "@mui/icons-material";
 import apiEndpoints from "../../apiconfig";
-import backgroundImage from "../../assets/bgimage.png";
-import spanner from "../../assets/spanner.png";
+import backgroundImage from "../../assets/bgimage.jpeg";
 
 // NEW PRIMARY COLORS
-const primaryColor = "rgba(139, 92, 246, 0.9)";
-const primaryHover = "rgba(139, 92, 246, 1)";
+const primaryColor = "rgba(14, 165, 233, 0.9)";
+const primaryHover = "rgba(14, 165, 233, 1)";
 
 // HD GARAGE BACKGROUND IMAGE
 const garageBackground = backgroundImage;
@@ -35,11 +31,7 @@ const LoginPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [showPassword, setShowPassword] = useState(false);
-  const [rightPanelActive, setRightPanelActive] = useState(false);
   const [formData, setFormData] = useState({
-    Name: "",
-    Email: "",
-    Password: "",
     loginEmail: "",
     loginPassword: "",
   });
@@ -66,7 +58,6 @@ const LoginPage = () => {
   }, []);
 
   const handleClickShowPassword = () => setShowPassword(!showPassword);
-  const togglePanel = () => setRightPanelActive(!rightPanelActive);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,62 +83,7 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const validateRegisterForm = async () => {
-    const errors = {};
 
-    if (!formData.Name.trim()) {
-      errors.Name = "Name is required";
-    }
-
-    if (!formData.Email.trim()) {
-      errors.Email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.Email)) {
-      errors.Email = "Invalid email format";
-    } else {
-      try {
-        const response = await fetch(
-          `${apiEndpoints.checkEmail}?email=${encodeURIComponent(formData.Email)}`
-        );
-        const data = await response.json();
-        if (data.exists) {
-          errors.Email = "Email already registered";
-        }
-      } catch (error) {
-        console.error("Email check failed:", error);
-      }
-    }
-
-    if (!formData.Password.trim()) {
-      errors.Password = "Password is required";
-    } else {
-      if (formData.Password.length < 6) {
-        errors.Password = "Password must be at least 6 characters";
-      }
-
-      const hasCapitalLetter = /[A-Z]/.test(formData.Password);
-      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.Password);
-
-      if (!hasCapitalLetter || !hasSpecialChar) {
-        let errorMessage = "";
-
-        if (!hasCapitalLetter && !hasSpecialChar) {
-          errorMessage =
-            "Password must contain at least one capital letter and one special character";
-        } else if (!hasCapitalLetter) {
-          errorMessage = "Password must contain at least one capital letter";
-        } else {
-          errorMessage = "Password must contain at least one special character";
-        }
-
-        errors.Password = errors.Password
-          ? `${errors.Password}, ${errorMessage.toLowerCase()}`
-          : errorMessage;
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleLogin = async () => {
     if (!validateLoginForm()) return;
@@ -211,95 +147,11 @@ const LoginPage = () => {
     }
   };
 
-  const handleRegister = async () => {
-    if (!(await validateRegisterForm())) return;
 
-    setIsLoading(true);
-    try {
-      const response = await fetch(apiEndpoints.register, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userName: formData.Name,
-          email: formData.Email,
-          password: formData.Password,
-          role_id: 1,
-        }),
-      });
 
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
 
-      if (data.success) {
-        setSnackbar({
-          open: true,
-          message: "🎉 Registration successful! Please login.",
-          severity: "success",
-        });
-        setFormData((prev) => ({
-          ...prev,
-          Name: "",
-          Email: "",
-          Password: "",
-        }));
-        togglePanel();
-      } else {
-        throw new Error(data.message || "Registration failed");
-      }
-    } catch (error) {
-      console.error("Register Error:", error);
-      setSnackbar({
-        open: true,
-        message: error.message || "Registration failed. Please try again.",
-        severity: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-    const socialIcons = (
-      <Box sx={{ display: "flex", justifyContent: "center", gap: 2, my: 3 }}>
-        {[
-          { Icon: BuildCircle, label: "Repairs" },
-          { Icon: DirectionsCarFilled, label: "Vehicles" },
-          { Icon: Settings, label: "Maintenance" },
-        ].map(({ Icon, label }, index) => (
-          <IconButton
-            key={index}
-            sx={{
-              border: "1px solid #ddd",
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-            }}
-            title={label}
-          >
-            <Icon />
-          </IconButton>
-        ))}
-      </Box>
-    );
-
-  const overlayButtonStyles = {
-    color: "#000",
-    backgroundColor: "#fff",
-    borderRadius: "30px",
-    py: 1.5,
-    px: 4,
-    fontSize: "14px",
-    fontWeight: 500,
-    width: "180px",
-    mt: 2,
-    "&:hover": {
-      backgroundColor: "#F1F1F1",
-    },
-  };
 
   const formButtonStyles = {
     backgroundColor: primaryColor,
@@ -312,26 +164,35 @@ const LoginPage = () => {
     width: "100%",
     maxWidth: "300px",
     mt: 3,
-    ml: 1.8,
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    transition: "all 0.3s ease",
     "&:hover": {
       backgroundColor: primaryHover,
+      transform: "translateY(-2px)",
+      boxShadow: `0 8px 20px -8px ${primaryColor}`,
     },
   };
 
   const inputFieldStyles = {
     "& .MuiOutlinedInput-root": {
-      backgroundColor: "#F5F5F5",
-      borderRadius: "8px",
+      backgroundColor: "rgba(255, 255, 255, 0.3)",
+      backdropFilter: "blur(5px)",
+      borderRadius: "12px",
+      transition: "all 0.2s ease",
       "& fieldset": {
-        border: "none",
+        border: "1px solid transparent",
       },
       "&:hover fieldset": {
-        border: `1px solid ${primaryColor}`,
+        border: `1px solid rgba(14, 165, 233, 0.2)`,
+      },
+      "&.Mui-focused fieldset": {
+        border: `2px solid ${primaryColor}`,
       },
     },
     width: "100%",
     maxWidth: "400px",
-    my: 1,
+    my: 1.2,
   };
 
   return (
@@ -350,428 +211,108 @@ const LoginPage = () => {
       <Box
         sx={{
           width: "100%",
-          maxWidth: "800px",
-          minHeight: isMobile ? "auto" : "560px",
-          bgcolor: "#fff",
-          borderRadius: "16px",
-          boxShadow: 3,
+          maxWidth: "450px",
+          minHeight: "560px",
+          bgcolor: "rgba(255, 255, 255, 0.75)",
+          backdropFilter: "blur(16px) saturate(180%)",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          borderRadius: "24px",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
           position: "relative",
           overflow: "hidden",
-          height: isMobile ? "auto" : "auto",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        {!isMobile ? (
-          <>
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "50%",
-                height: "100%",
-                transition: "all 0.6s ease-in-out",
-                opacity: rightPanelActive ? 1 : 0,
-                zIndex: rightPanelActive ? 5 : 1,
-                transform: rightPanelActive
-                  ? "translateX(100%)"
-                  : "translateX(0)",
+        <Box sx={{ p: isMobile ? 4 : 6 }}>
+          <Box
+            component="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+            }}
+          >
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/55/55283.png"
+              alt="Car Logo"
+              style={{
+                width: "80px",
+                height: "70px",
+                marginBottom: "16px",
               }}
+            />
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{ color: primaryColor, mb: 1 }}
             >
-              <Box
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  px: 4,
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h5" fontWeight="bold">
-                  Create Account
-                </Typography>
-                {/* {socialIcons} */}
-                <Typography color="black" mb={1}>
-                  or use your email for registration
-                </Typography>
-                <TextField
-                  name="Name"
-                  value={formData.Name}
-                  onChange={handleChange}
-                  placeholder="Name"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Name}
-                  helperText={formErrors.Name}
-                />
-                <TextField
-                  name="Email"
-                  value={formData.Email}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Email}
-                  helperText={formErrors.Email}
-                />
-                <TextField
-                  name="Password"
-                  value={formData.Password}
-                  onChange={handleChange}
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Password}
-                  helperText={formErrors.Password}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleClickShowPassword}>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  sx={formButtonStyles}
-                  onClick={handleRegister}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Registering..." : "Register"}
-                </Button>
-              </Box>
-            </Box>
-
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "50%",
-                height: "100%",
-                zIndex: 2,
-                transition: "all 0.6s ease-in-out",
-                opacity: rightPanelActive ? 0 : 1,
-                transform: rightPanelActive
-                  ? "translateX(100%)"
-                  : "translateX(0)",
+              Garage Management System
+            </Typography>
+            {/* <Typography
+              variant="h4"
+              fontWeight="bold"
+              color="text.primary"
+              gutterBottom
+            >
+              Sign In
+            </Typography> */}
+            <Typography variant="body1" color="text.secondary" mb={4}>
+              Login with your account
+            </Typography>
+            <TextField
+              name="loginEmail"
+              value={formData.loginEmail}
+              onChange={handleChange}
+              placeholder="Email"
+              variant="outlined"
+              sx={inputFieldStyles}
+              error={!!formErrors.loginEmail}
+              helperText={formErrors.loginEmail}
+            />
+            <TextField
+              name="loginPassword"
+              value={formData.loginPassword}
+              onChange={handleChange}
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              variant="outlined"
+              sx={inputFieldStyles}
+              error={!!formErrors.loginPassword}
+              helperText={formErrors.loginPassword}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleClickShowPassword}>
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
+            />
+            <Typography color="#aaa" fontSize="0.8rem" mt={1}>
+              <span
+                style={{ color: primaryColor, cursor: "pointer" }}
+                onClick={() => navigate("/forgotpassword")}
+              >
+                Forgot your Password?
+              </span>
+            </Typography>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={formButtonStyles}
+              disabled={isLoading}
             >
-              <Box
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  px: 4,
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h5" fontWeight="bold" mb={1}>
-                  Sign In
-                </Typography>
-                {/* {socialIcons} */}
-                <Typography color="black" mb={2}>
-                  Login with your account
-                </Typography>
-                <TextField
-                  name="loginEmail"
-                  value={formData.loginEmail}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.loginEmail}
-                  helperText={formErrors.loginEmail}
-                />
-                <TextField
-                  name="loginPassword"
-                  value={formData.loginPassword}
-                  onChange={handleChange}
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.loginPassword}
-                  helperText={formErrors.loginPassword}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleClickShowPassword}>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Typography color="#aaa" fontSize="0.8rem" mt={1}>
-                  <span
-                    style={{ color: primaryColor, cursor: "pointer" }}
-                    onClick={() => navigate("/forgotpassword")}
-                  >
-                    Forgot your Password?
-                  </span>
-                </Typography>
-                <Button
-                  variant="contained"
-                  sx={formButtonStyles}
-                  onClick={handleLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Logging in..." : "Login"}
-                </Button>
-              </Box>
-            </Box>
-
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                left: "50%",
-                width: "50%",
-                height: "100%",
-                zIndex: 100,
-                overflow: "hidden",
-                transition: "transform 0.6s ease-in-out",
-                transform: rightPanelActive
-                  ? "translateX(-100%)"
-                  : "translateX(0)",
-              }}
-            >
-              <Box
-                sx={{
-                  background: `linear-gradient(45deg, ${primaryColor}, ${primaryHover})`,
-                  color: "#fff",
-                  position: "relative",
-                  left: "-100%",
-                  width: "200%",
-                  height: "100%",
-                  display: "flex",
-                  transition: "transform 0.6s ease-in-out",
-                  transform: rightPanelActive
-                    ? "translateX(50%)"
-                    : "translateX(0)",
-                }}
-              >
-                <Box
-                  sx={{
-                    width: "50%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    p: 4,
-                  }}
-                >
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/55/55283.png"
-                    alt="Car Logo"
-                    style={{
-                      width: "100px",
-                      height: "90px",
-                      marginBottom: "20px",
-                    }}
-                  />
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    Welcome Back!
-                  </Typography>
-                  <Typography fontSize="0.9rem" mb={3}>
-                    To keep connected, please login with your personal info
-                  </Typography>
-                  <Button onClick={togglePanel} sx={overlayButtonStyles}>
-                    Sign In
-                  </Button>
-                </Box>
-                <Box
-                  sx={{
-                    width: "50%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    p: 4,
-                  }}
-                >
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/55/55283.png"
-                    alt="Car Logo"
-                    style={{
-                      width: "100px",
-                      height: "90px",
-                      marginBottom: "20px",
-                    }}
-                  />
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    Hello, Friend!
-                  </Typography>
-                  <Typography fontSize="0.9rem" mb={3}>
-                    Enter your personal details and start your journey with us
-                  </Typography>
-                  <Button onClick={togglePanel} sx={overlayButtonStyles}>
-                    Sign Up
-                  </Button>
-                </Box>
-              </Box>
-            </Box>
-          </>
-        ) : (
-          <Box sx={{ p: 4 }}>
-            {rightPanelActive ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h5" fontWeight="bold">
-                  Create Account
-                </Typography>
-                {/* {socialIcons} */}
-                <Typography color="black" mb={1}>
-                  or use your email for registration
-                </Typography>
-                <TextField
-                  name="Name"
-                  value={formData.Name}
-                  onChange={handleChange}
-                  placeholder="Name"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Name}
-                  helperText={formErrors.Name}
-                />
-                <TextField
-                  name="Email"
-                  value={formData.Email}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Email}
-                  helperText={formErrors.Email}
-                />
-                <TextField
-                  name="Password"
-                  value={formData.Password}
-                  onChange={handleChange}
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.Password}
-                  helperText={formErrors.Password}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleClickShowPassword}>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  sx={formButtonStyles}
-                  onClick={handleRegister}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Registering..." : "Register"}
-                </Button>
-                <Typography
-                  color={primaryColor}
-                  fontSize="0.9rem"
-                  mt={2}
-                  sx={{ cursor: "pointer" }}
-                  onClick={togglePanel}
-                >
-                  Already have an account? Sign In
-                </Typography>
-              </Box>
-            ) : (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h5" fontWeight="bold" mb={1}>
-                  Sign In
-                </Typography>
-                {/* {socialIcons} */}
-                <Typography color="black" mb={2}>
-                  Login with your account
-                </Typography>
-                <TextField
-                  name="loginEmail"
-                  value={formData.loginEmail}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.loginEmail}
-                  helperText={formErrors.loginEmail}
-                />
-                <TextField
-                  name="loginPassword"
-                  value={formData.loginPassword}
-                  onChange={handleChange}
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  variant="outlined"
-                  sx={inputFieldStyles}
-                  error={!!formErrors.loginPassword}
-                  helperText={formErrors.loginPassword}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleClickShowPassword}>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Typography color="#aaa" fontSize="0.8rem" mt={1}>
-                  <span
-                    style={{ color: primaryColor, cursor: "pointer" }}
-                    onClick={() => navigate("/forgotpassword")}
-                  >
-                    Forgot your Password?
-                  </span>
-                </Typography>
-                <Button
-                  variant="contained"
-                  sx={formButtonStyles}
-                  onClick={handleLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Logging in..." : "Login"}
-                </Button>
-                <Typography
-                  color={primaryColor}
-                  fontSize="0.9rem"
-                  mt={2}
-                  sx={{ cursor: "pointer" }}
-                  onClick={togglePanel}
-                >
-                  Don't have an account? Sign Up
-                </Typography>
-              </Box>
-            )}
+              {isLoading ? "Logging in..." : "LOG IN"}
+            </Button>
           </Box>
-        )}
+        </Box>
 
         <Snackbar
           open={snackbar.open}

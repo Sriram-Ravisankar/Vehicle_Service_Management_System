@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { User, Building2, Phone, Mail, MapPin, Upload, X, Save } from "lucide-react";
-import { Box, Button, Snackbar, Alert, Stack } from "@mui/material";
+import { Box, Button, Snackbar, Alert } from "@mui/material";
 import apiEndpoints from "../../apiconfig";
 import DynamicHeader from "../common/Dynamicheader";
 
@@ -11,7 +11,7 @@ const API_URL = apiEndpoints.supplier;
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -32,19 +32,19 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20 }}>
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 // ── main component ─────────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ const AddSupplier = ({ fetchData }) => {
   // ── render ─────────────────────────────────────────────────────────────────
   return (
     <Box sx={{ 
-      px: { xs: 3, sm: 4, md: 6 }, 
+      px: { xs: 1.5, sm: 4, md: 6 }, 
       py: { xs: 2, sm: 4 }, 
       width: "100%", 
       maxWidth: "100%", 
@@ -232,7 +232,7 @@ const AddSupplier = ({ fetchData }) => {
                 <label style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
                   padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: "1px solid #8B5CF6", color: "#8B5CF6", cursor: "pointer", background: "#fff",
+                  border: "1px solid #0EA5E9", color: "#0EA5E9", cursor: "pointer", background: "#fff",
                 }}>
                   <Upload size={14} /> Choose Image
                   <input type="file" name="image" accept="image/*" hidden onChange={handleChange} />
@@ -297,8 +297,8 @@ const AddSupplier = ({ fetchData }) => {
             disabled={isLoading}
             startIcon={<Save size={16} />}
             sx={{
-              backgroundColor: "rgba(139, 92, 246, 0.9)",
-              "&:hover": { backgroundColor: "rgba(139, 92, 246, 1)" },
+              backgroundColor: "rgba(14, 165, 233, 0.9)",
+              "&:hover": { backgroundColor: "rgba(14, 165, 233, 1)" },
               color: "#fff",
               borderRadius: "10px",
               px: 4,

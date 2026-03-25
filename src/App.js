@@ -48,6 +48,7 @@ import ViewInvoice from "./pages/billing/invoice/ViewInvoice";
 
 
 
+
 import Login from "./components/login/Login";
 import ForgotPassword from "./components/forgotpassword/ForgotPassword";
 import AddObservation from "./components/observations";
@@ -382,6 +383,7 @@ function AppContent() {
           path="/view-invoice/:id"
           element={<ViewInvoice invoices={data.invoices} />}
         />
+
       </Routes>
     </Layout>
   );

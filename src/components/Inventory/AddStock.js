@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { CgArrowLeft } from "react-icons/cg";
+import { useState, useEffect } from "react";
 import PurchaseDetailsForm from "./PurchaseDetails";
 import {
   Box,
@@ -8,7 +7,6 @@ import {
   Typography,
   TextField,
   Button,
-  IconButton,
   MenuItem,
   Alert,
   Snackbar,
@@ -19,10 +17,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import Settings from "@mui/icons-material/Settings";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import { useNavigate } from "react-router-dom";
 import NotesSection from "../DynamicComponents/NotesSection";
 import DynamicHeader from "../common/Dynamicheader";
@@ -330,13 +325,13 @@ const AddStock = ({ fetchData }) => {
                       textTransform: "none",
                       minWidth: isMobile ? "100%" : "auto",
 
-                      color: "rgba(139, 92, 246, 0.9)",           // text & icon color
-                      borderColor: "rgba(139, 92, 246, 0.9)",    // outline color
+                      color: "rgba(14, 165, 233, 0.9)",           // text & icon color
+                      borderColor: "rgba(14, 165, 233, 0.9)",    // outline color
 
                       "&:hover": {
-                        borderColor: "rgba(139, 92, 246, 1)",
-                        backgroundColor: "rgba(139, 92, 246, 0.08)", // light hover fill
-                        color: "rgba(139, 92, 246, 1)",
+                        borderColor: "rgba(14, 165, 233, 1)",
+                        backgroundColor: "rgba(14, 165, 233, 0.08)", // light hover fill
+                        color: "rgba(14, 165, 233, 1)",
                       },
                     }}
                   >

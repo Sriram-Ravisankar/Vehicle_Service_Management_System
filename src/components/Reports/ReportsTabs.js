@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import GraphDashboard from "./piechart";
 import ServicesTab from "./Services";
 import ProductStockTab from "./ProductStock";
 import ProductUsageTab from "./ProductUsage";
 import EmployeeServicesTab from "./Emp.Services";
 import UpcomingServicesTab from "./upcomingservices";
-import EmailsTab from "./Email";
 
 import DonutLargeRoundedIcon from "@mui/icons-material/DonutLargeRounded";
 import HomeRepairServiceRoundedIcon from "@mui/icons-material/HomeRepairServiceRounded";
@@ -13,7 +12,6 @@ import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import Groups2RoundedIcon from "@mui/icons-material/Groups2Rounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 
 const TAB_ITEMS = [
   { id: "GRAPH", name: "Graph", Icon: DonutLargeRoundedIcon },
@@ -604,9 +602,9 @@ const styles = {
   clearButton: (isMobile) => ({
     padding: isMobile ? "14px 16px" : "10px 20px",
     borderRadius: "10px",
-    border: "1.5px solid rgba(139, 92, 246, 0.9)",
+    border: "1.5px solid rgba(14, 165, 233, 0.9)",
     background: "transparent",
-    color: "rgba(139, 92, 246, 0.9)",
+    color: "rgba(14, 165, 233, 0.9)",
     fontWeight: "600",
     fontSize: isMobile ? "15px" : "14px",
     cursor: "pointer",
@@ -619,12 +617,12 @@ const styles = {
     padding: isMobile ? "14px 16px" : "10px 20px",
     borderRadius: "10px",
     border: "none",
-    background: "rgba(139, 92, 246, 0.9)",
+    background: "rgba(14, 165, 233, 0.9)",
     color: "#fff",
     fontWeight: "600",
     fontSize: isMobile ? "15px" : "14px",
     cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(139, 92, 246, 0.4)",
+    boxShadow: "0 4px 12px rgba(14, 165, 233, 0.4)",
     flex: isMobile ? "1" : "none",
     width: isMobile ? "100%" : "auto",
   }),

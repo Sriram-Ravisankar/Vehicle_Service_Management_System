@@ -33,6 +33,11 @@ const PurchaseDetailsForm = ({
   const handleChange = (index, field, value) => {
     const updatedRows = [...rows];
 
+    // Prevent negative values
+    if ((field === 'quantity' || field === 'price') && value !== '' && Number(value) < 0) {
+      return;
+    }
+
     if (field === 'product_id') {
       const selectedProduct = products.find(p => p.id === value);
       if (selectedProduct) {
@@ -115,11 +120,14 @@ const PurchaseDetailsForm = ({
               <Select
                 fullWidth
                 size="small"
+                displayEmpty
                 value={row.product_id || ''}
                 onChange={(e) => handleChange(index, 'product_id', e.target.value)}
                 sx={{ borderRadius: '10px', background: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
               >
-                <MenuItem value="" disabled>Choose product...</MenuItem>
+                <MenuItem value="">
+                  <Typography sx={{ color: '#94A3B8', fontSize: 14 }}>Choose product...</Typography>
+                </MenuItem>
                 {products.map(p => <MenuItem key={p.id} value={p.id}>{p.product_name}</MenuItem>)}
               </Select>
             </Box>
@@ -134,7 +142,7 @@ const PurchaseDetailsForm = ({
                 onChange={(e) => handleChange(index, 'quantity', e.target.value)}
                 placeholder="0"
                 fullWidth
-                inputProps={{ style: { textAlign: 'center', fontSize: 14, fontWeight: 600 } }}
+                inputProps={{ min: 0, style: { textAlign: 'center', fontSize: 14, fontWeight: 600 } }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', background: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' } } }}
               />
             </Box>
@@ -149,7 +157,7 @@ const PurchaseDetailsForm = ({
                 onChange={(e) => handleChange(index, 'price', e.target.value)}
                 placeholder="0.00"
                 fullWidth
-                inputProps={{ style: { textAlign: 'right', fontSize: 14, fontWeight: 600 } }}
+                inputProps={{ min: 0, style: { textAlign: 'right', fontSize: 14, fontWeight: 600 } }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', background: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' } } }}
               />
             </Box>
@@ -187,7 +195,7 @@ const PurchaseDetailsForm = ({
           textTransform: "none",
           fontWeight: 700,
           px: 4,
-          "&:hover": { background: "#F5F3FF", borderColor: "#8B5CF6", color: "#8B5CF6" },
+          "&:hover": { background: "#F5F3FF", borderColor: "#0EA5E9", color: "#0EA5E9" },
           width: { xs: "100%", sm: "auto" }
         }}
       >

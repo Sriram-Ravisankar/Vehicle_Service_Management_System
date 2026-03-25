@@ -316,7 +316,7 @@ export default function SectionHeader({
               onClick={handleBack} 
               sx={{ 
                 mr: 1, 
-                color: "rgba(139, 92, 246, 0.9)",
+                color: "rgba(14, 165, 233, 0.9)",
                 "&:hover": { color: "primary.main", bgcolor: "rgba(0,0,0,0.04)" }
               }}
             >

@@ -1,36 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import imageCompression from "browser-image-compression";
 import {
   Edit as EditIcon,
-  Visibility as VisibilityIcon,
   Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Public as PublicIcon,
-  LocationCity as LocationCityIcon,
-  Schedule as ScheduleIcon,
-  Home as HomeIcon,
   CameraAlt as CameraIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  CheckCircle as CheckCircleIcon,
+  LibraryBooks as LibraryBooksIcon,
 } from "@mui/icons-material";
-import Select from "@mui/material/Select";
-import { Snackbar, Alert, CircularProgress, Avatar, Chip } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
+import { Snackbar, Alert, Avatar, Box, Typography, Button } from "@mui/material";
 import apiEndpoints from "../../apiconfig";
-import { useLoading } from "../../pages/LoadingContext";
+import { useNavigate } from "react-router-dom";
 const ProfilePage = () => {
-  const {show, hide} = useLoading();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    userName: "",
-    phone_number: "",
-    email: "",
-    address: "",
-    city_id: "",
-    state_id: "",
     pincode: "",
     profile_image: "",
+    role_name: localStorage.getItem("role_name") || ""
   });
   const [profileImage, setProfileImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
@@ -49,11 +33,7 @@ const ProfilePage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  // Color scheme
-  const primaryColor = "rgba(139, 92, 246, 1)";
-  const primaryLight = "rgba(254, 215, 170, 0.2)";
-  const primaryDark = "rgba(194, 65, 12, 1)";
-  const gradient = `linear-gradient(135deg, ${primaryColor}, ${primaryDark})`;
+  // Color scheme - Neutral theme
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbarMessage(message);
@@ -142,6 +122,7 @@ const ProfilePage = () => {
           state_id: data.data.state_id || "",
           pincode: data.data.pincode || "",
           profile_image: data.data.profile_image || "",
+          role_name: data.data.role_name || localStorage.getItem("role_name") || ""
         };
 
         setFormData(profileData);
@@ -286,30 +267,7 @@ const ProfilePage = () => {
     }
   };
 
-  const toggleEditMode = () => {
-    if (!isEditing) {
-      setOriginalData({
-        formData: { ...formData },
-        profileImage: profileImage,
-        previewImage: previewImage,
-      });
-      setIsEditing(true);
-    } else {
-      if (originalData) {
-        setFormData(originalData.formData);
-        setProfileImage(originalData.profileImage);
-        setPreviewImage(originalData.previewImage);
-      }
-      setIsEditing(false);
-    }
-  };
 
-  const resolvedStateName =
-    states.find((s) => String(s.state_id) === String(formData.state_id))
-      ?.state_name || "";
-  const resolvedCityName =
-    cities.find((c) => String(c.city_id) === String(formData.city_id))
-      ?.city_name || "";
 
   const getImagePreview = () => {
     if (previewImage) return previewImage;
@@ -323,580 +281,315 @@ const ProfilePage = () => {
   };
 
 
+  const [activeTab, setActiveTab] = useState("profile");
+
+  const NavItem = ({ id, label, icon: Icon }) => {
+    const active = activeTab === id;
+    return (
+      <button
+        onClick={() => {
+          if (id === "observations") {
+             navigate("/observation-library");
+             return;
+          }
+          setActiveTab(id);
+        }}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${
+          active 
+            ? "bg-blue-50 text-blue-600" 
+            : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+        }`}
+      >
+        <Icon size={18} />
+        {label}
+      </button>
+    );
+  };
+
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-orange-100">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl text-red-500">⚠️</span>
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Error Loading Profile</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={fetchProfile}
-              className="w-full py-3 rounded-xl font-semibold text-white transition-all duration-300"
-              style={{ background: gradient }}
-            >
-              Retry
-            </button>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+         <Box sx={{ textAlign: 'center', p: 4, bgcolor: 'white', borderRadius: 4, boxShadow: 1 }}>
+            <Typography variant="h6" color="error">Error Loading Profile</Typography>
+            <Typography color="textSecondary" sx={{ mb: 2 }}>{error}</Typography>
+            <Button variant="contained" onClick={fetchProfile} color="primary">Retry</Button>
+         </Box>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 md:p-6 font-sans">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Profile Settings
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage your personal information and preferences
-          </p>
+    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: "100vh", backgroundColor: "#F8FAFC", width: "100%" }}>
+      {/* Container with 100% width */}
+      <div className="w-full">
+        {/* Modern Header / Breadcrumb style */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", margin: 0 }}>Settings</h1>
+          <p style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>Manage your personal account and garage preferences.</p>
         </div>
 
-        {/* Main Content Container - Using flex for equal heights */}
-        <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-          {/* Left Panel - Profile Card */}
-          <div className="lg:w-1/3 flex">
-            <div className="bg-white rounded-2xl shadow-lg shadow-gray-300/50 overflow-hidden border border-gray-100 flex flex-col h-full w-full">
-              {/* Profile Header - Made smaller */}
-              <div className="h-24 relative" style={{ background: gradient }}>
-                <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                  <div className="relative">
-                    <Avatar
-                      src={getImagePreview()}
-                      alt={formData.userName}
-                      sx={{
-                        width: 80,
-                        height: 80,
-                        border: "4px solid white",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                        fontSize: "1.75rem",
-                        backgroundColor: primaryColor,
-                      }}
-                    >
-                      {formData.userName.charAt(0).toUpperCase()}
-                    </Avatar>
-
-                    {isEditing && (
-                      <label
-                        htmlFor="profile-upload"
-                        className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-lg cursor-pointer hover:scale-110 transition-transform duration-200 border border-orange-200"
-                      >
-                        <CameraIcon
-                          className="w-4 h-4"
-                          style={{ color: primaryColor }}
-                        />
-                        <input
-                          type="file"
-                          id="profile-upload"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Profile Info - More compact */}
-              <div className="pt-12 px-5 pb-5 flex-1">
-                <div className="text-center mb-4">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1 truncate px-2">
-                    {formData.userName}
-                  </h2>
-                  <Chip
-                    label="Verified User"
-                    icon={<CheckCircleIcon />}
-                    size="small"
-                    sx={{
-                      backgroundColor: primaryLight,
-                      color: primaryDark,
-                      fontWeight: 500,
-                      fontSize: "0.75rem",
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center p-2.5 rounded-xl hover:bg-orange-50 transition-colors">
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"
-                      style={{ backgroundColor: primaryLight }}
-                    >
-                      <EmailIcon
-                        className="w-4 h-4"
-                        style={{ color: primaryColor }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">Email</p>
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {formData.email}
-                      </p>
-                    </div>
-                  </div>
-
-                  {formData.phone_number && (
-                    <div className="flex items-center p-2.5 rounded-xl hover:bg-orange-50 transition-colors">
-                      <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"
-                        style={{ backgroundColor: primaryLight }}
-                      >
-                        <PhoneIcon
-                          className="w-4 h-4"
-                          style={{ color: primaryColor }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500">Phone</p>
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {formData.phone_number}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {(resolvedStateName || resolvedCityName) && (
-                    <div className="flex items-center p-2.5 rounded-xl hover:bg-orange-50 transition-colors">
-                      <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"
-                        style={{ backgroundColor: primaryLight }}
-                      >
-                        <LocationCityIcon
-                          className="w-4 h-4"
-                          style={{ color: primaryColor }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">Location</p>
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {resolvedCityName}
-                          {resolvedCityName && resolvedStateName ? ", " : ""}
-                          {resolvedStateName}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {formData.address && (
-                    <div className="flex items-center p-2.5 rounded-xl hover:bg-orange-50 transition-colors">
-                      <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"
-                        style={{ backgroundColor: primaryLight }}
-                      >
-                        <HomeIcon
-                          className="w-4 h-4"
-                          style={{ color: primaryColor }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">Address</p>
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                          {formData.address}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Edit Button - At the bottom */}
-                <div className="mt-6 pt-5 border-t border-orange-100">
-                  <button
-                    onClick={toggleEditMode}
-                    className={`w-full py-2.5 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
-                      isEditing
-                        ? "bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
-                        : "text-white hover:shadow-lg"
-                    }`}
-                    style={isEditing ? {} : { background: gradient }}
-                  >
-                    {isEditing ? (
-                      <>
-                        <CancelIcon className="w-4 h-4" />
-                        <span>Cancel</span>
-                      </>
-                    ) : (
-                      <>
-                        <EditIcon className="w-4 h-4" />
-                        <span>Edit Profile</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar Navigation */}
+          <div style={{ width: 260, flexShrink: 0 }} className="flex flex-col gap-1.5">
+            <NavItem id="profile" label="Profile" icon={PersonIcon} />
+            <div style={{ marginTop: 8, paddingTop: 16, borderTop: "1px solid #E5E7EB" }}>
+              <NavItem id="observations" label="Observation Library" icon={LibraryBooksIcon} />
             </div>
           </div>
 
-          {/* Right Panel - Form */}
-          <div className="lg:w-2/3 flex">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 h-full w-full p-6 md:p-8 flex flex-col">
-              <div className="flex items-center justify-between mb-6 md:mb-8">
+          {/* Main Form Content */}
+          <div className="flex-1">
+            <div style={{ 
+              backgroundColor: "#fff", 
+              borderRadius: 16, 
+              border: "1px solid #F1F5F9", 
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              padding: "24px" 
+            }}>
+              {activeTab === "profile" && (
                 <div>
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-900">
-                    {isEditing ? "Edit Profile" : "Personal Information"}
-                  </h3>
-                  <p className="text-gray-500 mt-1 text-sm md:text-base">
-                    {isEditing
-                      ? "Update your details below"
-                      : "View your personal information"}
-                  </p>
-                </div>
-                {!isEditing && (
-                  <div
-                    className="hidden md:block px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: primaryLight,
-                      color: primaryDark,
-                    }}
-                  >
-                    Last updated: Today
-                  </div>
-                )}
-              </div>
-
-              <form
-                onSubmit={
-                  isEditing ? handleSaveChanges : (e) => e.preventDefault()
-                }
-                className="flex-1"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  {/* User Name */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <PersonIcon className="w-4 h-4" />
-                        Full Name
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      name="userName"
-                      value={formData.userName}
-                      onChange={handleInputChange}
-                      onFocus={() => setActiveField("userName")}
-                      onBlur={() => setActiveField(null)}
-                      disabled={!isEditing}
-                      className={`w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all duration-200 text-sm md:text-base ${
-                        isEditing
-                          ? `border ${
-                              activeField === "userName"
-                                ? "border-orange-500 ring-1 ring-orange-200"
-                                : "border-gray-200"
-                            } bg-white focus:outline-none`
-                          : "border-transparent bg-gray-50"
-                      }`}
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <EmailIcon className="w-4 h-4" />
-                        Email Address
-                      </span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      disabled={true}
-                      className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl bg-gray-50 border-transparent text-sm md:text-base"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <PhoneIcon className="w-4 h-4" />
-                        Phone Number
-                      </span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone_number"
-                      value={formData.phone_number}
-                      onChange={handleInputChange}
-                      onFocus={() => setActiveField("phone_number")}
-                      onBlur={() => setActiveField(null)}
-                      disabled={!isEditing}
-                      maxLength={10}
-                      className={`w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all duration-200 text-sm md:text-base ${
-                        isEditing
-                          ? `border ${
-                              activeField === "phone_number"
-                                ? "border-orange-500 ring-1 ring-orange-200"
-                                : "border-gray-200"
-                            } bg-white focus:outline-none`
-                          : "border-transparent bg-gray-50"
-                      }`}
-                    />
-                  </div>
-
-                  {/* State */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <PublicIcon className="w-4 h-4" />
-                        State
-                      </span>
-                    </label>
-                    {isEditing ? (
-                      <Select
-                        value={formData.state_id}
-                        onChange={(e) =>
-                          handleInputChange({
-                            target: { name: "state_id", value: e.target.value },
-                          })
-                        }
-                        onFocus={() => setActiveField("state_id")}
-                        onBlur={() => setActiveField(null)}
-                        displayEmpty
-                        disabled={!isEditing}
-                        variant="outlined"
-                        sx={{
-                          width: "100%",
-                          borderRadius: "12px",
-                          "& .MuiOutlinedInput-notchedOutline": {
-                            borderColor:
-                              activeField === "state_id"
-                                ? primaryColor
-                                : "#d1d5db",
-                            borderWidth: "1px",
-                          },
-                          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: primaryColor,
-                            borderWidth: "2px",
-                          },
-                          "&:hover .MuiOutlinedInput-notchedOutline": {
-                            borderColor: primaryColor,
-                          },
-                          "& .MuiSelect-select": {
-                            padding: "10px 14px",
-                            fontSize: "0.875rem",
-                            "@media (min-width: 768px)": {
-                              fontSize: "1rem",
-                              padding: "11.5px 14px",
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem value="">Select State</MenuItem>
-                        {states.map((state) => (
-                          <MenuItem key={state.state_id} value={state.state_id}>
-                            {state.state_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={resolvedStateName}
-                        disabled
-                        className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl bg-gray-50 border-transparent text-sm md:text-base"
-                      />
-                    )}
-                  </div>
-
-                  {/* City */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <LocationCityIcon className="w-4 h-4" />
-                        City
-                      </span>
-                    </label>
-                    {isEditing ? (
-                      <Select
-                        value={formData.city_id}
-                        onChange={(e) =>
-                          handleInputChange({
-                            target: { name: "city_id", value: e.target.value },
-                          })
-                        }
-                        onFocus={() => setActiveField("city_id")}
-                        onBlur={() => setActiveField(null)}
-                        displayEmpty
-                        disabled={
-                          !isEditing || loadingCities || !formData.state_id
-                        }
-                        variant="outlined"
-                        sx={{
-                          width: "100%",
-                          borderRadius: "12px",
-                          "& .MuiOutlinedInput-notchedOutline": {
-                            borderColor:
-                              activeField === "city_id"
-                                ? primaryColor
-                                : "#d1d5db",
-                            borderWidth: "1px",
-                          },
-                          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: primaryColor,
-                            borderWidth: "2px",
-                          },
-                          "&:hover .MuiOutlinedInput-notchedOutline": {
-                            borderColor: primaryColor,
-                          },
-                          "& .MuiSelect-select": {
-                            padding: "10px 14px",
-                            fontSize: "0.875rem",
-                            "@media (min-width: 768px)": {
-                              fontSize: "1rem",
-                              padding: "11.5px 14px",
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem value="">Select City</MenuItem>
-                        {cities.map((city) => (
-                          <MenuItem key={city.city_id} value={city.city_id}>
-                            {city.city_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={resolvedCityName}
-                        disabled
-                        className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl bg-gray-50 border-transparent text-sm md:text-base"
-                      />
-                    )}
-                  </div>
-
-                  {/* Pincode */}
-                  <div className="space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <ScheduleIcon className="w-4 h-4" />
-                        Pincode
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={formData.pincode}
-                      onChange={handleInputChange}
-                      onFocus={() => setActiveField("pincode")}
-                      onBlur={() => setActiveField(null)}
-                      disabled={!isEditing}
-                      maxLength={6}
-                      className={`w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all duration-200 text-sm md:text-base ${
-                        isEditing
-                          ? `border ${
-                              activeField === "pincode"
-                                ? "border-orange-500 ring-1 ring-orange-200"
-                                : "border-gray-200"
-                            } bg-white focus:outline-none`
-                          : "border-transparent bg-gray-50"
-                      }`}
-                    />
-                  </div>
-
-                  {/* Address */}
-                  <div className="md:col-span-2 space-y-1 md:space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      <span className="flex items-center gap-2">
-                        <HomeIcon className="w-4 h-4" />
-                        Address
-                      </span>
-                    </label>
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      onFocus={() => setActiveField("address")}
-                      onBlur={() => setActiveField(null)}
-                      disabled={!isEditing}
-                      rows={2}
-                      className={`w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all duration-200 resize-none text-sm md:text-base ${
-                        isEditing
-                          ? `border ${
-                              activeField === "address"
-                                ? "border-orange-500 ring-1 ring-orange-200"
-                                : "border-gray-200"
-                            } bg-white focus:outline-none`
-                          : "border-transparent bg-gray-50"
-                      }`}
-                    />
-                  </div>
-                </div>
-
-                {isEditing && (
-                  <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-gray-200">
-                    <div className="flex items-center justify-end gap-3 md:gap-4">
-                      <button
-                        type="button"
-                        onClick={toggleEditMode}
-                        className="px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition-colors duration-200 text-sm md:text-base"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-semibold text-white transition-all duration-300 flex items-center gap-2 hover:shadow-lg disabled:opacity-70 text-sm md:text-base"
-                        style={{ background: gradient }}
-                      >
-                        {isLoading ? (
-                          <>
-                            <CircularProgress
-                              size={16}
-                              style={{ color: "white" }}
-                            />
-                            <span>Saving...</span>
-                          </>
-                        ) : (
-                          <>
-                            <SaveIcon className="w-4 h-4 md:w-5 md:h-5" />
-                            <span>Update</span>
-                          </>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+                      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>Profile Details</h2>
+                      {!isEditing && (
+                        <button 
+                          onClick={() => setIsEditing(true)}
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: 10,
+                            border: "1px solid #E5E7EB",
+                            background: "#fff",
+                            color: "#374151",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          <EditIcon style={{ fontSize: 16 }} />
+                          Edit Profile
+                        </button>
+                      )}
+                   </div>
+                   
+                   {/* Avatar & Role Info */}
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 40 }}>
+                      <div style={{ position: 'relative' }}>
+                        <Avatar
+                          src={getImagePreview()}
+                          sx={{
+                            width: 80,
+                            height: 80,
+                            fontSize: "1.5rem",
+                            fontWeight: 700,
+                            backgroundColor: "#F8FAFC",
+                            color: "#64748B",
+                            border: "1px solid #F1F5F9"
+                          }}
+                        >
+                          {formData.userName ? formData.userName.substring(0, 2).toUpperCase() : "AU"}
+                        </Avatar>
+                        {isEditing && (
+                          <label htmlFor="avatar-input" style={{
+                            position: 'absolute',
+                            bottom: -2,
+                            right: -2,
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            border: '1px solid #E5E7EB',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          }}>
+                             <CameraIcon style={{ fontSize: 14, color: '#64748B' }} />
+                          </label>
                         )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </form>
+                        <input
+                          type="file"
+                          id="avatar-input"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                        />
+                      </div>
+                      <div>
+                         <div style={{ color: "#111827", fontWeight: 700, fontSize: 16 }}>{formData.userName}</div>
+                         <div style={{ display: 'inline-block', marginTop: 4, padding: "2px 10px", borderRadius: 99, background: "#EFF6FF", color: "#2563EB", fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>
+                            {formData.role_name || "User"}
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Editable Form */}
+                   <form onSubmit={handleSaveChanges}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5" style={{ marginBottom: 32 }}>
+                        <div className="space-y-1.5">
+                          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Full Name</label>
+                          <input
+                            type="text"
+                            name="userName"
+                            value={formData.userName}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              border: isEditing ? "1px solid #E2E8F0" : "1px solid transparent",
+                              background: isEditing ? "#fff" : "#F9FAFB",
+                              fontSize: 14,
+                              color: "#111827",
+                              outline: "none",
+                              transition: "all 0.2s"
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Current Role</label>
+                          <input
+                            type="text"
+                            value={formData.role_name}
+                            disabled
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              border: "1px solid transparent",
+                              background: "#F1F5F9",
+                              fontSize: 14,
+                              color: "#64748B",
+                              cursor: "not-allowed",
+                              textTransform: 'capitalize'
+                            }}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2 space-y-1.5">
+                          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Email Address</label>
+                          <input
+                            type="email"
+                            value={formData.email}
+                            disabled
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              border: "1px solid transparent",
+                              background: "#F1F5F9",
+                              fontSize: 14,
+                              color: "#64748B",
+                              cursor: "not-allowed"
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Phone Number</label>
+                          <input
+                            type="tel"
+                            name="phone_number"
+                            value={formData.phone_number}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              border: isEditing ? "1px solid #E2E8F0" : "1px solid transparent",
+                              background: isEditing ? "#fff" : "#F9FAFB",
+                              fontSize: 14,
+                              color: "#111827"
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                           <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Pincode</label>
+                           <input
+                            type="text"
+                            name="pincode"
+                            value={formData.pincode}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              border: isEditing ? "1px solid #E2E8F0" : "1px solid transparent",
+                              background: isEditing ? "#fff" : "#F9FAFB",
+                              fontSize: 14,
+                              color: "#111827"
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {isEditing && (
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            style={{
+                              padding: "10px 24px",
+                              borderRadius: 10,
+                              background: "#E11D48",
+                              color: "#fff",
+                              border: "none",
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            {isLoading ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                               setIsEditing(false);
+                               fetchProfile();
+                            }}
+                            style={{
+                              padding: "10px 24px",
+                              borderRadius: 10,
+                              background: "#F1F5F9",
+                              color: "#475569",
+                              border: "none",
+                              fontSize: 14,
+                              fontWeight: 600,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                   </form>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{
-            width: "100%",
-            backgroundColor:
-              snackbarSeverity === "success" ? primaryLight : "#fee",
-            color: snackbarSeverity === "success" ? primaryDark : "#d32f2f",
-            "& .MuiAlert-icon": {
-              color: snackbarSeverity === "success" ? primaryColor : "#d32f2f",
-            },
-          }}
-          variant="filled"
-        >
+        <Alert severity={snackbarSeverity} sx={{ borderRadius: 2 }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </div>
+    </Box>
   );
 };
 

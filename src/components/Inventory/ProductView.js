@@ -6,7 +6,7 @@ import apiEndpoints from "../../apiconfig";
 // ── product image with fallback ───────────────────────────────────────────────
 const ProductImg = ({ src, name }) => {
   const [err, setErr] = React.useState(false);
-  const PALETTE = ["#8B5CF6","#3B82F6","#10B981","#F59E0B","#EF4444","#6366F1"];
+  const PALETTE = ["#0EA5E9","#3B82F6","#10B981","#F59E0B","#EF4444","#6366F1"];
   const bg = PALETTE[(name || "P").charCodeAt(0) % PALETTE.length];
   const initials = (name || "P").slice(0, 2).toUpperCase();
 

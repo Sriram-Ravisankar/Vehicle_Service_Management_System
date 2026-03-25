@@ -119,8 +119,8 @@ const NotesSection = ({
           onClick={onAddNote}
           sx={{
             color: "white",
-            backgroundColor: "rgba(139, 92, 246, 0.9)",
-            "&:hover": { backgroundColor: "rgba(139, 92, 246, 0.9)" }
+            backgroundColor: "rgba(14, 165, 233, 0.9)",
+            "&:hover": { backgroundColor: "rgba(14, 165, 233, 0.9)" }
           }}
         >
           <AddIcon />

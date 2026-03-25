@@ -103,7 +103,7 @@ const Stock = ({ stock = [], fetchData }) => {
     }`;
 
   return (
-    <div style={{ padding: "24px", fontFamily: "inherit" }}>
+    <div className="p-4 md:p-6" style={{ fontFamily: "inherit" }}>
       <SectionHeader title="Stock" />
 
       <div className="space-y-6" style={{ marginTop: 16 }}>
@@ -128,7 +128,7 @@ const Stock = ({ stock = [], fetchData }) => {
                 label="Total Items" 
                 value={allRows.length} 
                 icon={Package} 
-                colorClass="bg-[#8B5CF6]" 
+                colorClass="bg-[#0EA5E9]" 
               />
               <StatCard 
                 label="Total Value" 

@@ -1,14 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   Menu,
-  Bell,
-  Search,
   ChevronDown,
   LogOut,
-  Settings,
   User as UserIcon,
 } from "lucide-react";
-import { IconButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
 
@@ -16,20 +12,19 @@ export default function Navbar({
   leftOffset = 0,
   height = 64,
   onToggleSidebar,
-  onSettings,
   isDesktop,
   rightActions,
 }) {
   const navigate = useNavigate();
   const ref = useRef(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [notificationCount] = useState(3);
+  const [] = useState(3);
   const [user, setUser] = useState(null);
 
 
-  const AMBER = "rgba(139, 92, 246, 0.9)";
-  const AMBER_HOVER = "rgba(139, 92, 246, 0.18)";
-  const AMBER_BORDER = "rgba(139, 92, 246, 0.28)";
+  const AMBER = "rgba(14, 165, 233, 0.9)";
+  const AMBER_HOVER = "rgba(14, 165, 233, 0.18)";
+  const AMBER_BORDER = "rgba(14, 165, 233, 0.28)";
   const GRAPHITE_BG =
     "linear-gradient(180deg, #1a1a1a 0%, #2b2b2b 60%, #1a1a1a 100%)";
 

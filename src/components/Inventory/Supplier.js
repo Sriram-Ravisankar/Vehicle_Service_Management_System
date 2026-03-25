@@ -121,12 +121,12 @@ const ListRow = ({ item, onView, onEdit, onDelete, isLast }) => (
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
           style={{
             width: 32, height: 32, borderRadius: 8, border: "none",
-            background: "#F5F3FF", color: "#8B5CF6",
+            background: "#F5F3FF", color: "#0EA5E9",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", transition: "all 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#8B5CF6"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#8B5CF6"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#0EA5E9"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#0EA5E9"; }}
         >
           <Pencil size={15} />
         </button>
@@ -198,7 +198,7 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
   );
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
       <SectionHeader title="Supplier" />
 
       {/* ── search bar ── */}
@@ -222,8 +222,8 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
                 transition: 'all 0.2s',
                 "& fieldset": { border: "none" },
                 "&.Mui-focused": { 
-                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
-                  border: '1px solid #8B5CF6'
+                  boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)",
+                  border: '1px solid #0EA5E9'
                 }
               }
             }}

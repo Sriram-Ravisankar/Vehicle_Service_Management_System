@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Package, 
@@ -11,9 +11,7 @@ import {
   Mail,
   Upload,
   X,
-  Save,
-  Trash2
-} from "lucide-react";
+  Save} from "lucide-react";
 import { 
   Box, 
   Button, 
@@ -32,7 +30,7 @@ import PurchaseDetailsForm from "./PurchaseDetails";
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -53,13 +51,13 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children, icon: Icon, iconColor }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20 }}>
       <h3 style={{ 
@@ -73,12 +71,12 @@ const SectionCard = ({ title, children, icon: Icon, iconColor }) => (
         alignItems: "center",
         gap: 8
       }}>
-        {Icon && <Icon size={18} style={{ color: iconColor || "#8B5CF6" }} />}
+        {Icon && <Icon size={18} style={{ color: iconColor || "#0EA5E9" }} />}
         {title}
       </h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 // ── main component ─────────────────────────────────────────────────────────────
@@ -305,7 +303,7 @@ const AddPurchase = ({ fetchData }) => {
 
   return (
     <Box sx={{ 
-      px: { xs: 3, sm: 4, md: 6 }, 
+      px: { xs: 1.5, sm: 4, md: 6 }, 
       py: { xs: 2, sm: 4 }, 
       width: "100%", 
       maxWidth: "100%", 
@@ -353,7 +351,7 @@ const AddPurchase = ({ fetchData }) => {
                 <label style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
                   padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: "1px solid #8B5CF6", color: "#8B5CF6", cursor: "pointer", background: "#fff",
+                  border: "1px solid #0EA5E9", color: "#0EA5E9", cursor: "pointer", background: "#fff",
                 }}>
                   <Upload size={14} /> Choose Image
                   <input type="file" name="image_path" accept="image/*" hidden onChange={handleChange} />
@@ -400,19 +398,37 @@ const AddPurchase = ({ fetchData }) => {
         </SectionCard>
 
         {/* ── SECTION 3: Summary & Actions ── */}
-        <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", mt: 2, gap: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", mt: 4, gap: 3 }}>
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: { xs: 3, md: 5 },
+            background: "#F8FAFC",
+            padding: "16px 28px",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+          }}>
             <Box>
-              <Typography sx={{ fontSize: 12, color: "#64748B", textTransform: "uppercase", fontWeight: 600 }}>Total Items</Typography>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1E293B" }}>{purchaseDetails.length}</Typography>
+              <Typography sx={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700, letterSpacing: '0.05em', mb: 0.5 }}>Total Items</Typography>
+              <Typography sx={{ fontSize: 20, fontWeight: 800, color: "#1E293B" }}>{purchaseDetails.length}</Typography>
             </Box>
+            
+            <Divider orientation="vertical" flexItem sx={{ borderColor: '#E2E8F0', height: 40, alignSelf: 'center' }} />
+            
             <Box>
-              <Typography sx={{ fontSize: 12, color: "#64748B", textTransform: "uppercase", fontWeight: 600 }}>Total Qty</Typography>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1E293B" }}>{purchaseDetails.reduce((acc, curr) => acc + Number(curr.quantity || 0), 0)}</Typography>
+              <Typography sx={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700, letterSpacing: '0.05em', mb: 0.5 }}>Total Qty</Typography>
+              <Typography sx={{ fontSize: 20, fontWeight: 800, color: "#1E293B" }}>{purchaseDetails.reduce((acc, curr) => acc + Number(curr.quantity || 0), 0)}</Typography>
             </Box>
+
+            <Divider orientation="vertical" flexItem sx={{ borderColor: '#E2E8F0', height: 40, alignSelf: 'center' }} />
+
             <Box>
-              <Typography sx={{ fontSize: 12, color: "#64748B", textTransform: "uppercase", fontWeight: 600 }}>Grand Total</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 900, color: "#8B5CF6" }}>₹{grandTotal.toLocaleString()}</Typography>
+              <Typography sx={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700, letterSpacing: '0.05em', mb: 0.5 }}>Grand Total</Typography>
+              <Typography sx={{ fontSize: 26, fontWeight: 900, color: "#0EA5E9", display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                <span style={{ fontSize: 18, fontWeight: 700 }}>₹</span>
+                {grandTotal.toLocaleString()}
+              </Typography>
             </Box>
           </Box>
 
@@ -437,8 +453,8 @@ const AddPurchase = ({ fetchData }) => {
               disabled={isLoading}
               startIcon={<Save size={16} />}
               sx={{
-                backgroundColor: "rgba(139, 92, 246, 0.9)",
-                "&:hover": { backgroundColor: "rgba(139, 92, 246, 1)" },
+                backgroundColor: "rgba(14, 165, 233, 0.9)",
+                "&:hover": { backgroundColor: "rgba(14, 165, 233, 1)" },
                 color: "#fff",
                 borderRadius: "10px",
                 px: 4,

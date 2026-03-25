@@ -1,54 +1,38 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
   Grid,
-  Paper,
   Typography,
   Button,
   useTheme,
   Divider,
-  Avatar,
   useMediaQuery,
   Card,
   CardContent,
-  Chip,
   alpha,
   TablePagination, // Added for pagination
 } from "@mui/material";
 import PropTypes from "prop-types";
 
 import {
-  AreaChart,
-  Area,
   ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import {
   TrendingUp,
-  TrendingDown,
-  ShoppingCart,
-  Notifications,
   AccountBalanceWallet,
-  People,
   Analytics,
   Add,
-  ArrowUpward,
   PeopleAlt,
   SupportAgent,
-  AccountBalance,
   LocalShipping,
   Inventory2,
-  ShoppingBag,
   FormatListNumbered,
-  Paid,
   CheckCircleOutline
 } from "@mui/icons-material";
 import AccountTree from "@mui/icons-material/AccountTree";
@@ -64,7 +48,7 @@ const COLORS = {
   success: "#10B981",
   warning: "#F59E0B",
   error: "#EF4444",
-  info: "#8B5CF6",
+  info: "#0EA5E9",
   gradient: {
     primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     success: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
@@ -79,35 +63,11 @@ const COLOR_MAP = {
   success: "#10B981",
   warning: "#F59E0B",
   error: "#EF4444",
-  info: "#8B5CF6",
+  info: "#0EA5E9",
 };
 
-const sampleAreaData = [
-  { name: "Mon", value: 300 },
-  { name: "Tue", value: 420 },
-  { name: "Wed", value: 350 },
-  { name: "Thu", value: 480 },
-  { name: "Fri", value: 420 },
-  { name: "Sat", value: 520 },
-  { name: "Sun", value: 390 },
-];
 
-const sampleBarData = [
-  { name: "Jan", sales: 20, views: 15 },
-  { name: "Feb", sales: 5, views: 8 },
-  { name: "Mar", sales: 60, views: 50 },
-  { name: "Apr", sales: 10, views: 15 },
-  { name: "May", sales: 28, views: 24 },
-  { name: "Jun", sales: 18, views: 14 },
-  { name: "Jul", sales: 22, views: 35 },
-  { name: "Aug", sales: 12, views: 9 },
-  { name: "Sep", sales: 30, views: 26 },
-];
 
-const donutData = [
-  { name: "Monthly", value: 65127 },
-  { name: "Remaining", value: 100000 - 65127 },
-];
 
 // Modern KPI Component — matches reference screenshot style
 const ModernKPICard = ({
@@ -193,12 +153,10 @@ ModernKPICard.propTypes = {
   color: PropTypes.string,
 };
 
-export default function Dashboard({ data }) {
+export default function Dashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMd = useMediaQuery(theme.breakpoints.up("md"));
-  const isTab = useMediaQuery(theme.breakpoints.down("md"));
   const [jobCards, setJobCards] = useState([]);
   const [jobLoading, setJobLoading] = useState(false);
 
@@ -206,18 +164,18 @@ export default function Dashboard({ data }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [stats, setStats] = useState(null);
+  const [reportStats, setReportStats] = useState(null);
   const [analytics, setAnalytics] = useState({
     monthlyAnalytics: [],
     yearlySales: 0,
     yearlyViews: 0,
   });
-  const { show, hide } = useLoading();
+  useLoading();
 
 
   useEffect(() => {
     async function loadStats() {
       try {
-        show(); // 🔥 global loader ON
         const token = sessionStorage.getItem("token");
         const res = await fetch(apiEndpoints.dashboard, {
           headers: {
@@ -226,10 +184,19 @@ export default function Dashboard({ data }) {
         });
         const result = await res.json();
         setStats(result);
+
+        // Fetch Total Revenue from Reports
+        const reportRes = await fetch(`${apiEndpoints.report}?action=dashboard`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const reportData = await reportRes.json();
+        if (reportData.success) {
+          setReportStats(reportData);
+        }
       } catch (err) {
         console.error("Failed to load dashboard stats:", err);
-      } finally {
-        hide(); // 🔥 global loader OFF
       }
     }
 
@@ -240,7 +207,7 @@ export default function Dashboard({ data }) {
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        show();
+       
         const token = sessionStorage.getItem('token');
         const res = await fetch(
           `${apiEndpoints.dashboard}?analytics=sales_views`,
@@ -255,7 +222,7 @@ export default function Dashboard({ data }) {
       } catch (err) {
         console.error("Failed to load analytics:", err);
       } finally {
-        hide();
+       
       }
     }
 
@@ -321,20 +288,48 @@ export default function Dashboard({ data }) {
     return jobCards.slice(startIndex, endIndex);
   }, [jobCards, page, rowsPerPage]);
 
-  const getAreaHeight = () => (isSm ? 120 : 180);
-  const getBarHeight = () => (isSm ? 200 : 280);
 
-  const cfg = useMemo(
-    () => ({
+  const cfg = useMemo(() => {
+    // Determine the counts from jobCards list for live accuracy consistency
+    // This fixes discrepancies between the dashboard API and the actual data
+    let approvalPending = Number(stats?.approvalPending ?? 0);
+    let workInProgress = Number(stats?.workInProgress ?? 0);
+    let workCompleted = Number(stats?.workCompleted ?? 0);
+
+    if (jobCards.length > 0) {
+      let ap = 0, wip = 0, wc = 0;
+      jobCards.forEach((jc) => {
+        const s = jc.status?.trim().toLowerCase() || "";
+        if (s.includes("pending") || s.includes("approval")) {
+          ap++;
+        } else if (s.includes("progress") || (s.includes("in") && !s.includes("pending"))) {
+          wip++;
+        } else if (
+          s.includes("delivered") ||
+          s.includes("completed") ||
+          s.includes("done")
+        ) {
+          wc++;
+        }
+      });
+      approvalPending = ap;
+      workInProgress = wip;
+      workCompleted = wc;
+    } else if (stats) {
+      // Fallback to stats only if jobCards is truly empty or not yet loaded
+      // but stats are available
+    }
+
+    return {
       customers: Number(stats?.customers ?? 0),
       vehicles: Number(stats?.vehicles ?? 0),
       totalEmployees: Number(stats?.totalEmployees ?? 0),
-      revenueFY: Number(stats?.revenueFY ?? 0),
+      revenueFY: Number(reportStats?.totalRevenue ?? stats?.revenueFY ?? 0),
 
       availableVehicles: Number(stats?.availableVehicles ?? 0),
-      approvalPending: Number(stats?.approvalPending ?? 0),
-      workInProgress: Number(stats?.workInProgress ?? 0),
-      workCompleted: Number(stats?.workCompleted ?? 0),
+      approvalPending,
+      workInProgress,
+      workCompleted,
       stockQty: Number(stats?.stockQty ?? 0),
       stockAmount: Number(stats?.stockAmount ?? 0),
       totalUsers: Number(stats?.totalUsers ?? 0),
@@ -347,22 +342,24 @@ export default function Dashboard({ data }) {
         stats?.activeUsers && stats?.totalUsers
           ? Math.round((stats.activeUsers / stats.totalUsers) * 100)
           : 0,
-    }),
-    [stats],
-  );
+    };
+  }, [stats, reportStats, jobCards]);
 
 
-  const salesChartData = useMemo(() => {
-    return Array.isArray(stats?.monthlySales)
-      ? stats.monthlySales
-      : [];
-  }, [stats]);
 
   const monthlyAnalyticsData = useMemo(() => {
-    return Array.isArray(analytics?.monthlyAnalytics)
-      ? analytics.monthlyAnalytics
-      : [];
-  }, [analytics]);
+    const base = Array.isArray(analytics?.monthlyAnalytics) ? analytics.monthlyAnalytics : [];
+    if (reportStats?.trendData) {
+      return base.map(item => {
+        const report = reportStats.trendData.find(r => r.period === item.name);
+        return {
+          ...item,
+          sales: report ? parseFloat(report.revenue) : item.sales
+        };
+      });
+    }
+    return base;
+  }, [analytics, reportStats]);
 
 
 
@@ -395,11 +392,10 @@ export default function Dashboard({ data }) {
     {
       icon: <AccountBalanceWallet />,
       value: `₹${Number(cfg.revenueFY || 0).toLocaleString()}`,
-      label: "Revenue FY",
-      change: "Financial year total",
+      label: "Revenue",
+      change: "Total Income",
       trend: "up",
       color: "success",
-      // route: "/income",
     },
     {
       icon: <Inventory2 />,
@@ -454,14 +450,7 @@ export default function Dashboard({ data }) {
       <Box component="main" sx={sx.main}>
         {/* Header */}
         <Box sx={sx.header}>
-          {/* <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "#111827", mb: 0.5 }}>
-              Dashboard
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#6B7280" }}>
-              System overview and performance metrics.
-            </Typography>
-          </Box> */}
+        
           <Button
             onClick={handleNewJob}
             variant="contained"
@@ -489,145 +478,6 @@ export default function Dashboard({ data }) {
           ))}
         </Grid>
 
-        {/* <Grid container spacing={3} width={"100%"} mb={4} justifyContent={'space-between'}>*/}
-        {/* Sales Overview Card */}
-        {/*<Grid item xs={12} lg={8} width={{ xs: '100%', sm: '60%', md: '60%', lg: '74%' }}>
-            <Card sx={sx.primaryCard}>
-              <CardContent>
-                <Box sx={sx.cardHeader}>
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1F2937' }}>
-                      Sales Performance
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                      Monthly sales trends and analytics
-                    </Typography>
-
-                  </Box>
-                  <Chip
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <ArrowUpward sx={{ fontSize: 16 }} />
-                        8.6% growth
-                      </Box>
-                    }
-                    sx={{
-                      bgcolor: alpha(COLORS.success, 0.1),
-                      color: COLORS.success,
-                      fontWeight: 600,
-                    }}
-                  />
-                </Box>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: { xs: "flex-start", sm: "center" },
-                    flexDirection: { xs: "column", sm: "row" },   // <<< KEY FIX
-                    gap: { xs: 1, sm: 0 },
-                    mb: 3,
-                  }}
-                >
-                  <Typography variant="h3" sx={{ fontWeight: "bold", color: "#1F2937" }}>
-                    ₹{Number(cfg.avgWeeklySales || 0).toLocaleString()}
-                  </Typography>
-
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: "#6B7280",
-                      fontWeight: 500,
-                      mt: { xs: 1, sm: 0 },     // spacing when stacked
-                    }}
-                  >
-                    Average Weekly Sales
-                  </Typography>
-                </Box>
-
-                <Box sx={{ width: "100%", height: getAreaHeight() }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={salesChartData}>
-
-
-                      <defs>
-                        <linearGradient id="modernGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fill: "#6B7280", fontSize: 12 }}
-                      />
-
-                      <Tooltip
-                        contentStyle={sx.tooltip}
-                      />
-                      <Area
-                        dataKey="value"
-                        stroke={COLORS.primary}
-                        fill="url(#modernGradient)"
-                        strokeWidth={3}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>*/}
-
-        {/* Users Stats Sidebar */}
-        {/*
-          <Grid item xs={12} lg={4} width={{ xs: '100%', sm: '34%', md: '35%', lg: '23.5%' }} >
-            <Grid item xs={12} md={4} lg={3} height={'100%'}>
-              <Card sx={{ ...sx.statsCard, height: "100%" }}>
-                <CardContent sx={{ p: 3 }}>
-
-                  <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1F2937", mb: 2 }}>
-                    Total Users
-                  </Typography>
-
-                  <Typography variant="h3" sx={{ fontWeight: "bold", color: COLORS.primary, mb: 1 }}>
-                    {(cfg.totalUsers)}
-                  </Typography>
-
-                  <Box sx={{ height: 120, mt: 2 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[{ v: 4 }, { v: 7 }, { v: 3 }, { v: 8 }, { v: 5 }]}>
-                        <Bar
-                          dataKey="v"
-                          radius={[6, 6, 6, 6]}
-                          fill={COLORS.primary}
-                          barSize={14}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-
-                  <Chip
-                    label="+12.5% from last month"
-                    size="small"
-                    sx={{
-                      bgcolor: alpha(COLORS.success, 0.1),
-                      color: COLORS.success,
-                      fontWeight: 600,
-                      mt: 6,
-                    }}
-                  />
-
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Grid>*/}
-
         <Grid container spacing={2} justifyContent={"space-between"}>
           {/* Analytics Section */}
           <Grid
@@ -653,20 +503,20 @@ export default function Dashboard({ data }) {
                           variant="h6"
                           sx={{ fontWeight: "bold", color: "#111827", fontSize: '1.125rem' }}
                         >
-                          Sales & Views Analytics
+                          Revenue & Job Cards
                         </Typography>
                         <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                          Annual summary of business reach and revenue
+                          Annual summary of income and operations
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: 2 }}>
                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.primary }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Sales</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Revenue</Typography>
                          </Box>
                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.secondary }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Views</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#4B5563' }}>Jobs</Typography>
                          </Box>
                       </Box>
                     </Box>
@@ -698,9 +548,14 @@ export default function Dashboard({ data }) {
                                 boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
                                 padding: '12px'
                             }} 
+                            formatter={(value, name) => [
+                                name === "Revenue" ? `₹${Number(value).toLocaleString()}` : value?.toLocaleString(),
+                                name
+                            ]}
                         />
                         <Bar
                           dataKey="sales"
+                          name="Revenue"
                           fill={COLORS.primary}
                           stackId="a"
                           barSize={24}
@@ -708,6 +563,7 @@ export default function Dashboard({ data }) {
                         />
                         <Bar
                           dataKey="views"
+                          name="Jobs"
                           fill={COLORS.secondary}
                           stackId="a"
                           barSize={24}
@@ -751,9 +607,9 @@ export default function Dashboard({ data }) {
                               variant="h5"
                               sx={{ fontWeight: "800", color: "#111827", lineHeight: 1 }}
                             >
-                              {analytics.monthlyAnalytics
-                                .reduce((sum, m) => sum + m.sales, 0)
-                                .toLocaleString()}
+                              ₹{monthlyAnalyticsData
+                                .reduce((sum, m) => sum + Number(m.sales || 0), 0)
+                                ?.toLocaleString()}
                             </Typography>
                           </Box>
                         </CardContent>
@@ -784,13 +640,13 @@ export default function Dashboard({ data }) {
                           </Box>
                           <Box>
                             <Typography variant="caption" sx={{ color: "#6B7280", fontWeight: 600, display: 'block', mb: 0.5 }}>
-                              ANNUAL REACH
+                              TOTAL JOBS
                             </Typography>
                             <Typography
                               variant="h5"
                               sx={{ fontWeight: "800", color: "#111827", lineHeight: 1 }}
                             >
-                              {analytics.yearlySales.toLocaleString()}
+                              {analytics?.yearlyViews?.toLocaleString() || 0}
                             </Typography>
                           </Box>
                         </CardContent>
@@ -884,12 +740,13 @@ const sx = {
   root: {
     minHeight: "100vh",
     background: "#F9FAFB",
-    p: { xs: 1, sm: 2, md: 3 },
+    p: { xs: 2, md: 4 },
   },
   main: {
     maxWidth: 1400,
     margin: "0 auto",
-    p: { xs: 2, sm: 3 },
+    p: 0,
+    mt: 2,
   },
   header: {
     display: 'flex',
@@ -900,7 +757,7 @@ const sx = {
     mb: 4,
   },
   primaryButton: {
-    background: 'rgba(139, 92, 246, 0.9)',
+    background: 'rgba(14,165,233, 0.9)',
     color: 'white',
     textTransform: 'none',
     borderRadius: 3,
@@ -909,7 +766,7 @@ const sx = {
     fontWeight: 'bold',
     fontSize: '1rem',
     '&:hover': {
-      background: "rgba(139, 92, 246, 0.9)",
+      background: "rgba(14,165,233, 0.9)",
       transform: 'translateY(-2px)',
     },
     transition: 'all 0.3s ease',

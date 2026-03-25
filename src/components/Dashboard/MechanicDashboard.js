@@ -37,6 +37,7 @@ const MechanicDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [recentJobs, setRecentJobs] = useState([]);
   const [invoiceDialog, setInvoiceDialog] = useState({ open: false, job: null });
   
   // New state for JobCardTable
@@ -60,6 +61,7 @@ const MechanicDashboard = () => {
       if (data.success) {
         setStats(data.stats);
         setJobs(data.jobs);
+        setRecentJobs(data.recent_jobs || data.jobs);
       }
     } catch (err) {
       console.error("Failed to fetch mechanic dashboard data:", err);
@@ -73,12 +75,12 @@ const MechanicDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (jobs && jobs.length > 0) {
-      loadDetailsForJobs(jobs);
-    } else if (jobs && jobs.length === 0) {
+    if (recentJobs && recentJobs.length > 0) {
+      loadDetailsForJobs(recentJobs);
+    } else if (recentJobs && recentJobs.length === 0) {
       setFullJobCards([]);
     }
-  }, [jobs]);
+  }, [recentJobs]);
 
   const loadDetailsForJobs = async (jobList) => {
     try {
@@ -276,85 +278,91 @@ const MechanicDashboard = () => {
       </Box>
 
       {/* Current Active Tasks - Moved up as per "move to down" request (meaning the table moves down) */}
-      {jobs.length > 0 && (
-          <Box sx={{ mb: 4 }}>
-             <Typography variant="h6" sx={{ ...styles.listTitle, mb: 2 }}>
-                Current Active Tasks
-             </Typography>
-             {jobs.map((job) => (
-                <Box key={job.id} sx={styles.jobRow}>
-                  <Box sx={styles.jobInfo}>
-                    <Avatar sx={styles.avatar}>{job.initials}</Avatar>
-                    <Box sx={{ ml: 2, flex: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Typography variant="subtitle1" sx={styles.customerName}>
-                            {job.customer}
-                          </Typography>
-                         <Chip
-                            label={job.status}
-                            size="small"
-                            sx={{
-                              backgroundColor: getStatusBadgeColor(job.status) + "20",
-                              color: getStatusBadgeColor(job.status),
-                              fontWeight: "bold",
-                              fontSize: "11px",
-                              height: "20px",
-                            }}
-                          />
-                        </Box>
+      <Box sx={{ mb: 4 }}>
+         <Typography variant="h6" sx={{ ...styles.listTitle, mb: 2 }}>
+            Assigned Tasks
+         </Typography>
+         {jobs.length > 0 ? (
+            jobs.map((job) => (
+              <Box key={job.id} sx={styles.jobRow}>
+                <Box sx={styles.jobInfo}>
+                  <Avatar sx={styles.avatar}>{job.initials}</Avatar>
+                  <Box sx={{ ml: 2, flex: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="subtitle1" sx={styles.customerName}>
+                          {job.customer}
+                        </Typography>
+                       <Chip
+                          label={job.status}
+                          size="small"
+                          sx={{
+                            backgroundColor: getStatusBadgeColor(job.status) + "20",
+                            color: getStatusBadgeColor(job.status),
+                            fontWeight: "bold",
+                            fontSize: "11px",
+                            height: "20px",
+                          }}
+                        />
                       </Box>
-                      <Typography variant="body2" sx={styles.vehicleInfo}>
-                        {job.vehicle}
-                      </Typography>
-                      <Typography variant="body2" sx={{ ...styles.vehicleInfo, color: "#1e293b", fontWeight: 600 }}>
-                        Task: {job.task}
-                      </Typography>
                     </Box>
-                  </Box>
-
-                  <Box sx={styles.actions}>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={() => handleStatusUpdate(job.id, job.status === "Work In Progress" ? "Completed" : "Work In Progress")}
-                      startIcon={job.status === "Work In Progress" ? <DoneAll /> : <PlayArrow />}
-                      sx={{
-                        ...styles.actionButton,
-                        backgroundColor: job.status === "Work In Progress" ? "#10b981" : "#3b82f6",
-                        "&:hover": {
-                          backgroundColor: job.status === "Work In Progress" ? "#059669" : "#2563eb",
-                        },
-                      }}
-                    >
-                      {job.status === "Work In Progress" ? "Complete Job" : "Start Job"}
-                    </Button>
-
-                    <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
-                      <Button 
-                        variant="outlined" 
-                        fullWidth 
-                        startIcon={<Add />} 
-                        sx={styles.secondaryButton}
-                        onClick={() => navigate("/services-form", { state: { guid: job.id, isEditing: true, initialStep: 2 } })}
-                      >
-                        Parts
-                      </Button>
-                      <Button 
-                        variant="outlined" 
-                        fullWidth 
-                        startIcon={<InfoOutlined />} 
-                        sx={styles.secondaryButton}
-                        onClick={() => navigate("/services-form", { state: { guid: job.id, isEditing: false, initialStep: 0 } })}
-                      >
-                        Details
-                      </Button>
-                    </Box>
+                    <Typography variant="body2" sx={styles.vehicleInfo}>
+                      {job.vehicle}
+                    </Typography>
+                    <Typography variant="body2" sx={{ ...styles.vehicleInfo, color: "#1e293b", fontWeight: 600 }}>
+                      Task: {job.task}
+                    </Typography>
                   </Box>
                 </Box>
-              ))}
-          </Box>
-      )}
+
+                <Box sx={styles.actions}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    onClick={() => handleStatusUpdate(job.id, job.status === "Work In Progress" ? "Completed" : "Work In Progress")}
+                    startIcon={job.status === "Work In Progress" ? <DoneAll /> : <PlayArrow />}
+                    sx={{
+                      ...styles.actionButton,
+                      backgroundColor: job.status === "Work In Progress" ? "#10b981" : "#3b82f6",
+                      "&:hover": {
+                        backgroundColor: job.status === "Work In Progress" ? "#059669" : "#2563eb",
+                      },
+                    }}
+                  >
+                    {job.status === "Work In Progress" ? "Complete Job" : "Start Job"}
+                  </Button>
+
+                  <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
+                    <Button 
+                      variant="outlined" 
+                      fullWidth 
+                      startIcon={<Add />} 
+                      sx={styles.secondaryButton}
+                      onClick={() => navigate("/services-form", { state: { guid: job.id, isEditing: true, initialStep: 2 } })}
+                    >
+                      Parts
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      fullWidth 
+                      startIcon={<InfoOutlined />} 
+                      sx={styles.secondaryButton}
+                      onClick={() => navigate("/services-form", { state: { guid: job.id, isEditing: false, initialStep: 0 } })}
+                    >
+                      Details
+                    </Button>
+                  </Box>
+                </Box>
+              </Box>
+            ))
+         ) : (
+            <Paper sx={{ p: 4, textAlign: "center", borderRadius: "10px", border: "1px dashed #e2e8f0", backgroundColor: "#fff" }} elevation={0}>
+               <Typography variant="body1" sx={{ color: "#64748b", fontWeight: 500 }}>
+                  No jobs assigned to you at the moment.
+               </Typography>
+            </Paper>
+         )}
+      </Box>
 
       {/* Recent Job Cards Table (Moved down) */}
       <Paper sx={styles.listContainer}>
@@ -460,15 +468,12 @@ const MechanicDashboard = () => {
 
 const styles = {
   container: {
-    padding: "16px",
+    p: { xs: 2, md: 4 },
     backgroundColor: "#f8fafc",
     minHeight: "100vh",
     width: "100%",
     boxSizing: "border-box",
     display: "block",
-    "@media (min-width: 600px)": {
-      padding: "24px",
-    }
   },
   header: {
     marginBottom: "20px",

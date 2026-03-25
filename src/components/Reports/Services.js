@@ -102,7 +102,7 @@ export default function ServicesTab({ filters }) {
       return { ...base, background: "linear-gradient(90deg,#059669,#10B981)", color: "#fff", boxShadow: "0 4px 10px rgba(16, 185, 129, 0.2)" };
     if (status === "Work In Progress")
       return { ...base, background: "linear-gradient(90deg,#2563EB,#3B82F6)", color: "#fff", boxShadow: "0 4px 10px rgba(59, 130, 246, 0.2)" };
-    return { ...base, background: "linear-gradient(90deg,#F59E0B,#8B5CF6)", color: "#fff", boxShadow: "0 4px 10px rgba(139, 92, 246, 0.2)" };
+    return { ...base, background: "linear-gradient(90deg,#F59E0B,#0EA5E9)", color: "#fff", boxShadow: "0 4px 10px rgba(14, 165, 233, 0.2)" };
   };
 
   const renderBadge = (status) => (

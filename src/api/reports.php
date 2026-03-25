@@ -151,13 +151,45 @@ try {
             WHERE jc.assign_to = '$tokenGuid' 
               AND jc.isDeleted = 0 
               AND jc.status NOT IN ('Completed', 'Cancelled')
-            ORDER BY jc.arrival_date ASC
+            ORDER BY jc.arrival_date DESC
         ";
         $jobsResult = $conn->query($jobsSql);
         $jobs = [];
         if ($jobsResult) {
             while ($row = $jobsResult->fetch_assoc()) {
                 $jobs[] = [
+                    "id" => $row["job_guid"],
+                    "jobcardNo" => $row["jobcardNo"],
+                    "customer" => $row["first_name"] . " " . $row["last_name"],
+                    "vehicle" => $row["registration_number"] . " (" . $row["make"] . " " . $row["model"] . ")",
+                    "task" => $row["service_type"],
+                    "status" => $row["status"],
+                    "initials" => strtoupper(substr($row["first_name"], 0, 1)),
+                    "statusColor" => ($row["status"] === 'Work In Progress' ? '#f59e0b' : 
+                                      ($row["status"] === 'Approved' ? '#4338ca' : '#6b7280'))
+                ];
+            }
+        }
+
+        // 5. All Job List (Recent Jobs)
+        $recentJobsSql = "
+            SELECT 
+                jc.job_guid, jc.jobcardNo, jc.status, jc.service_type, jc.arrival_date,
+                u.first_name, u.last_name, 
+                v.registration_number, v.make, v.model
+            FROM job_card jc
+            LEFT JOIN users u ON u.user_guid = jc.customer_guid
+            LEFT JOIN vehicles v ON v.vehicle_guid = jc.vehicle_guid
+            WHERE jc.assign_to = '$tokenGuid' 
+              AND jc.isDeleted = 0 
+              AND (DATE(jc.arrival_date) = CURDATE() OR jc.status NOT IN ('Completed', 'Cancelled') OR DATE(jc.completed_date) = CURDATE())
+            ORDER BY jc.arrival_date DESC
+        ";
+        $recentJobsResult = $conn->query($recentJobsSql);
+        $recentJobs = [];
+        if ($recentJobsResult) {
+            while ($row = $recentJobsResult->fetch_assoc()) {
+                $recentJobs[] = [
                     "id" => $row["job_guid"],
                     "jobcardNo" => $row["jobcardNo"],
                     "customer" => $row["first_name"] . " " . $row["last_name"],
@@ -179,7 +211,8 @@ try {
                 ["label" => "Work In Progress", "value" => (int)$wipCount, "color" => "#0EA5E9", "bgColor" => "#f5f3ff"],
                 ["label" => "Completed Today", "value" => (int)$completedTodayCount, "color" => "#10b981", "bgColor" => "#ecfdf5"]
             ],
-            "jobs" => $jobs
+            "jobs" => $jobs,
+            "recent_jobs" => $recentJobs
         ]);
         exit;
     }

@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronDown, X } from "lucide-react";
 import menuConfig from "../menuConfig";
+import carLogo from "../../../assets/carlogo.jpeg";
 
 export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [openSubMenus, setOpenSubMenus] = useState({});
-  const roleId = localStorage.getItem("role_id");
   const userPermissions = JSON.parse(
     localStorage.getItem("permissions") || "[]"
   );
@@ -105,9 +105,9 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     ? 320
     : Math.min(windowWidth - 40, 300);
 
-  const AMBER = "rgba(139, 92, 246, 0.9)";   // purple
-  const AMBER_HOVER = "rgba(139, 92, 246, 0.18)";
-  const AMBER_BORDER = "rgba(139, 92, 246, 0.28)";
+  const AMBER = "rgba(14, 165, 233, 0.9)";   // sky blue
+  const AMBER_HOVER = "rgba(14, 165, 233, 0.18)";
+  const AMBER_BORDER = "rgba(14, 165, 233, 0.28)";
 
   const styles = {
     overlay: {
@@ -273,7 +273,7 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
       gap: "16px",
       padding: "14px 18px",
       borderRadius: "16px",
-      backgroundColor: "rgba(76, 29, 149, 0.9)",
+      backgroundColor: "rgba(7, 89, 133, 0.9)",
       color: "#ffffff",
       fontWeight: "600",
       fontSize: "15px",
@@ -310,11 +310,11 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
         <div style={styles.header}>
           <div style={styles.logoContainer}>
             <img
-              src="https://images.pexels.com/photos/3840441/pexels-photo-3840441.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop"
+              src={carLogo}
               alt="Garage Logo"
               style={styles.logoImage}
             />
-            <h1 style={styles.brandText}>Garage</h1>
+            <h1 style={styles.brandText}>TorqueAce</h1>
           </div>
         </div>
 
@@ -416,21 +416,21 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
 
         /* ── menu item hover (non-active) ── */
         .sb-menu-btn:not(.active):hover {
-          background-color: rgba(139, 92, 246, 0.18) !important;
+          background-color: rgba(14, 165, 233, 0.18) !important;
           color: #fffaf2 !important;
           transform: translateX(4px);
         }
 
         /* ── submenu item hover (non-active) ── */
         .sb-sub-btn:not(.active):hover {
-          background-color: rgba(139, 92, 246, 0.18) !important;
+          background-color: rgba(14, 165, 233, 0.18) !important;
           color: #fffaf2 !important;
           transform: translateX(4px);
         }
 
         /* ── logout button hover ── */
         .sb-logout-btn:hover {
-          background-color: rgba(76, 29, 149, 0.95) !important;
+          background-color: rgba(7, 89, 133, 0.95) !important;
           transform: translateY(-2px);
         }
 

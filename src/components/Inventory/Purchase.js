@@ -75,7 +75,7 @@ const ListRow = ({ item, onView, onEdit, onDelete, isLast }) => (
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: "#F5F3FF",
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <User size={14} style={{ color: "#8B5CF6" }} />
+          <User size={14} style={{ color: "#0EA5E9" }} />
         </div>
         <div style={{ minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#111827",
@@ -113,12 +113,12 @@ const ListRow = ({ item, onView, onEdit, onDelete, isLast }) => (
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
           style={{
             width: 32, height: 32, borderRadius: 8, border: "none",
-            background: "#F5F3FF", color: "#8B5CF6",
+            background: "#F5F3FF", color: "#0EA5E9",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", transition: "all 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#8B5CF6"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#8B5CF6"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#0EA5E9"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.color = "#0EA5E9"; }}
         >
           <Pencil size={15} />
         </button>
@@ -229,7 +229,7 @@ function Purchase({ purchases = [], fetchData }) {
   const paginated = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
       <SectionHeader />
 
       {/* ── search bar ── */}
@@ -253,8 +253,8 @@ function Purchase({ purchases = [], fetchData }) {
                 transition: 'all 0.2s',
                 "& fieldset": { border: "none" },
                 "&.Mui-focused": { 
-                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
-                  border: '1px solid #8B5CF6'
+                  boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)",
+                  border: '1px solid #0EA5E9'
                 }
               }
             }}
@@ -300,7 +300,7 @@ function Purchase({ purchases = [], fetchData }) {
             <button key={p} onClick={() => setCurrentPage(p)}
               style={{
                 width: 34, height: 34, borderRadius: 8, border: "1px solid #E5E7EB",
-                background: currentPage === p ? "#8B5CF6" : "#fff",
+                background: currentPage === p ? "#0EA5E9" : "#fff",
                 color: currentPage === p ? "#fff" : "#374151",
                 fontWeight: currentPage === p ? 700 : 400,
                 cursor: "pointer", fontSize: 13,

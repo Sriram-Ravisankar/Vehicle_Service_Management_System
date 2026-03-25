@@ -106,7 +106,7 @@ export default function UpcomingServices({filters}) {
     const s = String(status).toLowerCase();
     
     if (s.includes("delivered"))
-      return { ...base, background: "linear-gradient(90deg,#8b5cf6,#a855f7)", color: "#fff", boxShadow: "0 4px 10px rgba(168, 85, 247, 0.2)" };
+      return { ...base, background: "linear-gradient(90deg,#0EA5E9,#a855f7)", color: "#fff", boxShadow: "0 4px 10px rgba(168, 85, 247, 0.2)" };
     if (s.includes("completed"))
       return { ...base, background: "linear-gradient(90deg,#10B981,#059669)", color: "#fff", boxShadow: "0 4px 10px rgba(16, 185, 129, 0.2)" };
     if (s.includes("progress") || s.includes("active"))

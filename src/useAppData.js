@@ -5,8 +5,6 @@ export default function useAppData() {
   const [data, setData] = useState(() => ({
     customers: JSON.parse(localStorage.getItem("customers")) || [],
     employees: JSON.parse(localStorage.getItem("employees")) || [],
-    supportStaff: JSON.parse(localStorage.getItem("supportStaff")) || [],
-    accountants: JSON.parse(localStorage.getItem("accountants")) || [],
     quotations: JSON.parse(localStorage.getItem("quotations")) || [],
     invoices: JSON.parse(localStorage.getItem("invoices")) || [],
     suppliers: JSON.parse(localStorage.getItem("suppliers")) || [],
@@ -28,14 +26,6 @@ export default function useAppData() {
         {
           key: "employees",
           url: `${apiEndpoints.usersdata}?user_type=employee`,
-        },
-        {
-          key: "supportStaff",
-          url: `${apiEndpoints.usersdata}?user_type=support_staff`,
-        },
-        {
-          key: "accountants",
-          url: `${apiEndpoints.usersdata}?user_type=accountant`,
         },
         { key: "suppliers", url: apiEndpoints.supplier },
         { key: "products", url: apiEndpoints.product },

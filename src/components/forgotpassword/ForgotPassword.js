@@ -15,11 +15,11 @@ import {
 import { Email, ArrowBack, VpnKey, Visibility, VisibilityOff } from '@mui/icons-material';
 import apiEndpoints from '../../apiconfig';
 import imagelock from "../../assets/forgot.png";
-import backgroundImage from "../../assets/bgimage.png";
+import backgroundImage from "../../assets/bgimage.jpeg";
 
 // NEW PRIMARY COLORS matching the login page
-const primaryColor = "rgba(139, 92, 246, 0.9)";
-const primaryHover = "rgba(139, 92, 246, 1)";
+const primaryColor = "rgba(14, 165, 233, 0.9)";
+const primaryHover = "rgba(14, 165, 233, 1)";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();

@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Box,
   Tabs,
   Tab,
   Paper,
-  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -24,7 +23,6 @@ import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import Groups2RoundedIcon from "@mui/icons-material/Groups2Rounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 
 /** Tab definitions (label + value + icon) */
 const TABS = [
@@ -58,11 +56,7 @@ const TABS = [
     label: "Upcoming Services",
     icon: <EventAvailableRoundedIcon fontSize="small" />,
   },
-  // {
-  //   value: "EMAILS",
-  //   label: "Emails",
-  //   icon: <EmailRoundedIcon fontSize="small" />,
-  // },
+ 
 ];
 
 export default function ReportsTabs() {
@@ -89,23 +83,7 @@ export default function ReportsTabs() {
         return <EmployeeServicesTab />;
       case "UPCOMING SERVICES":
         return <UpcomingServicesTab />;
-      // case "EMAILS":
-      //   return (
-      //     <Box
-      //       sx={{
-      //         mt: 2,
-      //         p: 3,
-      //         borderRadius: 2,
-      //         bgcolor: "#fff",
-      //         boxShadow:
-      //           "0 6px 18px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)",
-      //       }}
-      //     >
-      //       <Typography variant="body1" color="text.secondary">
-      //         Emails tab coming soon.
-      //       </Typography>
-      //     </Box>
-      //   );
+   
       default:
         return null;
     }

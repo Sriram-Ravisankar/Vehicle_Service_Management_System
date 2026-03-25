@@ -56,7 +56,7 @@ const BranchTable = () => {
 
   const fetchBranches = async () => {
     try {
-      show();
+      // show();
       const resp = await fetch(apiEndpoints.branches, { 
         method: "GET", 
         headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } 
@@ -83,7 +83,7 @@ const BranchTable = () => {
     } catch (err) {
       console.error(err);
     } finally {
-      hide();
+      // hide();
     }
   };
 
@@ -126,7 +126,7 @@ const BranchTable = () => {
 
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, minHeight: "100vh", backgroundColor: "#F9FAFB" }}>
+    <Box sx={{ p: { xs: 1.5, sm: 3, md: 4 }, minHeight: "100vh", backgroundColor: "#F9FAFB" }}>
       <SectionHeader />
 
 
@@ -147,7 +147,7 @@ const BranchTable = () => {
                 border: "1px solid #E2E8F0",
                 height: '45px',
                 "& fieldset": { border: "none" },
-                "&.Mui-focused": { border: '1px solid #8B5CF6' }
+                "&.Mui-focused": { border: '1px solid #0EA5E9' }
               }
             }}
           />
@@ -155,8 +155,14 @@ const BranchTable = () => {
       </Box>
 
       <Paper sx={{ borderRadius: "20px", border: "1px solid #E5E7EB", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", overflow: "hidden" }}>
-        <Box sx={{ width: "100%", overflowX: "auto" }}>
-          <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar { height: 6px; }
+          .hide-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+          .hide-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+          .hide-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        `}</style>
+        <Box className="hide-scrollbar" sx={{ width: "100%", overflowX: "auto", position: "relative" }}>
+          <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", minWidth: 1000 }}>
             <Box component="thead">
               <Box component="tr" sx={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
                 <Box component="th" sx={tableHeaderStyle}>Branch Details</Box>
@@ -182,7 +188,7 @@ const BranchTable = () => {
                       {b.imagePreview ? (
                         <Avatar src={b.imagePreview} sx={{ width: 44, height: 44, borderRadius: "10px" }} />
                       ) : (
-                        <Box sx={{ width: 44, height: 44, borderRadius: "10px", bgcolor: "#8B5CF6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>
+                        <Box sx={{ width: 44, height: 44, borderRadius: "10px", bgcolor: "#0EA5E9", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>
                           {b.branchName.charAt(0)}
                         </Box>
                       )}
@@ -216,7 +222,7 @@ const BranchTable = () => {
                       px: 1.5, py: 0.5, borderRadius: "6px", width: "fit-content",
                       fontSize: 11, fontWeight: 700, textTransform: "uppercase",
                       bgcolor: b.isHeadOffice ? "#ECFDF5" : "#F5F3FF",
-                      color: b.isHeadOffice ? "#10B981" : "#8B5CF6"
+                      color: b.isHeadOffice ? "#10B981" : "#0EA5E9"
                     }}>
                       {b.isHeadOffice ? "Head Office" : "Standard"}
                     </Box>
@@ -270,10 +276,10 @@ const BranchTable = () => {
 };
 
 const tableHeaderStyle = {
-  textAlign: "left", padding: "16px 24px", fontSize: "12px",
+  textAlign: "left", padding: "16px", fontSize: "12px",
   fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em"
 };
 
-const tableCellStyle = { padding: "16px 24px" };
+const tableCellStyle = { padding: "16px" };
 
 export default BranchTable;
