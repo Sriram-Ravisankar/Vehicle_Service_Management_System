@@ -18,22 +18,24 @@ import {
   Circle
 } from "lucide-react";
 
+import { Box, Typography, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+
 // ── tiny helpers ─────────────────────────────────────────────────────────────
 const SectionCard = ({ title, children, icon: Icon }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const inputSx = (hasError) => ({
@@ -65,6 +67,38 @@ const ICON_MAP = {
 
 
 export default function Step2_PreInspection({ form, setForm, isView, showSnackbar }) {
+  const [observations, setObservations] = React.useState({});
+  const [selectedCheckpoint, setSelectedCheckpoint] = React.useState("");
+
+  // Load observations from localStorage
+  React.useEffect(() => {
+    const saved = localStorage.getItem("observations");
+    if (saved) {
+      setObservations(JSON.parse(saved));
+    }
+  }, []);
+
+  const handleCheckpointSelect = (event) => {
+    const val = event.target.value;
+    setSelectedCheckpoint(val);
+    if (!val) return;
+
+    // Split the category and checkpoint from the value
+    const [cat, checkpoint] = val.split("|");
+    
+    // Add to complaint if not already there
+    const currentComplaint = form.complaint || "";
+    const newPoint = `[${cat}] ${checkpoint}`;
+    if (currentComplaint.includes(newPoint)) return;
+    
+    setForm(prev => ({
+      ...prev,
+      complaint: currentComplaint 
+        ? `${currentComplaint}\n${newPoint}`
+        : newPoint
+    }));
+  };
+
   React.useEffect(() => {
     if (!form.inspection || form.inspection.length === 0) {
       const init = Object.entries(ICON_MAP).map(([key, icon]) => ({
@@ -103,7 +137,7 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
       <SectionCard title="Pre-Inspection Checklist" icon={Activity}>
         <div style={{ 
           display: "grid", 
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", 
           gap: 16 
         }}>
           {form.inspection?.map((item) => {
@@ -115,7 +149,7 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
                 style={{
                   padding: "16px",
                   borderRadius: "12px",
-                  border: `1.5px solid ${item.checked ? "#8B5CF6" : "#F3F4F6"}`,
+                  border: `1.5px solid ${item.checked ? "#0EA5E9" : "#F3F4F6"}`,
                   background: item.checked ? "#F5F3FF" : "#fff",
                   cursor: isView ? "default" : "pointer",
                   transition: "all 0.2s ease",
@@ -142,8 +176,8 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
                       {item.label}
                     </span>
                   </div>
-                  <div style={{ color: item.checked ? "#8B5CF6" : "#E5E7EB" }}>
-                    {item.checked ? <CheckCircle2 size={22} fill="#8B5CF6" color="#fff" /> : <Circle size={22} />}
+                  <div style={{ color: item.checked ? "#0EA5E9" : "#E5E7EB" }}>
+                    {item.checked ? <CheckCircle2 size={22} fill="#0EA5E9" color="#fff" /> : <Circle size={22} />}
                   </div>
                 </div>
 
@@ -170,6 +204,36 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
       </SectionCard>
 
       <SectionCard title="Customer Complaint" icon={MessageSquare}>
+        {!isView && (
+          <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="observation-select-label">Select checkpoints from Library</InputLabel>
+              <Select
+                labelId="observation-select-label"
+                value={selectedCheckpoint}
+                label="Select checkpoints from Library"
+                onChange={handleCheckpointSelect}
+                sx={{ borderRadius: 2, background: "#F9FAFB" }}
+              >
+                <MenuItem value=""><em>None</em></MenuItem>
+                {Object.entries(observations).map(([category, items]) => (
+                  items
+                    .filter(item => {
+                      if (!item.vehicleModel || item.vehicleModel === "All Models") return true;
+                      if (!form.vehicle_name) return false;
+                      // Case-insensitive inclusion search
+                      return form.vehicle_name.toLowerCase().includes(item.vehicleModel.toLowerCase());
+                    })
+                    .map((item, idx) => (
+                      <MenuItem key={`${category}-${idx}`} value={`${category}|${item.checkpoint}`}>
+                        {category}: {item.checkpoint}
+                      </MenuItem>
+                    ))
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
         <textarea
           placeholder="Enter detailed customer complaint or special instructions..."
           value={form.complaint || ""}

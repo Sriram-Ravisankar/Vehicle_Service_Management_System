@@ -20,20 +20,20 @@ import apiEndpoints from "../../apiconfig";
 
 // ── tiny helpers ─────────────────────────────────────────────────────────────
 const SectionCard = ({ title, children, icon: Icon }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const inputSx = (hasError) => ({
@@ -118,6 +118,11 @@ export default function Step3_PartsLabour({
     setForm((f) => {
       const parts = (f.parts || []).map((p) => {
         if (p.id !== id) return p;
+
+        if (key === "qty" || key === "rate") {
+          if (val < 0) return p;
+        }
+
         let updated = { ...p, [key]: val };
 
         if (key === "product_id" && val) {
@@ -165,6 +170,9 @@ export default function Step3_PartsLabour({
     setForm((f) => {
       const labour = (f.labour || []).map((l) => {
         if (l.id !== id) return l;
+
+        if ((key === "hours" || key === "rate") && val < 0) return l;
+
         let updated = { ...l, [key]: val };
         updated.amount = Number(updated.hours || 0) * Number(updated.rate || 0);
         return updated;
@@ -229,8 +237,8 @@ export default function Step3_PartsLabour({
                   ))}
                 </select>
                 <input placeholder="Short Desc..." value={p.name} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
-                <input type="number" placeholder="Qty" value={p.qty} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
-                <input type="number" placeholder="Rate" value={p.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
+                <input type="number" placeholder="Qty" value={p.qty} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "qty", Number(e.target.value))} />
+                <input type="number" placeholder="Rate" value={p.rate} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "rate", Number(e.target.value))} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(p.amount)}</div>
                 {!isView && (
                   <button onClick={() => removePart(p.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -250,17 +258,17 @@ export default function Step3_PartsLabour({
                   borderRadius: 10, 
                   border: "none", 
                   background: "#F5F3FF", 
-                  color: "#8B5CF6", 
+                  color: "#0EA5E9", 
                   fontSize: 13, 
                   fontWeight: 700, 
                   cursor: "pointer", 
                   marginTop: 12,
                   width: "fit-content",
-                  boxShadow: "0 1px 2px rgba(139, 92, 246, 0.1)",
+                  boxShadow: "0 1px 2px rgba(14, 165, 233, 0.1)",
                   transition: "all 0.2s"
                 }}
               >
-                <Plus size={16} color="#8B5CF6" strokeWidth={3} /> Add Part
+                <Plus size={16} color="#0EA5E9" strokeWidth={3} /> Add Part
               </button>
             )}
           </div>
@@ -295,8 +303,8 @@ export default function Step3_PartsLabour({
                       <option key={w.user_guid} value={w.user_guid}>{w.first_name} {w.last_name}</option>
                     ))}
                 </select>
-                <input type="number" placeholder="Hours" value={l.hours} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
-                <input type="number" placeholder="Rate" value={l.rate} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
+                <input type="number" placeholder="Hours" value={l.hours} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "hours", Number(e.target.value))} />
+                <input type="number" placeholder="Rate" value={l.rate} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "rate", Number(e.target.value))} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
                 {!isView && (
                   <button onClick={() => removeLabour(l.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -316,24 +324,24 @@ export default function Step3_PartsLabour({
                   borderRadius: 10, 
                   border: "none", 
                   background: "#F5F3FF", 
-                  color: "#8B5CF6", 
+                  color: "#0EA5E9", 
                   fontSize: 13, 
                   fontWeight: 700, 
                   cursor: "pointer", 
                   marginTop: 12,
                   width: "fit-content",
-                  boxShadow: "0 1px 2px rgba(139, 92, 246, 0.1)",
+                  boxShadow: "0 1px 2px rgba(14, 165, 233, 0.1)",
                   transition: "all 0.2s"
                 }}
               >
-                <Plus size={16} color="#8B5CF6" strokeWidth={3} /> Add Labour
+                <Plus size={16} color="#0EA5E9" strokeWidth={3} /> Add Labour
               </button>
             )}
           </div>
         </Box>
       </SectionCard>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 24, alignItems: "start" }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 400px" }, gap: { xs: 2, md: 3 }, alignItems: "start" }}>
         <div>
           <SectionCard title="Pricing & Notes" icon={Wallet}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -347,7 +355,7 @@ export default function Step3_PartsLabour({
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
-                  <input type="number" disabled={isView} value={form.totals.discountValue || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Number(e.target.value) }}))} />
+                  <input type="number" disabled={isView} value={form.totals.discountValue || 0} style={inputSx(false)} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Math.max(0, Number(e.target.value)) }}))} />
                 </div>
               </div>
 
@@ -372,7 +380,7 @@ export default function Step3_PartsLabour({
                 <label style={{ fontSize: 13, fontWeight: 700, color: form.totals.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
                 {form.totals.includeGST && (
                   <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
-                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Math.max(0, Number(e.target.value)) }}))} />
                   </div>
                 )}
               </div>
@@ -416,13 +424,13 @@ export default function Step3_PartsLabour({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span style={{ fontSize: 18, fontWeight: 700 }}>Total Payable</span>
               <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: "#8B5CF6" }}>₹ {currency(form.totals?.grandTotal)}</span>
+                <span style={{ fontSize: 32, fontWeight: 800, color: "#0EA5E9" }}>₹ {currency(form.totals?.grandTotal)}</span>
                 <p style={{ margin: 0, fontSize: 11, color: "#9CA3AF" }}>Inclusive of all taxes</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Box>
     </div>
   );
 }

@@ -38,7 +38,7 @@ import Step3_PartsLabour from "./Step3_PartsLabour";
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -59,20 +59,20 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children, icon: Icon }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 /**
@@ -174,9 +174,10 @@ export default function AddServiceForm({
   const routeGuid = routeState.guid || null;
   // If route asked specifically for editing, we start editable
   const routeIsEditing = !!routeState.isEditing;
+  const initialStepFromRoute = typeof routeState.initialStep === 'number' ? routeState.initialStep : 0;
 
   // Stepper & progress
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState(initialStepFromRoute);
   const [loading, setLoading] = useState(!!routeGuid); // if guid, fetching
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fetchError, setFetchError] = useState(null);
@@ -502,31 +503,31 @@ export default function AddServiceForm({
 
   return (
     <Box sx={{ 
-      px: { xs: 3, sm: 4, md: 6 }, 
+      px: { xs: 1, sm: 4, md: 6 }, 
       py: { xs: 2.5, sm: 4 },
       width: '100%',
       maxWidth: '100%',
       overflowX: 'hidden'
     }}>
-      <div style={{
+      <Box sx={{
         background: "#fff",
-        borderRadius: 16,
-        padding: "20px 24px",
-        marginBottom: 24,
+        borderRadius: "16px",
+        p: { xs: 2, md: 3 },
+        mb: 3,
         border: "1px solid #F3F4F6",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: 16
+        gap: 2
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 12, background: "#F5F3FF",
             display: "flex", alignItems: "center", justifyContent: "center"
           }}>
-            <ClipboardList size={24} color="#8B5CF6" />
+            <ClipboardList size={24} color="#0EA5E9" />
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
@@ -547,7 +548,7 @@ export default function AddServiceForm({
               startIcon={<Edit2 size={16} />}
               onClick={enableEdit}
               sx={{
-                borderRadius: "10px", borderColor: "#8B5CF6", color: "#8B5CF6",
+                borderRadius: "10px", borderColor: "#0EA5E9", color: "#0EA5E9",
                 textTransform: "none", fontWeight: 600,
                 "&:hover": { borderColor: "#7C3AED", bgcolor: "#F5F3FF" }
               }}
@@ -566,12 +567,12 @@ export default function AddServiceForm({
             Cancel
           </Button>
         </div>
-      </div>
+      </Box>
 
-      <div style={{
+      <Box sx={{
         background: "#fff",
-        borderRadius: 16,
-        padding: "24px",
+        borderRadius: "16px",
+        p: { xs: 2, md: 3 },
         border: "1px solid #F3F4F6",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
       }}>
@@ -583,29 +584,29 @@ export default function AddServiceForm({
             sx={{
               // Active step circle
               "& .MuiStepIcon-root.Mui-active": {
-                color: "rgba(139, 92, 246, 0.9)",
+                color: "rgba(14, 165, 233, 0.9)",
               },
 
               // Completed step circle
               "& .MuiStepIcon-root.Mui-completed": {
-                color: "rgba(139, 92, 246, 0.9)",
+                color: "rgba(14, 165, 233, 0.9)",
               },
 
               // Step label text (active)
               "& .MuiStepLabel-label.Mui-active": {
-                color: "rgba(139, 92, 246, 0.9)",
+                color: "rgba(14, 165, 233, 0.9)",
                 fontWeight: 600,
               },
 
               // Step label text (completed)
               "& .MuiStepLabel-label.Mui-completed": {
-                color: "rgba(139, 92, 246, 0.9)",
+                color: "rgba(14, 165, 233, 0.9)",
                 fontWeight: 600,
               },
 
               // Connector line (active & completed)
               "& .MuiStepConnector-line": {
-                borderColor: "rgba(139, 92, 246, 0.9)",
+                borderColor: "rgba(14, 165, 233, 0.9)",
               },
             }}
           >
@@ -725,7 +726,7 @@ export default function AddServiceForm({
                 padding: "10px 24px",
                 borderRadius: 10,
                 border: "none",
-                background: "#8B5CF6",
+                background: "#0EA5E9",
                 color: "#fff",
                 fontSize: 14,
                 fontWeight: 600,
@@ -733,7 +734,7 @@ export default function AddServiceForm({
                 alignItems: "center",
                 gap: 8,
                 cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(139, 92, 246, 0.25)",
+                boxShadow: "0 4px 12px rgba(14, 165, 233, 0.25)",
                 transition: "all 0.2s"
               }}
             >
@@ -780,7 +781,7 @@ export default function AddServiceForm({
             </button>
           )}
         </div>
-      </div>
+      </Box>
 
       {fetchError && (
         <Box mt={2}>
@@ -849,7 +850,7 @@ export default function AddServiceForm({
                 setOpenQuotationDialog(false);
                 pendingQuotationAction?.();
               }}
-              sx={{ textTransform: "none", minWidth: 130, backgroundColor: "rgba(139, 92, 246, 0.9)" }}
+              sx={{ textTransform: "none", minWidth: 130, backgroundColor: "rgba(14, 165, 233, 0.9)" }}
             >
               Yes, Continue
             </Button>

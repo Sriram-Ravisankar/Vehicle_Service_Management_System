@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -184,10 +184,10 @@ const CustomerFieldForm = () => {
             type="submit"
             variant="contained"
             sx={{
-              backgroundColor: "rgba(139, 92, 246, 0.9)",
+              backgroundColor: "rgba(14, 165, 233, 0.9)",
               color: "white",
               width: { xs: "100%", sm: 120 },
-              "&:hover": { backgroundColor: "rgba(139, 92, 246, 0.9)" },
+              "&:hover": { backgroundColor: "rgba(14, 165, 233, 0.9)" },
             }}
           >
             {isEditMode ? "Update" : "Save"}

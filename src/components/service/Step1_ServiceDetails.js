@@ -23,7 +23,7 @@ import { Box } from "@mui/material";
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -44,20 +44,20 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children, icon: Icon }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const Step1_ServiceDetails = forwardRef(
@@ -260,7 +260,7 @@ const Step1_ServiceDetails = forwardRef(
     return (
       <Box>
         <SectionCard title="Service Details" icon={Wrench}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
             
             <Field label="Customer *" icon={User} error={errors.customer_guid}>
               <Autocomplete
@@ -312,7 +312,11 @@ const Step1_ServiceDetails = forwardRef(
                 getOptionLabel={(option) => typeof option === "string" ? option : (option.label || "")}
                 onChange={async (e, newValue) => {
                   if (newValue && typeof newValue === "object") {
-                    setForm((f) => ({ ...f, vehicle_guid: newValue.value }));
+                    setForm((f) => ({ 
+                      ...f, 
+                      vehicle_guid: newValue.value,
+                      vehicle_name: newValue.label 
+                    }));
                     setErrors((err) => ({ ...err, vehicle_guid: "" }));
                     return;
                   }

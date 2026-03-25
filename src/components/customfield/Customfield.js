@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../DynamicComponents/Pagination';
 
@@ -17,12 +17,10 @@ import {
   TextField,
   Select,
   MenuItem,
-  Avatar,
   Menu,
   Stack,
 } from '@mui/material';
-import { Add, Delete, MoreVert, Settings } from '@mui/icons-material';
-import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import { MoreVert } from '@mui/icons-material';
 import { FaTrash } from "react-icons/fa";
 import SectionHeader from '../common/Header';
 
@@ -231,8 +229,8 @@ const CustomerList = ({ title = "Custom Fields" }) => {
             variant="contained"
             onClick={handleSelectAll}
             sx={{
-              bgcolor: "rgba(139, 92, 246, 0.9)",
-              "&:hover": { bgcolor: "rgba(139, 92, 246, 0.9)" },
+              bgcolor: "rgba(14, 165, 233, 0.9)",
+              "&:hover": { bgcolor: "rgba(14, 165, 233, 0.9)" },
               display: "flex",
               alignItems: "center",
               px: 2,

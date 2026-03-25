@@ -18,7 +18,13 @@ import {
   Typography, 
   Button, 
   TextField,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import SectionHeader from '../common/Header';
 import apiEndpoints from "../../apiconfig";
@@ -97,7 +103,7 @@ const ListRow = ({ row, onEdit, onView, onDelete, isLast }) => (
   >
     <div style={{ width: COL.jobNo, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <ClipboardList size={16} style={{ color: "#8B5CF6" }} />
+        <ClipboardList size={16} style={{ color: "#0EA5E9" }} />
       </div>
       <span style={{ fontSize: 14, fontWeight: 700, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {row.jobcardNo}
@@ -129,9 +135,9 @@ const ListRow = ({ row, onEdit, onView, onDelete, isLast }) => (
       <Tooltip title="Edit Service">
         <button 
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#F5F3FF", color: "#8B5CF6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#8B5CF6"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#F5F3FF"; e.currentTarget.style.color = "#8B5CF6"; }}
+          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#F5F3FF", color: "#0EA5E9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#0EA5E9"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#F5F3FF"; e.currentTarget.style.color = "#0EA5E9"; }}
         >
           <Pencil size={15} />
         </button>
@@ -160,6 +166,8 @@ const ServiceMain = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, guid: null });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
 
   const fetchJobCards = async () => {
     // show();
@@ -195,8 +203,9 @@ const ServiceMain = () => {
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const handleDelete = async (guid) => {
-    if (!window.confirm("Are you sure you want to delete this job card?")) return;
+  const handleDelete = async () => {
+    const guid = deleteDialog.guid;
+    setDeleteDialog({ open: false, guid: null });
     show();
     try {
       const res = await fetch(`${apiEndpoints.JobCard}?job_guid=${guid}`, {
@@ -204,7 +213,10 @@ const ServiceMain = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) fetchJobCards();
+      if (data.success) {
+        setSnackbar({ open: true, message: "Job card deleted successfully" });
+        fetchJobCards();
+      }
     } catch (error) {
       console.error("Delete failed:", error);
     } finally {
@@ -239,8 +251,8 @@ const ServiceMain = () => {
                 transition: 'all 0.2s',
                 "& fieldset": { border: "none" },
                 "&.Mui-focused": { 
-                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
-                  border: '1px solid #8B5CF6'
+                  boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)",
+                  border: '1px solid #0EA5E9'
                 }
               }
             }}
@@ -269,7 +281,7 @@ const ServiceMain = () => {
                 isLast={i === paginatedData.length - 1}
                 onView={() => navigate("/services-form", { state: { guid: row.job_guid } })}
                 onEdit={() => navigate("/services-form", { state: { guid: row.job_guid, isEditing: true } })}
-                onDelete={() => handleDelete(row.job_guid)}
+                onDelete={() => setDeleteDialog({ open: true, guid: row.job_guid })}
               />
             ))
           ) : (
@@ -302,9 +314,9 @@ const ServiceMain = () => {
               onClick={() => setCurrentPage(i + 1)}
               style={{
                 width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: 10, border: i + 1 === currentPage ? "1px solid #8B5CF6" : "1px solid #E2E8F0",
+                borderRadius: 10, border: i + 1 === currentPage ? "1px solid #0EA5E9" : "1px solid #E2E8F0",
                 background: i + 1 === currentPage ? "#F5F3FF" : "#fff",
-                color: i + 1 === currentPage ? "#8B5CF6" : "#64748B",
+                color: i + 1 === currentPage ? "#0EA5E9" : "#64748B",
                 fontWeight: i + 1 === currentPage ? 700 : 500,
                 cursor: "pointer"
               }}
@@ -326,6 +338,53 @@ const ServiceMain = () => {
           </button>
         </Box>
       )}
+
+      {/* ── Modern Delete Dialog ── */}
+      <Dialog 
+        open={deleteDialog.open} 
+        onClose={() => setDeleteDialog({ open: false, guid: null })}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">Are you sure you want to delete this job card? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={() => setDeleteDialog({ open: false, guid: null })}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#64748B" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            variant="contained" 
+            disableElevation
+            sx={{ 
+              textTransform: "none", 
+              fontWeight: 600, 
+              bgcolor: "#EF4444", 
+              "&:hover": { bgcolor: "#DC2626" },
+              borderRadius: "8px",
+              px: 3
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Feedback Snackbar ── */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity="success" variant="filled" sx={{ borderRadius: "12px", fontWeight: 600 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

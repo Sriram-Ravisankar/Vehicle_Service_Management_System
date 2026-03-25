@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -36,7 +36,7 @@ import DynamicHeader from "../../components/common/Dynamicheader";
 const Field = ({ label, icon: Icon, error, children }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-      {Icon && <Icon size={14} style={{ color: "#8B5CF6" }} />}
+      {Icon && <Icon size={14} style={{ color: "#0EA5E9" }} />}
       {label}
     </label>
     {children}
@@ -57,20 +57,20 @@ const inputSx = (hasError) => ({
 });
 
 const SectionCard = ({ title, children, icon: Icon }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const api = {
@@ -881,7 +881,7 @@ const AddUser = ({ userType, onSave, users }) => {
 
   return (
     <Box sx={{ 
-      px: { xs: 3, sm: 4, md: 6 }, 
+      px: { xs: 1.5, sm: 4, md: 6 }, 
       py: { xs: 2, sm: 4 }, 
       width: "100%", 
       maxWidth: "100%", 
@@ -918,25 +918,14 @@ const AddUser = ({ userType, onSave, users }) => {
                 placeholder="Optional" style={inputSx(false)} />
             </Field>
 
-            {userType === "Customers" && (
-              <>
-                <Field label="Company Name" icon={Building2}>
-                  <input name="companyName" value={formData.companyName} onChange={handleChange}
-                    placeholder="Optional" style={inputSx(false)} />
-                </Field>
-                <Field label="Tax Id (GST)" icon={CreditCard} error={errors.taxId}>
-                  <input name="taxId" value={formData.taxId} onChange={handleChange}
-                    placeholder="GSTIN" style={inputSx(!!errors.taxId)} />
-                </Field>
-              </>
-            )}
+
 
             <Field label="Gender">
               <div style={{ display: "flex", gap: 20, paddingTop: 8 }}>
                 {["male", "female"].map(g => (
                   <label key={g} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
                     <input type="radio" name="gender" value={g} checked={formData.gender === g}
-                      onChange={handleChange} style={{ accentColor: "#8B5CF6", width: 16, height: 16 }} />
+                      onChange={handleChange} style={{ accentColor: "#0EA5E9", width: 16, height: 16 }} />
                     {g.charAt(0).toUpperCase() + g.slice(1)}
                   </label>
                 ))}
@@ -949,7 +938,7 @@ const AddUser = ({ userType, onSave, users }) => {
                 <label style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
                   padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: "1px solid #8B5CF6", color: "#8B5CF6", cursor: "pointer", background: "#fff",
+                  border: "1px solid #0EA5E9", color: "#0EA5E9", cursor: "pointer", background: "#fff",
                 }}>
                   <Upload size={14} /> Choose Image
                   <input type="file" name="image" accept="image/*" hidden onChange={handleChange} />
@@ -1105,7 +1094,7 @@ const AddUser = ({ userType, onSave, users }) => {
                 startIcon={<Plus size={16} />}
                 onClick={addVehicle}
                 sx={{
-                  color: "#8B5CF6", borderColor: "#8B5CF6", borderRadius: "10px",
+                  color: "#0EA5E9", borderColor: "#0EA5E9", borderRadius: "10px",
                   "&:hover": { borderColor: "#7C3AED", backgroundColor: "#F5F3FF" },
                   textTransform: "none", fontWeight: 600
                 }}
@@ -1125,7 +1114,7 @@ const AddUser = ({ userType, onSave, users }) => {
                   </button>
                 )}
                 
-                <p style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 700, color: "#8B5CF6", textTransform: "uppercase" }}>
+                <p style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 700, color: "#0EA5E9", textTransform: "uppercase" }}>
                    Vehicle #{index + 1}
                 </p>
 
@@ -1173,8 +1162,8 @@ const AddUser = ({ userType, onSave, users }) => {
             disabled={loading}
             startIcon={<Save size={18} />}
             sx={{
-              backgroundColor: "rgba(139, 92, 246, 0.9)",
-              "&:hover": { backgroundColor: "rgba(139, 92, 246, 1)" },
+              backgroundColor: "rgba(14, 165, 233, 0.9)",
+              "&:hover": { backgroundColor: "rgba(14, 165, 233, 1)" },
               color: "#fff",
               borderRadius: "12px",
               px: 5,
@@ -1182,7 +1171,7 @@ const AddUser = ({ userType, onSave, users }) => {
               fontWeight: 700,
               textTransform: "none",
               fontSize: 15,
-              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
+              boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)",
             }}
           >
             {loading ? "Saving..." : isEdit ? `Update ${userType.slice(0, -1)}` : `Save ${userType.slice(0, -1)}`}

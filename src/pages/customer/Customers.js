@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import { 
   Search, 
-  Plus, 
   Pencil, 
   Trash2, 
   Mail, 
@@ -20,9 +19,7 @@ import {
   User, 
   Car, 
   Briefcase, 
-  GraduationCap,
-  MoreVertical,
-  ChevronRight
+  GraduationCap
 } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../../components/common/Header";
@@ -128,8 +125,8 @@ const ListRow = ({ user, extraLabel, onEdit, onDelete, onView, isLast, showView 
           <IconButton 
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             sx={{ 
-              width: 32, height: 32, borderRadius: "8px", background: "#F5F3FF", color: "#8B5CF6",
-              "&:hover": { background: "#8B5CF6", color: "#fff" }
+              width: 32, height: 32, borderRadius: "8px", background: "#F5F3FF", color: "#0EA5E9",
+              "&:hover": { background: "#0EA5E9", color: "#fff" }
             }}
           >
             <Pencil size={15} />
@@ -231,7 +228,7 @@ function UserList({
   };
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
       <SectionHeader />
 
       {/* Toolbar Section */}
@@ -255,15 +252,15 @@ function UserList({
                   transition: 'all 0.2s',
                   "& fieldset": { border: "none" },
                   "&.Mui-focused": { 
-                    boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
-                    border: '1px solid #8B5CF6'
+                    boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)",
+                    border: '1px solid #0EA5E9'
                   }
                 }
               }}
             />
           </Box>
           <Typography sx={{ fontSize: 13, color: "#94A3B8", ml: 1, fontWeight: 600 }}>
-            Showing <span style={{ color: "#8B5CF6", fontWeight: 800 }}>{filteredUsers.length}</span> {title}
+            Showing <span style={{ color: "#0EA5E9", fontWeight: 800 }}>{filteredUsers.length}</span> {title}
           </Typography>
         </Box>
       </Box>

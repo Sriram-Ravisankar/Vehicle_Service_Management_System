@@ -128,7 +128,7 @@ const DynamicHeader = ({
               p: 0,
               marginLeft: 0,
               minWidth: "auto",
-              color: "rgba(139, 92, 246, 0.9)",
+              color: "rgba(14, 165, 233, 0.9)",
               "&:hover": {
                 backgroundColor: "transparent",
                 opacity: 0.8,

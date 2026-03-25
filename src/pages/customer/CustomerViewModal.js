@@ -1,4 +1,3 @@
-import React from "react";
 import {
     Dialog,
     DialogTitle,
@@ -7,15 +6,12 @@ import {
     Button,
     Box,
     Typography,
-    Stack,
-    Rating
-} from "@mui/material";
+    Stack} from "@mui/material";
 import { 
     User, Mail, Phone, Car, MapPin, Calendar, X, Hash, 
-    Briefcase, BadgeCheck, GraduationCap, Building2, 
-    Landmark, DollarSign, Clock, Users, Star, ClipboardList,
-    ShieldAlert
-} from "lucide-react";
+    Briefcase, 
+    Landmark, DollarSign
+    } from "lucide-react";
 
 /**
  * Modern User View Modal following the UI/UX style of products/invoices
@@ -160,9 +156,9 @@ const UserViewModal = ({ open, onClose, user, type }) => {
                         }}>
                              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                                 <Box sx={{ 
-                                    width: 48, height: 48, borderRadius: "16px", background: "#8B5CF6",
+                                    width: 48, height: 48, borderRadius: "16px", background: "#0EA5E9",
                                     display: "flex", alignItems: "center", justifyContent: "center", 
-                                    flexShrink: 0, boxShadow: "0 8px 15px -3px rgba(139, 92, 246, 0.3)"
+                                    flexShrink: 0, boxShadow: "0 8px 15px -3px rgba(14, 165, 233, 0.3)"
                                 }}>
                                     <Car size={24} color="#fff" />
                                 </Box>
@@ -192,7 +188,7 @@ const UserViewModal = ({ open, onClose, user, type }) => {
                                                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#4C1D95" }}>
                                                     {regNo}
                                                 </Typography>
-                                                <Box sx={{ background: "#8B5CF6", color: "#fff", px: 1, py: 0.2, borderRadius: "6px", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
+                                                <Box sx={{ background: "#0EA5E9", color: "#fff", px: 1, py: 0.2, borderRadius: "6px", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
                                                     {fuelType}
                                                 </Box>
                                             </Box>

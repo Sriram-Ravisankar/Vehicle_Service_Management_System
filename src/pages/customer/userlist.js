@@ -253,7 +253,7 @@ function UserList({
   };
 
   return (
-    <Box sx={{ fontFamily: "Montserrat", p: { xs: 1, sm: 3 } }}>
+    <Box sx={{ fontFamily: "Montserrat", p: { xs: 2, md: 4 } }}>
       {/* Header Section */}
       <Box
         display="flex"
@@ -615,7 +615,7 @@ function UserList({
               display="flex"
               alignItems="center"
               sx={{
-                backgroundColor: "rgba(139, 92, 246, 0.9)",
+                backgroundColor: "rgba(14, 165, 233, 0.9)",
                 borderRadius: "4px",
                 px: 2,
                 py: 1,
