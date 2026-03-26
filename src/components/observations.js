@@ -153,9 +153,45 @@ const AddObservation = () => {
     "Exhaust",
   ]);
 
+  const INITIAL_OBSERVATIONS = {
+    "Brakes": [
+      { vehicleModel: "Maruti Suzuki Swift", checkpoint: "Check front brake pad thickness (minimum 3mm)" },
+      { vehicleModel: "Toyota Innova Crysta", checkpoint: "Inspect rear brake shoe wear" },
+      { vehicleModel: "General", checkpoint: "Check brake rotor surface for scoring" }
+    ],
+    "Engine": [
+      { vehicleModel: "Maruti Suzuki Swift", checkpoint: "Inspect V-belt for cracks or glazing" },
+      { vehicleModel: "Hyundai i20", checkpoint: "Check for valve cover oil seepage" },
+      { vehicleModel: "Toyota Innova Crysta", checkpoint: "Inspect Intercooler hoses for oil residue" }
+    ],
+    "Suspension": [
+      { vehicleModel: "Maruti Suzuki Swift", checkpoint: "Inspect lower arm bushes for play" },
+      { vehicleModel: "Mahindra Scorpio", checkpoint: "Inspect front stabilizer bar links" },
+      { vehicleModel: "Hyundai i20", checkpoint: "Inspect steering rack for clicking noise" }
+    ],
+    "Electrical": [
+      { vehicleModel: "Hyundai i20", checkpoint: "Test rear taillight housing for moisture" },
+      { vehicleModel: "Mahindra Scorpio", checkpoint: "Inspect ABS sensor wiring for damage" },
+      { vehicleModel: "General", checkpoint: "Check battery voltage and terminal corrosion" }
+    ],
+    "Tires": [
+      { vehicleModel: "Toyota Innova Crysta", checkpoint: "Check for uneven inner tread wear" },
+      { vehicleModel: "General", checkpoint: "Measure tire tread depth (minimum 1.6mm)" }
+    ],
+    "Transmission": [
+      { vehicleModel: "Mahindra Scorpio", checkpoint: "Check Clutch pedal effort and travel" }
+    ]
+  };
+
   const [observations, setObservations] = useState(() => {
     const saved = localStorage.getItem("observations");
-    return saved ? JSON.parse(saved) : {};
+    if (!saved) return INITIAL_OBSERVATIONS;
+    try {
+      const parsed = JSON.parse(saved);
+      return Object.keys(parsed).length > 0 ? parsed : INITIAL_OBSERVATIONS;
+    } catch {
+      return INITIAL_OBSERVATIONS;
+    }
   });
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });

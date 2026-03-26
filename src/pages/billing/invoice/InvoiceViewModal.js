@@ -25,7 +25,17 @@ const InvoiceViewModal = ({ open, onClose, data }) => {
     const invoice = Array.isArray(data) ? data[0] : data;
     const items = invoice.items || [];
     const totals = invoice.totals || {};
-    const status = invoice.status || "Completed";
+    
+    // Dynamic status calculation
+    const grandTotal = Number(totals.grandTotal || invoice.totalAmount || 0);
+    const paidAmount = Number(invoice.paid_amount || 0);
+    
+    let status = invoice.status;
+    if (!status || status === "Completed" || status === "Paid") {
+        if (paidAmount >= grandTotal && grandTotal > 0) status = "Paid";
+        else if (paidAmount > 0) status = "Partial";
+        else status = "Unpaid";
+    }
 
     const totalsStyle = {
         background: "#F8FAFC",
@@ -102,14 +112,14 @@ const InvoiceViewModal = ({ open, onClose, data }) => {
                             </div>
                         )}
                         <div style={{ 
-                            background: (status === "Paid" || status === "Completed") ? "#F0FDF4" : "#FFF7ED", 
+                            background: status === "Paid" ? "#F0FDF4" : status === "Partial" ? "#FFF7ED" : "#FEF2F2", 
                             padding: "6px 12px", borderRadius: 8,
                             display: "flex", alignItems: "center", gap: 6,
-                            border: `1px solid ${(status === "Paid" || status === "Completed") ? "#DCFCE7" : "#FFEDD5"}`
+                            border: `1px solid ${status === "Paid" ? "#DCFCE7" : status === "Partial" ? "#FFEDD5" : "#FECACA"}`
                         }}>
                             <span style={{ 
                                 fontSize: 12, fontWeight: 700, 
-                                color: (status === "Paid" || status === "Completed") ? "#16A34A" : "#EA580C"
+                                color: status === "Paid" ? "#16A34A" : status === "Partial" ? "#EA580C" : "#EF4444"
                             }}>
                                 {String(status).toUpperCase()}
                             </span>
@@ -137,14 +147,14 @@ const InvoiceViewModal = ({ open, onClose, data }) => {
                         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                             <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F5F3FF",
                                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                <Car size={20} style={{ color: "#8B5CF6" }} />
+                                <Car size={20} style={{ color: "#0EA5E9" }} />
                             </div>
                             <div>
-                                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827" }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827" }}>
                                     {invoice.vehicle_number || invoice.numberPlate}
                                 </p>
-                                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: "#8B5CF6", textTransform: "uppercase" }}>
-                                    Vehicle Registered
+                                <p style={{ margin: "2px 0 0", fontSize: 11, color: "#64748B" }}>
+                                    {invoice.model || invoice.vehicle_model || invoice.vehicleModel || "Vehicle Model Unknown"}
                                 </p>
                             </div>
                         </div>
@@ -174,7 +184,7 @@ const InvoiceViewModal = ({ open, onClose, data }) => {
                                     <TableRow key={i}>
                                         <TableCell sx={{ py: 1.5 }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                {item.category === "Service" ? <Wrench size={14} color="#8B5CF6" /> : <ShoppingBag size={14} color="#3B82F6" />}
+                                                {item.category === "Service" ? <Wrench size={14} color="#0EA5E9" /> : <ShoppingBag size={14} color="#3B82F6" />}
                                                 <div>
                                                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#111827" }}>{item.name}</p>
                                                     <p style={{ margin: 0, fontSize: 11, color: "#64748B" }}>{item.category}</p>
@@ -220,7 +230,7 @@ const InvoiceViewModal = ({ open, onClose, data }) => {
                         <Divider sx={{ my: 1.5 }} />
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span style={{ fontSize: 14, color: "#0F172A", fontWeight: 700 }}>Grand Total</span>
-                            <span style={{ fontSize: 20, fontWeight: 900, color: "#8B5CF6" }}>
+                            <span style={{ fontSize: 20, fontWeight: 900, color: "#0EA5E9" }}>
                                 ₹{Number(totals.grandTotal || invoice.totalAmount || 0).toLocaleString()}
                             </span>
                         </div>

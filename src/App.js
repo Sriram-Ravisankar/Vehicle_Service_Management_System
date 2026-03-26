@@ -16,20 +16,15 @@ import useAppData from "./useAppData";
 import Dashboard from "./components/Dashboard/Dashboard";
 import MechanicDashboard from "./components/Dashboard/MechanicDashboard";
 import UserList from "./pages/customer/Customers";
-import EditJobCard from "./Userinvoice/EditJobCard";
 import AddInvoice from "./pages/billing/invoice/Addinvoice";
 import AddQuotation from "./pages/billing/quotation/Addquations";
 import InvoicePage from "./pages/billing/invoice/InvoicesPage";
-import InvoiceDetails from "./pages/InvoiceDetails";
-import JobQueue from "./pages/JobQueue";
 import AddUser from "./pages/customer/AddUser";
 import Quatation from "./pages/billing/quotation/Quatation";
-import JobCard from "./Userinvoice/JobCard";
 import Product from "./components/Inventory/Product";
 import Purchase from "./components/Inventory/Purchase";
 import Supplier from "./components/Inventory/Supplier";
 import ReportsTabs from "./components/Reports/ReportsTabs";
-import MainLayout from "./Userinvoice/Mainlayout";
 import AddPurchase from "./components/Inventory/Addpurchase";
 import AddSupplier from "./components/Inventory/AddSuplier";
 import AddProduct from "./components/Inventory/Addproduct";
@@ -129,8 +124,6 @@ function AppContent() {
             <InvoicePage invoices={data.invoices} deleteItems={deleteItems} />
           }
         />
-        <Route path="/invoicedetails" element={<InvoiceDetails />} />
-        <Route path="/jobqueue" element={<JobQueue />} />
         <Route path="/product" element={<Product products={data.products} fetchData={fetchData} />} />
         <Route path="/purchase" element={<Purchase purchases={data.purchases} fetchData={fetchData} />} />
         <Route path="/supplier" element={<Supplier suppliers={data.suppliers} fetchData={fetchData} />} />
@@ -157,17 +150,6 @@ function AppContent() {
         <Route path="/upcomingservices" element={<Upcomingservices />} />
         <Route path="/services" element={<ServiceMain />} />
         <Route path="/services-form" element={<AddServiceForm />} />
-        <Route path="/edit-job-card" element={<EditJobCard />} />
-        <Route path="/jobcard" element={<JobCard />} />
-        <Route path="/main-layout" element={<MainLayout />} />
-        <Route path="/packages" element={<MainLayout />} />
-        <Route path="/all-services" element={<MainLayout />} />
-        <Route path="/wheel-alignment" element={<MainLayout />} />
-        <Route path="/wheel-balancing" element={<MainLayout />} />
-        <Route path="/wash-detailing" element={<MainLayout />} />
-        <Route path="/pms-checkups" element={<MainLayout />} />
-        <Route path="/tyres-services" element={<MainLayout />} />
-        <Route path="/details" element={<MainLayout />} />
         <Route path="/observation-library" element={<AddObservation />} />
         <Route path="/profile-settings" element={<ProfileSettings />} />
 

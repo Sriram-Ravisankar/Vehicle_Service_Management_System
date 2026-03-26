@@ -149,7 +149,7 @@ ModernKPICard.propTypes = {
   value: PropTypes.string.isRequired,
   label: PropTypes.string.isRequired,
   change: PropTypes.string,
-  trend: PropTypes.oneOf(['up', 'down']),
+  trend: PropTypes.oneOf(['up', 'down', 'neutral']),
   color: PropTypes.string,
 };
 
@@ -481,14 +481,14 @@ export default function Dashboard() {
         <Grid container spacing={2} justifyContent={"space-between"}>
           {/* Analytics Section */}
           <Grid
-            item
-            xs={12}
-            lg={4}
-            display={"flex"}
-            flexDirection={{ xs: "column", sm: "row" }}
-            justifyContent={"space-between"}
-            gap={2}
-            width={"100%"}
+            size={12}
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "space-between",
+              gap: 2,
+              width: "100%",
+            }}
           >
             <Grid
               size={12}

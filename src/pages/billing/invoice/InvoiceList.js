@@ -4,9 +4,7 @@ import PropTypes from "prop-types";
 import Pagination from "../../../components/DynamicComponents/Pagination";
 import {
   Box,
-  IconButton,
   TextField,
-  Paper,
   Tooltip,
   Snackbar,
   Alert,
@@ -16,16 +14,11 @@ import {
   Pencil, 
   Trash2, 
   Printer, 
-  FileText, 
-  Calendar, 
-  User, 
-  CreditCard 
-} from "lucide-react";
+  FileText} from "lucide-react";
 import { printInvoice } from "./InvoicePrint";
 import apiEndpoints from "../../../apiconfig";
 import SectionHeader from '../../../components/common/Header';
 import { useLoading } from "../../LoadingContext";
-import TemplateSelectionModal from "../../../components/Billing/TemplateSelectionModal";
 import InvoiceViewModal from "./InvoiceViewModal";
 
 // ── col widths ────────────────────────────────────────────────────────────────
@@ -42,15 +35,16 @@ const COL = {
 // ── status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const isPaid = status === "Paid" || status === "Completed";
+  const isPartial = status === "Partial";
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: 8,
       fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.02em",
-      background: isPaid ? "#F0FDF4" : "#FFF7ED",
-      color: isPaid ? "#16A34A" : "#EA580C",
-      border: `1px solid ${isPaid ? "#DCFCE7" : "#FFEDD5"}`
+      background: isPaid ? "#F0FDF4" : isPartial ? "#FFF7ED" : "#FEF2F2",
+      color: isPaid ? "#16A34A" : isPartial ? "#EA580C" : "#EF4444",
+      border: `1px solid ${isPaid ? "#DCFCE7" : isPartial ? "#FFEDD5" : "#FECACA"}`
     }}>
-      {status}
+      {status || "Unpaid"}
     </span>
   );
 };
@@ -69,7 +63,7 @@ const THead = () => (
       Customer / Category
     </span>
     <span style={{ width: COL.plate, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-      Vehicle
+      Vehicle No
     </span>
     <span style={{ width: COL.amount, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>
       Total Amount
@@ -78,7 +72,7 @@ const THead = () => (
       Date
     </span>
     <span style={{ width: COL.status, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
-      Status
+      Payment Status
     </span>
     <div style={{ flex: 1 }} />
     <span style={{ width: COL.action, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
@@ -98,8 +92,8 @@ const ListRow = ({ item, onView, onEdit, onDelete, onPrint, isLast }) => (
       borderBottom: isLast ? "none" : "1px solid #F3F4F6",
       cursor: "pointer", transition: "background 0.13s",
     }}
-    onMouseEnter={(e) => e.currentTarget.style.background = "#FAFAFA"}
-    onMouseLeave={(e) => e.currentTarget.style.background = ""}
+    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#FAFAFA"}
+    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
   >
     {/* ID/Number */}
     <div style={{ width: COL.id, flexShrink: 0 }}>
@@ -112,7 +106,7 @@ const ListRow = ({ item, onView, onEdit, onDelete, onPrint, isLast }) => (
     </div>
 
     {/* Customer */}
-    <div style={{ width: COL.customer, minWidth: 0 }}>
+    <div style={{ width: COL.customer, minWidth: 0, flexShrink: 0 }}>
       <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {item.customerName}
       </p>
@@ -151,7 +145,7 @@ const ListRow = ({ item, onView, onEdit, onDelete, onPrint, isLast }) => (
       <Tooltip title="Edit">
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#F5F3FF", color: "#8B5CF6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#F5F3FF", color: "#0EA5E9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
         ><Pencil size={15} /></button>
       </Tooltip>
       <Tooltip title="Print">
@@ -180,10 +174,20 @@ function InvoiceList({ invoices = [], deleteItems }) {
   // Previews
   const [viewData, setViewData] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
+  const [branches, setBranches] = useState([]);
 
-  // Template Modal State
-  const [openTemplateModal, setOpenTemplateModal] = useState(false);
-  const [printInvoiceId, setPrintInvoiceId] = useState(null);
+  React.useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch(apiEndpoints.branches, {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+        });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) setBranches(json.data);
+      } catch (err) { console.error("Branch fetch fail", err); }
+    };
+    fetchBranches();
+  }, []);
 
   const PER_PAGE = 15;
   const filteredInvoices = invoices.filter((inv) =>
@@ -192,29 +196,46 @@ function InvoiceList({ invoices = [], deleteItems }) {
   const totalPages = Math.ceil(filteredInvoices.length / PER_PAGE);
   const paginated = filteredInvoices.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
-  const handlePrintClick = (invoiceId) => {
-    setPrintInvoiceId(invoiceId);
-    setOpenTemplateModal(true);
-  };
-
-  const handleTemplateSelect = async (templateId) => {
-    setOpenTemplateModal(false);
-    if (!printInvoiceId) return;
+  const handlePrintClick = async (invoiceId) => {
     try {
       show();
-      const res = await fetch(`${apiEndpoints.Invoice}?invoice_guid=${printInvoiceId}`, {
+      const res = await fetch(`${apiEndpoints.Invoice}?invoice_guid=${invoiceId}`, {
           headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       });
       if (!res.ok) throw new Error("Failed to fetch details");
       const fullInvoice = await res.json();
-      printInvoice(fullInvoice, templateId);
+      
+      // Inject branch details if missing
+      const bi = fullInvoice.branch_id || fullInvoice.branchId;
+      const matchingBranch = branches.find(b => String(b.branch_id) === String(bi)) || branches.find(b => b.is_head_office == 1) || branches[0];
+      if (matchingBranch && (!fullInvoice.branch && !fullInvoice.branch_details)) {
+          fullInvoice.branch = matchingBranch;
+      }
+
+      // Restore vehicle model from job card if missing
+      if (!fullInvoice.vehicle_model && !fullInvoice.vehicleModel && (fullInvoice.job_guid || fullInvoice.jobGuid)) {
+        try {
+          const jcRes = await fetch(`${apiEndpoints.JobCard}?job_guid=${fullInvoice.job_guid || fullInvoice.jobGuid}`, {
+              headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+          });
+          const jcData = await jcRes.json();
+          const jcRow = Array.isArray(jcData) ? jcData[0] : jcData;
+          if (jcRow?.model || jcRow?.vehicleModel) {
+             fullInvoice.vehicle_model = jcRow.model || jcRow.vehicleModel;
+          }
+        } catch (e) { console.error("Job card fallback fail", e); }
+      }
+
+      printInvoice(fullInvoice, "standard");
     } catch (err) {
       console.error("Print failed", err);
+      setSnackbar({ open: true, message: "Failed to print invoice", severity: "error" });
     } finally {
       hide();
-      setPrintInvoiceId(null);
     }
   };
+
+
 
   const handleOpenPreview = async (invoiceId) => {
     try {
@@ -223,6 +244,28 @@ function InvoiceList({ invoices = [], deleteItems }) {
             headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         });
         const data = await res.json();
+        
+        // Inject branch if missing
+        const bi = data.branch_id || data.branchId;
+        const matchingBranch = branches.find(b => String(b.branch_id) === String(bi)) || branches.find(b => b.is_head_office == 1) || branches[0];
+        if (matchingBranch && (!data.branch && !data.branch_details)) {
+           data.branch = matchingBranch;
+        }
+
+        // Restore vehicle model from job card if missing
+        if (!data.vehicle_model && !data.vehicleModel && (data.job_guid || data.jobGuid)) {
+          try {
+            const jcRes = await fetch(`${apiEndpoints.JobCard}?job_guid=${data.job_guid || data.jobGuid}`, {
+                headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+            });
+            const jcData = await jcRes.json();
+            const jcRow = Array.isArray(jcData) ? jcData[0] : jcData;
+            if (jcRow?.model || jcRow?.vehicleModel || jcRow?.vehicle_model) {
+               data.vehicle_model = jcRow.model || jcRow.vehicleModel || jcRow.vehicle_model;
+            }
+          } catch (e) { console.error("Job card fallback for preview fail", e); }
+        }
+
         setViewData(data);
         setViewOpen(true);
     } catch {
@@ -233,7 +276,7 @@ function InvoiceList({ invoices = [], deleteItems }) {
   };
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 1.5, sm: 3, md: 4 } }}>
       <SectionHeader title="Invoices" />
 
       {/* ── SEARCH ── */}
@@ -251,7 +294,7 @@ function InvoiceList({ invoices = [], deleteItems }) {
                 paddingLeft: "35px", borderRadius: "12px", background: "#fff",
                 border: "1px solid #E2E8F0", height: '42px',
                 "& fieldset": { border: "none" },
-                "&.Mui-focused": { border: '1px solid #8B5CF6', boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)" }
+                "&.Mui-focused": { border: '1px solid #0EA5E9', boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)" }
               }
             }}
           />
@@ -271,11 +314,13 @@ function InvoiceList({ invoices = [], deleteItems }) {
       ) : (
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #F1F5F9", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
           <style>{`
-            .hide-scrollbar::-webkit-scrollbar { display: none; }
-            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .hide-scrollbar::-webkit-scrollbar { height: 6px; }
+            .hide-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+            .hide-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+            .hide-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
           `}</style>
-          <div className="hide-scrollbar" style={{ overflowX: "auto", width: "100%" }}>
-            <div style={{ minWidth: 1000 }}>
+          <div className="hide-scrollbar" style={{ overflowX: "auto", width: "100%", position: "relative" }}>
+            <div style={{ minWidth: 1200 }}>
               <THead />
               {paginated.map((item, i) => (
                 <ListRow 
@@ -300,11 +345,7 @@ function InvoiceList({ invoices = [], deleteItems }) {
         onPageChange={setCurrentPage}
       />
 
-      <TemplateSelectionModal
-        open={openTemplateModal}
-        onClose={() => setOpenTemplateModal(false)}
-        onSelect={handleTemplateSelect}
-      />
+
 
       <InvoiceViewModal 
         open={viewOpen} 

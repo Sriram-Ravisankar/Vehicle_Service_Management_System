@@ -12,6 +12,12 @@ import { useNavigate } from "react-router-dom";
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    userName: "",
+    phone_number: "",
+    email: "",
+    address: "",
+    city_id: "",
+    state_id: "",
     pincode: "",
     profile_image: "",
     role_name: localStorage.getItem("role_name") || ""

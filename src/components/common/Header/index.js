@@ -23,11 +23,8 @@ const ROUTE_TITLE_MAP = {
   "/add-invoice": "Add Invoice",
   "/edit-invoice": "Edit Invoice",
   "/view-invoice": "View Invoice",
-  "/invoicedetails": "Invoice Details",
 
-  "/jobqueue": "Job Queue",
   "/edit-job-card": "Edit Job Card",
-  "/jobcard": "Job Card",
 
   "/workersmanagement": "Workers",
 
@@ -99,7 +96,6 @@ const ROUTE_TITLE_MAP = {
 /* ---------------- Route → Add Route map ---------------- */
 const ROUTE_ADD_MAP = {
   "/invoices": "/add-invoice",
-  "/jobqueue": "/services-form",
   "/jobcard": "/services-form",
   "/product": "/add-product",
   "/purchase": "/add-purchase",
@@ -130,15 +126,6 @@ const HIDE_SINGLE_ADD_PAGES = [
   "/observation-library",
   "/profile-settings",
   "/logout",
-  "/main-layout",
-  "/packages",
-  "/all-services",
-  "/wheel-alignment",
-  "/wheel-balancing",
-  "/wash-detailing",
-  "/pms-checkups",
-  "/tyres-services",
-  "/details",
   "/stock",
   "/invoices",
 ];

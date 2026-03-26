@@ -1,5 +1,5 @@
 // AddQuotation.js
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Box,
@@ -11,8 +11,6 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Divider as MuiDivider,
-  TextField,
 } from "@mui/material";
 
 import {
@@ -37,24 +35,24 @@ const currency = (v) =>
   });
 
 const SectionCard = ({ title, children, icon: Icon, action, style = {} }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
     ...style
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+        {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
       </div>
       {action}
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const inputSx = (hasError) => ({
@@ -285,6 +283,9 @@ export default function AddQuotation() {
       ...f,
       parts: f.parts.map((p) => {
         if (p.id !== id) return p;
+
+        const numVal = Number(val);
+        if ((key === "qty" || key === "rate") && numVal < 0) return p;
         
         const update = { ...p, [key]: val };
         
@@ -306,15 +307,18 @@ export default function AddQuotation() {
   const updateLabour = (id, key, val) => {
     setForm((f) => ({
       ...f,
-      labour: f.labour.map((l) =>
-        l.id === id
-          ? {
-            ...l,
-            [key]: val,
-            amount: Number(key === "hours" ? val : l.hours) * Number(key === "rate" ? val : l.rate),
-          }
-          : l
-      ),
+      labour: f.labour.map((l) => {
+        if (l.id !== id) return l;
+
+        const numVal = Number(val);
+        if ((key === "hours" || key === "rate") && numVal < 0) return l;
+
+        return {
+          ...l,
+          [key]: val,
+          amount: Number(key === "hours" ? val : l.hours) * Number(key === "rate" ? val : l.rate),
+        };
+      }),
     }));
   };
 
@@ -419,17 +423,17 @@ export default function AddQuotation() {
 
   if (loading) return (
     <Box sx={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
-      <CircularProgress sx={{ color: "rgba(139, 92, 246, 0.9)" }} />
+      <CircularProgress sx={{ color: "rgba(14, 165, 233, 0.9)" }} />
     </Box>
   );
 
   return (
-    <Box sx={{ px: { xs: 2, md: 3 }, py: 3, background: "#fff", minHeight: "100vh" }}>
+    <Box sx={{ px: { xs: 1.5, md: 3 }, py: 3, background: "#fff", minHeight: "100vh" }}>
       {/* Header */}
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <IconButton onClick={() => navigate("/quotations")}>
-            <ArrowLeft size={28} style={{ color: "rgba(139, 92, 246, 0.9)" }} />
+            <ArrowLeft size={28} style={{ color: "rgba(14, 165, 233, 0.9)" }} />
           </IconButton>
           <Typography variant="h5" sx={{ fontWeight: 700, color: "#111827" }}>
             {isCreateMode ? "Create Quotation" : isViewMode ? "View Quotation" : "Edit Quotation"}
@@ -441,8 +445,8 @@ export default function AddQuotation() {
       <SectionCard title="Quotation Details" icon={FileText}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Job Card</Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Job Card</Typography>
               <select
                 disabled={isViewMode}
                 value={form.job_guid}
@@ -459,8 +463,8 @@ export default function AddQuotation() {
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Quotation Date</Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Quotation Date</Typography>
               <input
                 type="date"
                 disabled={isViewMode}
@@ -471,8 +475,8 @@ export default function AddQuotation() {
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Expiry Date</Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Expiry Date</Typography>
               <input
                 type="date"
                 disabled={isViewMode}
@@ -483,8 +487,8 @@ export default function AddQuotation() {
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Status</Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Status</Typography>
               <select disabled={isViewMode} value={form.status} style={inputSx()} onChange={(e) => setForm(s => ({ ...s, status: e.target.value }))}>
                 <option value="Approval Pending">Approval Pending</option>
                 <option value="Approved">Approved</option>
@@ -525,8 +529,8 @@ export default function AddQuotation() {
                   ))}
                 </select>
                 <input placeholder="Part Name..." value={p.name} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
-                <input type="number" placeholder="Qty" value={p.qty} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
-                <input type="number" placeholder="Rate" value={p.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
+                <input type="number" placeholder="Qty" value={p.qty} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
+                <input type="number" placeholder="Rate" value={p.rate} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(p.amount)}</div>
                 {!isViewMode && (
                   <button onClick={() => removePart(p.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -542,8 +546,8 @@ export default function AddQuotation() {
                 onClick={addPart}
                 startIcon={<Plus size={16} />}
                 sx={{ 
-                  bgcolor: "rgba(139, 92, 246, 0.9)", 
-                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  bgcolor: "rgba(14, 165, 233, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" },
                   textTransform: "none",
                   borderRadius: "8px",
                   fontSize: 12,
@@ -590,8 +594,8 @@ export default function AddQuotation() {
                       </option>
                     ))}
                 </select>
-                <input type="number" placeholder="Hours" value={l.hours} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
-                <input type="number" placeholder="Rate" value={l.rate} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
+                <input type="number" placeholder="Hours" value={l.hours} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
+                <input type="number" placeholder="Rate" value={l.rate} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
                 {!isViewMode && (
                   <button onClick={() => removeLabour(l.id)} style={{ border: "none", background: "#FEF2F2", color: "#EF4444", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -607,8 +611,8 @@ export default function AddQuotation() {
                 onClick={addLabour}
                 startIcon={<Plus size={16} />}
                 sx={{ 
-                  bgcolor: "rgba(139, 92, 246, 0.9)", 
-                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  bgcolor: "rgba(14, 165, 233, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" },
                   textTransform: "none",
                   borderRadius: "8px",
                   fontSize: 12,
@@ -624,21 +628,21 @@ export default function AddQuotation() {
         </Box>
       </SectionCard>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 24, alignItems: "stretch" }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 400px" }, gap: { xs: 2, md: 3 }, alignItems: "stretch" }}>
         <div style={{ height: "100%" }}>
           <SectionCard title="Pricing & Notes" icon={Wallet} style={{ height: "100%", marginBottom: 0 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
                   <select disabled={isViewMode} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 }}))}>
                     <option value="percent">Percentage (%)</option>
                     <option value="amount">Fixed Amount (₹)</option>
                   </select>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
-                  <input type="number" disabled={isViewMode} value={form.totals?.discountValue || 0} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Number(e.target.value) }}))} />
+                  <input type="number" disabled={isViewMode} value={form.totals?.discountValue || 0} style={inputSx(false)} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Math.max(0, Number(e.target.value)) }}))} />
                 </div>
               </div>
 
@@ -664,7 +668,7 @@ export default function AddQuotation() {
                 <label style={{ fontSize: 13, fontWeight: 700, color: form.totals.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
                 {form.totals.includeGST && (
                   <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
-                     <input type="number" disabled={isViewMode} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Number(e.target.value) }}))} />
+                     <input type="number" disabled={isViewMode} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Math.max(0, Number(e.target.value)) }}))} />
                   </div>
                 )}
               </div>
@@ -672,7 +676,7 @@ export default function AddQuotation() {
           </SectionCard>
         </div>
 
-        <div style={{ background: "#1F2937", borderRadius: 20, padding: "32px", color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ background: "#1F2937", borderRadius: "20px", p: { xs: 3, md: 4 }, color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
           <h4 style={{ margin: "0 0 24px 0", fontSize: 16, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Quotation Summary</h4>
           
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -703,13 +707,13 @@ export default function AddQuotation() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span style={{ fontSize: 18, fontWeight: 700 }}>Total Estimate</span>
               <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: "#8B5CF6" }}>₹ {currency(form.totals?.grandTotal)}</span>
+                <span style={{ fontSize: 32, fontWeight: 800, color: "#0EA5E9" }}>₹ {currency(form.totals?.grandTotal)}</span>
                 <p style={{ margin: 0, fontSize: 11, color: "#9CA3AF" }}>Final amount may vary</p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Footer Action */}
       {!isViewMode && (
@@ -725,9 +729,9 @@ export default function AddQuotation() {
               fontSize: 15,
               px: 6, 
               py: 1.5,
-              bgcolor: "rgba(139, 92, 246, 0.9)", 
-              boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.2)",
-              "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" }
+              bgcolor: "rgba(14, 165, 233, 0.9)", 
+              boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" }
             }}
           >
             {working ? "Saving Quotation..." : "Save Quotation"}

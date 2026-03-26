@@ -229,6 +229,7 @@ try {
             FROM invoice i
             WHERE admin_guid = '$adminGuid'
               AND i.isdelete = 0
+              AND i.paid_amount > 0
         ";
         $revenueRow = $conn->query($revenueSql)->fetch_assoc();
 
@@ -263,7 +264,7 @@ try {
         }
         $supplierSpendData = $supplierSpend;
         // Fetch all invoices to process items in PHP (avoid JSON_TABLE for MariaDB compatibility)
-        $invoiceItemsSql = "SELECT items FROM invoice WHERE admin_guid = '$adminGuid' AND isdelete = 0";
+        $invoiceItemsSql = "SELECT items FROM invoice WHERE admin_guid = '$adminGuid' AND isdelete = 0 AND paid_amount > 0";
         $invoiceItemsRes = $conn->query($invoiceItemsSql);
 
         $totalProductQuantity = 0;
@@ -312,6 +313,7 @@ try {
 FROM invoice i
 WHERE i.admin_guid = '$adminGuid'
   AND i.isdelete = 0
+  AND i.paid_amount > 0
   AND YEAR(i.created_on) = YEAR(CURDATE())
 GROUP BY MONTH(i.created_on)
 ORDER BY month_no;

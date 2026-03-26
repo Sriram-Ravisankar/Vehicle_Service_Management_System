@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -77,13 +77,7 @@ export default function GraphDashboard() {
     fetchDashboard();
   }, []);
 
-  const getColumns = () => {
-    if (width < 640) return 1;
-    if (width < 992) return 2;
-    return 3;
-  };
 
-  const columns = getColumns();
   const cardHeight = width < 640 ? 280 : width < 992 ? 320 : 360;
 
   const page = {
@@ -117,15 +111,8 @@ export default function GraphDashboard() {
     flexDirection: "column",
   };
 
-  const statRow = {
-    display: "grid",
-    gridTemplateColumns:
-      width < 640 ? "1fr" : width < 992 ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-    gap: 16,
-    marginBottom: 12,
-  };
 
-  const statCard = (type) => {
+  const statCard = () => {
     return {
       background: "#ffffff",
       borderRadius: 16,

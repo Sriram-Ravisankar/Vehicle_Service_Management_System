@@ -14,7 +14,7 @@ export default function InvoicePage() {
 
 const fetchInvoices = async () => {
   try {
-    // show(); // 🌍 GLOBAL LOADER ON
+   
 
     const res = await fetch(apiEndpoints.Invoice + "?list=1", {
       headers: { Authorization: `Bearer ${token}` },
@@ -31,21 +31,28 @@ const fetchInvoices = async () => {
       totalAmount: inv.totals?.grandTotal ?? 0,
       paidAmount: inv.paid_amount,
       invoiceDate: inv.created_on?.split(" ")[0] ?? "",
-      status: inv.status ?? "Completed",
+      status: (() => {
+        if (inv.status && inv.status !== "Completed" && inv.status !== "Paid") return inv.status;
+        const total = Number(inv.totals?.grandTotal || 0);
+        const paid = Number(inv.paid_amount || 0);
+        if (paid >= total && total > 0) return "Paid";
+        if (paid > 0) return "Partial";
+        return "Unpaid";
+      })(),
     }));
 
     setInvoices(formatted);
   } catch (err) {
     console.error("Failed to fetch invoices:", err);
   } finally {
-    // hide(); // 🌍 GLOBAL LOADER OFF
+    
   }
 };
 
 
 const deleteItems = async (type, ids) => {
   try {
-    show(); // 🌍 GLOBAL LOADER ON
+    
 
     for (let invoice_guid of ids) {
       await fetch(apiEndpoints.Invoice + "?invoice_guid=" + invoice_guid, {
@@ -58,7 +65,7 @@ const deleteItems = async (type, ids) => {
   } catch (err) {
     console.error("Failed to delete invoices:", err);
   } finally {
-    hide(); // 🌍 GLOBAL LOADER OFF
+    
   }
 };
 

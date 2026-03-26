@@ -164,7 +164,7 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     },
 
     header: {
-      padding: "20px 24px",
+      padding: "12px 24px",
       borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
       marginTop: isDesktop ? 0 : -8,
     },
@@ -172,8 +172,8 @@ export default function Sidebar({ isOpen, onClose, isDesktop, width = 280 }) {
     logoContainer: {
       display: "flex",
       alignItems: "center",
-      gap: "16px",
-      marginBottom: "12px",
+      gap: "12px",
+      marginBottom: "4px",
     },
 
     logoImage: {

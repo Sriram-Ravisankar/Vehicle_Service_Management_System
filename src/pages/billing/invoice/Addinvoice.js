@@ -36,24 +36,24 @@ const currency = (v) =>
   });
 
 const SectionCard = ({ title, children, icon: Icon, action, style = {} }) => (
-  <div style={{
+  <Box sx={{
     background: "#fff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #F3F4F6",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    padding: "24px",
-    marginBottom: 24,
+    p: { xs: 2, md: 3 },
+    mb: 3,
     ...style
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {Icon && <Icon size={18} style={{ color: "#8B5CF6" }} />}
+        {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
       </div>
       {action}
     </div>
     {children}
-  </div>
+  </Box>
 );
 
 const inputSx = (hasError) => ({
@@ -137,6 +137,7 @@ export default function AddInvoice() {
     invoiceDate: "",
     customerName: "",
     numberPlate: "",
+    vehicleModel: "", // New field for printing
     items: [],
     discountType: "percent",
     discount: 0,
@@ -185,6 +186,7 @@ export default function AddInvoice() {
       ...prev,
       customerName: quotation.customer_name,
       numberPlate: quotation.vehicle_number || quotation.vehicle_no,
+      vehicleModel: quotation.vehicle_model || quotation.vehicleModel || "",
       items: [...itemsFromParts, ...itemsFromLabour],
       subtotal: totals.subtotal || 0,
       discountType: totals.discountType || "percent",
@@ -320,6 +322,10 @@ export default function AddInvoice() {
     setFormData((prev) => {
       const updatedItems = prev.items.map((item) => {
         if (item.id !== id) return item;
+
+        const numVal = Number(value);
+        if ((key === "qty" || key === "price" || key === "total") && numVal < 0) return item;
+
         let updated = { ...item, [key]: value };
 
         if (key === "product_id" && value) {
@@ -459,7 +465,7 @@ export default function AddInvoice() {
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <IconButton onClick={() => navigate("/invoices")}>
-            <ArrowLeft size={28} style={{ color: "rgba(139, 92, 246, 0.9)" }} />
+            <ArrowLeft size={28} style={{ color: "rgba(14, 165, 233, 0.9)" }} />
           </IconButton>
           <Typography variant="h5" sx={{ fontWeight: 700, color: "#111827" }}>
             {isEdit ? (isView ? "View Invoice" : "Edit Invoice") : "Create Invoice"}
@@ -470,9 +476,9 @@ export default function AddInvoice() {
       {/* Invoice Details */}
       <SectionCard title="Invoice Details" icon={FileText}>
         <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Invoice Date</Typography>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>Invoice Date</Typography>
               <input
                 type="date"
                 disabled={isView}
@@ -482,9 +488,9 @@ export default function AddInvoice() {
               />
             </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Customer Name</Typography>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>Customer Name</Typography>
               <input
                 disabled
                 value={formData.customerName || "---"}
@@ -492,9 +498,9 @@ export default function AddInvoice() {
               />
             </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography sx={{ ...labelStyle, mb: 0, width: 140, flexShrink: 0 }}>Number Plate</Typography>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>Number Plate</Typography>
               <input
                 disabled
                 value={formData.numberPlate || "---"}
@@ -532,8 +538,8 @@ export default function AddInvoice() {
                   ))}
                 </select>
                 <input placeholder="Description..." value={item.name} disabled={isView} style={inputSx(false)} onChange={(e) => updateItem(item.id, "name", e.target.value)} />
-                <input type="number" placeholder="Qty" value={item.qty} disabled={isView} style={inputSx(false)} onChange={(e) => updateItem(item.id, "qty", Number(e.target.value))} />
-                <input type="number" placeholder="Rate" value={item.price} disabled={isView} style={inputSx(false)} onChange={(e) => updateItem(item.id, "price", Number(e.target.value))} />
+                <input type="number" placeholder="Qty" value={item.qty} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateItem(item.id, "qty", Number(e.target.value))} />
+                <input type="number" placeholder="Rate" value={item.price} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateItem(item.id, "price", Number(e.target.value))} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(item.total)}</div>
                 {!isView ? (
                   <IconButton onClick={() => deleteItem(item.id)} size="small" sx={{ color: "#EF4444", "&:hover": { bgcolor: "#FEF2F2" } }}>
@@ -550,8 +556,8 @@ export default function AddInvoice() {
                 startIcon={<Plus size={16} />}
                 variant="contained"
                 sx={{ 
-                  bgcolor: "rgba(139, 92, 246, 0.9)", 
-                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  bgcolor: "rgba(14, 165, 233, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" },
                   textTransform: "none",
                   borderRadius: "8px",
                   fontSize: 12,
@@ -579,7 +585,7 @@ export default function AddInvoice() {
             {labour.map((lb) => (
               <div key={lb.id} style={{ display: "grid", gridTemplateColumns: "1fr 150px 40px", gap: 12, alignItems: "center" }}>
                 <input placeholder="Labour Title..." value={lb.name} disabled={isView} style={inputSx(false)} onChange={(e) => updateItem(lb.id, "name", e.target.value)} />
-                <input type="number" placeholder="Amount" value={lb.total} disabled={isView} style={{...inputSx(false), textAlign: "right"}} onChange={(e) => updateItem(lb.id, "total", Number(e.target.value))} />
+                <input type="number" placeholder="Amount" value={lb.total} disabled={isView} style={{...inputSx(false), textAlign: "right"}} min="0" onChange={(e) => updateItem(lb.id, "total", Number(e.target.value))} />
                 {!isView ? (
                   <IconButton onClick={() => deleteItem(lb.id)} size="small" sx={{ color: "#EF4444", "&:hover": { bgcolor: "#FEF2F2" } }}>
                     <Trash2 size={16} />
@@ -595,8 +601,8 @@ export default function AddInvoice() {
                 startIcon={<Plus size={16} />}
                 variant="contained"
                 sx={{ 
-                  bgcolor: "rgba(139, 92, 246, 0.9)", 
-                  "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" },
+                  bgcolor: "rgba(14, 165, 233, 0.9)", 
+                  "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" },
                   textTransform: "none",
                   borderRadius: "8px",
                   fontSize: 12,
@@ -611,7 +617,7 @@ export default function AddInvoice() {
         </Box>
       </SectionCard>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 24, alignItems: "stretch" }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 400px" }, gap: { xs: 2, md: 3 }, alignItems: "stretch" }}>
         <div style={{ height: "100%" }}>
           <SectionCard title="Pricing Summary" icon={Wallet} style={{ height: "100%", marginBottom: 0 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -625,7 +631,24 @@ export default function AddInvoice() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
-                  <input type="number" disabled={isView} value={formData.discount || 0} style={inputSx(false)} onChange={(e) => setFormData(f => ({ ...f, discount: Number(e.target.value) }))} />
+                  <input type="number" disabled={isView} value={formData.discount || 0} style={inputSx(false)} min="0" onChange={(e) => setFormData(f => ({ ...f, discount: Math.max(0, Number(e.target.value)) }))} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Payment Method</label>
+                  <select disabled={isView} value={formData.paymentMethod} style={inputSx(false)} onChange={(e) => setFormData(f => ({ ...f, paymentMethod: e.target.value }))}>
+                    <option value="">Select Method</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Online">Online Transfer</option>
+                    <option value="Card">Card Payment</option>
+                    <option value="UPI">UPI / GPay / PhonePe</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Recieved Amount (₹)</label>
+                  <input type="number" disabled={isView} value={formData.paidAmount} style={inputSx(false)} placeholder="Enter amount..." onChange={(e) => setFormData(f => ({ ...f, paidAmount: e.target.value }))} />
                 </div>
               </div>
 
@@ -642,16 +665,17 @@ export default function AddInvoice() {
                   border: `1px solid ${formData.includeGST ? "#C7D2FE" : "#E5E7EB"}`,
                   width: "fit-content",
                   transition: "all 0.2s",
-                  marginTop: 8
+                  marginTop: 8,
+                  flexWrap: "wrap"
                 }}
               >
                 <div style={{ color: formData.includeGST ? "#6366F1" : "#D1D5DB" }}>
                   {formData.includeGST ? <CheckCircle2 size={18} fill="#6366F1" color="#fff" /> : <Circle size={18} />}
                 </div>
                 <label style={{ fontSize: 13, fontWeight: 700, color: formData.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
-                {formData.includeGST && (
+                 {formData.includeGST && (
                   <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
-                     <input type="number" disabled={isView} value={formData.gst || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} onChange={(e) => setFormData(f => ({ ...f, gst: Number(e.target.value) }))} />
+                     <input type="number" disabled={isView} value={formData.gst || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} min="0" onChange={(e) => setFormData(f => ({ ...f, gst: Math.max(0, Number(e.target.value)) }))} />
                   </div>
                 )}
               </div>
@@ -659,7 +683,7 @@ export default function AddInvoice() {
           </SectionCard>
         </div>
 
-        <div style={{ background: "#1F2937", borderRadius: 20, padding: "32px", color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ background: "#1F2937", borderRadius: "20px", p: { xs: 3, md: 4 }, color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
           <h4 style={{ margin: "0 0 24px 0", fontSize: 16, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Invoice Summary</h4>
           
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -690,12 +714,12 @@ export default function AddInvoice() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span style={{ fontSize: 18, fontWeight: 700 }}>Total Payable</span>
               <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 32, fontWeight: 800, color: "#8B5CF6" }}>₹ {currency(formData.grandTotal)}</span>
+                <span style={{ fontSize: 32, fontWeight: 800, color: "#0EA5E9" }}>₹ {currency(formData.grandTotal)}</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Footer Action */}
       {!isView && (
@@ -710,9 +734,9 @@ export default function AddInvoice() {
               fontSize: 15,
               px: 6, 
               py: 1.5,
-              bgcolor: "rgba(139, 92, 246, 0.9)", 
-              boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.2)",
-              "&:hover": { bgcolor: "rgba(139, 92, 246, 1)" }
+              bgcolor: "rgba(14, 165, 233, 0.9)", 
+              boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              "&:hover": { bgcolor: "rgba(14, 165, 233, 1)" }
             }}
           >
             Save Invoice

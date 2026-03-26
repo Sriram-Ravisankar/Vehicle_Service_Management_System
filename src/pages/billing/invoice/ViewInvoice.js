@@ -16,7 +16,6 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PrintIcon from "@mui/icons-material/Print";
 import apiEndpoints from "../../../apiconfig";
-import TemplateSelectionModal from "../../../components/Billing/TemplateSelectionModal";
 import { printInvoice } from "./InvoicePrint";
 
 export default function ViewInvoice() {
@@ -25,7 +24,6 @@ export default function ViewInvoice() {
   const token = sessionStorage.getItem("token");
 
   const [invoice, setInvoice] = useState(null);
-  const [openTemplateModal, setOpenTemplateModal] = useState(false);
 
   useEffect(() => {
     fetchInvoice();
@@ -40,10 +38,9 @@ export default function ViewInvoice() {
     setInvoice(data);
   };
 
-  const handleTemplateSelect = (templateId) => {
-    setOpenTemplateModal(false);
+  const handlePrint = () => {
     if (invoice) {
-      printInvoice(invoice, templateId);
+      printInvoice(invoice, "standard");
     }
   };
 
@@ -72,7 +69,7 @@ export default function ViewInvoice() {
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
           sx={{
-            color: "rgba(139, 92, 246, 0.9)",
+            color: "rgba(14, 165, 233, 0.9)",
           }}
         >
           Back
@@ -80,9 +77,9 @@ export default function ViewInvoice() {
         <Button
           startIcon={<PrintIcon />}
           variant="contained"
-          onClick={() => setOpenTemplateModal(true)}
+          onClick={handlePrint}
           sx={{
-            bgcolor: "#8B5CF6",
+            bgcolor: "#0EA5E9",
             "&:hover": { bgcolor: "#ea580c" },
           }}
         >
@@ -246,12 +243,6 @@ export default function ViewInvoice() {
           </Typography>
         </Box>
       </Paper>
-
-      <TemplateSelectionModal
-        open={openTemplateModal}
-        onClose={() => setOpenTemplateModal(false)}
-        onSelect={handleTemplateSelect}
-      />
     </Box>
   );
 }

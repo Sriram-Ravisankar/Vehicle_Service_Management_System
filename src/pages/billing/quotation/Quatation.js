@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Button,
   IconButton,
-  Menu,
   MenuItem,
   Typography,
   TextField,
@@ -13,8 +12,6 @@ import {
   DialogContent,
   DialogTitle,
   Paper,
-  Chip,
-  Grid,
   Card,
   CardContent,
   Stack,
@@ -22,18 +19,14 @@ import {
 } from "@mui/material";
 
 import {
-  MoreVertical,
-  Plus,
   Printer,
   Trash2,
-  Eye,
   Pencil,
   Search,
   CheckCircle,
   Clock,
   XCircle,
   FileText,
-  ChevronRight,
   TrendingUp,
 } from "lucide-react";
 
@@ -43,7 +36,6 @@ import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
 import { printQuotation } from "./QuotationPrint";
 import { useLoading } from "../../LoadingContext";
-import TemplateSelectionModal from "../../../components/Billing/TemplateSelectionModal";
 
 // Constants for colors
 const STATUS_COLORS = {
@@ -51,7 +43,7 @@ const STATUS_COLORS = {
   "Approved": { bg: "#E0E7FF", text: "#4338CA", icon: <CheckCircle size={16} /> },
   "Work In Progress": { bg: "#EFF6FF", text: "#3B82F6", icon: <TrendingUp size={16} /> },
   "Completed": { bg: "#ECFDF5", text: "#059669", icon: <CheckCircle size={16} /> },
-  "Delivered": { bg: "#F5F3FF", text: "#8B5CF6", icon: <CheckCircle size={16} /> },
+  "Delivered": { bg: "#F5F3FF", text: "#0EA5E9", icon: <CheckCircle size={16} /> },
   "Cancelled": { bg: "#FEF2F2", text: "#EF4444", icon: <XCircle size={16} /> },
 };
 
@@ -66,13 +58,11 @@ export default function QuotationList() {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8; 
 
-  const [openTemplateModal, setOpenTemplateModal] = useState(false);
-  const [printQuotationGuid, setPrintQuotationGuid] = useState(null);
-
   const [confirmPopup, setConfirmPopup] = useState({
     open: false,
     quotation: null,
   });
+  const [branches, setBranches] = useState([]);
 
   /* ---------------- LOAD LIST ---------------- */
   const loadQuotations = async () => {
@@ -92,6 +82,16 @@ export default function QuotationList() {
 
   useEffect(() => {
     loadQuotations();
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch(apiEndpoints.branches, {
+            headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+        });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) setBranches(json.data);
+      } catch (err) { console.error("Branch fetch fail", err); }
+    };
+    fetchBranches();
   }, []);
 
   /* ---------------- STATS ---------------- */
@@ -216,30 +216,63 @@ export default function QuotationList() {
   };
 
   /* ---------------- HANDLE PRINT ---------------- */
-  const handlePrintClick = () => {
-    if (selectedRow) {
-      setPrintQuotationGuid(selectedRow.quotation_guid);
-      setOpenTemplateModal(true);
-    }
-  };
-
-  const handleTemplateSelect = async (templateId) => {
-    setOpenTemplateModal(false);
-    if (!printQuotationGuid) return;
-
+  const handlePrintClick = async (row) => {
+    if (!row) return;
     try {
       show();
-      const full = await fetchFullQuotation(printQuotationGuid);
-      if (full) {
-        printQuotation(full, templateId);
+      let full = await fetchFullQuotation(row.quotation_guid);
+      if (!full) return;
+
+      // Ensure we have a job guid
+      const jobGuid = full.job_guid || full.jobGuid || row.job_guid || row.jobGuid;
+
+      // 1. Fetch Job Card details to get missing info (Vehicle, Mobile, BranchID)
+      if (jobGuid) {
+        try {
+          const jcRes = await fetch(`${apiEndpoints.JobCard}?job_guid=${jobGuid}`, {
+              headers: { Authorization: `Bearer ${token}` },
+          });
+          const jcData = await jcRes.json();
+          const jcRow = Array.isArray(jcData) ? jcData[0] : jcData;
+          
+          if (jcRow) {
+            // Helper for effective override
+            const isInvalid = (v) => !v || v === "-";
+            
+            if (isInvalid(full.number_plate)) {
+              full.number_plate = jcRow.vehicleNumber || jcRow.vehicle_number || jcRow.number_plate || jcRow.numberPlate || jcRow.vehicleNo || jcRow.vehicle_no || jcRow.reg_no;
+            }
+            if (isInvalid(full.customer_mobile)) {
+              full.customer_mobile = jcRow.mobile || jcRow.customerMobile || jcRow.customer_mobile;
+            }
+            if (isInvalid(full.vehicle_model)) {
+              full.vehicle_model = (jcRow.make ? `${jcRow.make} ${jcRow.model || ""}` : jcRow.model) || jcRow.vehicleModel || jcRow.vehicle_model || jcRow.vehicle_details?.model;
+            }
+            full.branch_id = full.branch_id || jcRow.branch_id || jcRow.branchId;
+            full.created_by_name = full.created_by_name || jcRow.worker_name || jcRow.mechanic_name || jcRow.prepared_by;
+          }
+        } catch (e) { console.error("Job card fetch fail", e); }
       }
+
+      // 2. Inject Branch details from matches in the list
+      const bi = full.branch_id || full.branchId;
+      const matchingBranch = branches.find(b => String(b.branch_id) === String(bi)) || 
+                             branches.find(b => b.is_head_office == 1) || 
+                             branches[0];
+
+      if (matchingBranch) {
+          full.branch = matchingBranch;
+      }
+
+      printQuotation(full, "standard");
     } catch (e) {
       console.error("Print error:", e);
     } finally {
       hide();
-      setPrintQuotationGuid(null);
     }
   };
+
+
 
   const StatCard = ({ title, value, color, icon: Icon }) => (
     <Card sx={{ 
@@ -296,7 +329,7 @@ export default function QuotationList() {
       }}>
         <StatCard title="Total Quotations" value={stats.total} color="#3B82F6" icon={FileText} />
         <StatCard title="Approval Pending" value={stats.pending} color="#EA580C" icon={Clock} />
-        <StatCard title="Work In Progress" value={stats.wip} color="#8B5CF6" icon={TrendingUp} />
+        <StatCard title="Work In Progress" value={stats.wip} color="#0EA5E9" icon={TrendingUp} />
         <StatCard title="Completed" value={stats.completed} color="#10B981" icon={CheckCircle} />
       </Box>
 
@@ -327,8 +360,8 @@ export default function QuotationList() {
                 transition: 'all 0.2s',
                 "& fieldset": { border: "none" },
                 "&.Mui-focused": { 
-                  boxShadow: "0 0 0 2px rgba(139, 92, 246, 0.15)",
-                  border: '1px solid #8B5CF6'
+                  boxShadow: "0 0 0 2px rgba(14, 165, 233, 0.15)",
+                  border: '1px solid #0EA5E9'
                 }
               }
             }}
@@ -426,14 +459,14 @@ export default function QuotationList() {
                             <IconButton 
                               onClick={() => navigate("/edit-quotation/" + row.quotation_guid)} 
                               size="small" 
-                              sx={{ color: "#8B5CF6", '&:hover': { backgroundColor: "#F5F3FF" } }}
+                              sx={{ color: "#0EA5E9", '&:hover': { backgroundColor: "#F5F3FF" } }}
                             >
                               <Pencil size={18} />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Print">
                             <IconButton 
-                              onClick={() => { setPrintQuotationGuid(row.quotation_guid); setOpenTemplateModal(true); }} 
+                              onClick={() => handlePrintClick(row)} 
                               size="small" 
                               sx={{ color: "#10B981", '&:hover': { backgroundColor: "#ECFDF5" } }}
                             >
@@ -529,11 +562,7 @@ export default function QuotationList() {
         </DialogActions>
       </Dialog>
 
-      <TemplateSelectionModal
-        open={openTemplateModal}
-        onClose={() => setOpenTemplateModal(false)}
-        onSelect={handleTemplateSelect}
-      />
+
     </Box>
   );
 }

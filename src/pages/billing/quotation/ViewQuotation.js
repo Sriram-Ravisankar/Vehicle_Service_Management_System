@@ -1,5 +1,5 @@
 // src/components/Quotation/ViewQuotation.js
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -118,7 +118,7 @@ export default function ViewQuotation() {
 
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 1.5, md: 4 } }}>
       {/* BACK */}
       <Button
         startIcon={<ArrowBackIcon />}
@@ -128,13 +128,13 @@ export default function ViewQuotation() {
         Back
       </Button>
 
-      <Paper sx={{ p: 4 }}>
+      <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: "16px", border: "1px solid #F3F4F6", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Quotation #{quotation.quotation_no}
         </Typography>
 
         {/* BASIC INFO — SAME LAYOUT AS INVOICE */}
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 3 }}>
           <Box>
             <Typography fontWeight={600}>Customer Name</Typography>
             <Typography>{quotation.customer_name}</Typography>
@@ -168,7 +168,8 @@ export default function ViewQuotation() {
           Parts
         </Typography>
 
-        <Table sx={{ mt: 2 }}>
+        <Box sx={{ overflowX: "auto", width: "100%", mt: 2 }}>
+          <Table>
           <TableHead>
             <TableRow>
               <TableCell>Part</TableCell>
@@ -196,7 +197,8 @@ export default function ViewQuotation() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </Box>
 
         <Divider sx={{ my: 3 }} />
 
@@ -205,7 +207,8 @@ export default function ViewQuotation() {
           Labour Charges
         </Typography>
 
-        <Table sx={{ mt: 2 }}>
+        <Box sx={{ overflowX: "auto", width: "100%", mt: 2 }}>
+          <Table>
           <TableHead>
             <TableRow>
               <TableCell>Labour</TableCell>
@@ -233,12 +236,13 @@ export default function ViewQuotation() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </Box>
 
         <Divider sx={{ my: 3 }} />
 
         {/* TOTALS — IDENTICAL TO INVOICE */}
-        <Box sx={{ width: "300px", ml: "auto" }}>
+        <Box sx={{ width: { xs: "100%", sm: "300px" }, ml: "auto", mt: 3 }}>
           <Typography>Product Total: ₹{quotation.totals?.partsTotal}</Typography>
           <Typography>
             Discount: -₹{quotation.totals?.discountAmount}

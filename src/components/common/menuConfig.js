@@ -125,7 +125,7 @@ const menuItems = [
     label: "Invoices",
     icon: ReceiptIcon,
     route: "/invoices",
-    activePaths: ["/add-invoice", "/invoicedetails", "/ViewInvoice"],
+    activePaths: ["/add-invoice", "/ViewInvoice"],
     permissions: ["view_invoices"],
   },
 
