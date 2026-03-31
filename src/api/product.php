@@ -162,7 +162,8 @@ if ($method === 'POST') {
             'image'          => $imagePath,
             'purchase_date'  => $_POST['purchase_date'] ?? null,
             'branch'         => $_POST['branch'] ?? null,
-            'price'          => isset($_POST['price']) ? $_POST['price'] : null,
+            'price'          => isset($_POST['purchase_price']) ? $_POST['purchase_price'] : (isset($_POST['price']) ? $_POST['price'] : null),
+            'selling_price'  => $_POST['selling_price'] ?? null,
             'warranty'       => $_POST['warranty'] ?? null,
             'isActive'       => isset($_POST['isActive']) ? intval($_POST['isActive']) : 1,
             'isDeleted'      => 0
@@ -176,7 +177,7 @@ if ($method === 'POST') {
             foreach ($input as $k => $v) {
                 $setParts[] = "$k = ?";
                 // determine bind type
-                if (in_array($k, ['price'], true)) {
+                if (in_array($k, ['price', 'selling_price'], true)) {
                     $types .= 'd';
                     $values[] = ($v !== null && $v !== '') ? floatval($v) : null;
                 } elseif (in_array($k, ['isActive', 'isDeleted'], true)) {
@@ -233,7 +234,7 @@ if ($method === 'POST') {
             $types = '';
             $values = [];
             foreach ($input as $k => $v) {
-                if (in_array($k, ['price'], true)) {
+                if (in_array($k, ['price', 'selling_price'], true)) {
                     $types .= 'd';
                     $values[] = ($v !== null && $v !== '') ? floatval($v) : null;
                 } elseif (in_array($k, ['isActive', 'isDeleted'], true)) {
@@ -340,15 +341,15 @@ if ($method === 'GET') {
     }
 }
 
-// ---------- DELETE: hard delete by ID (only owner) ----------
+// ---------- DELETE: soft delete by ID (only owner) ----------
 if ($method === 'DELETE') {
     try {
         parse_str(file_get_contents("php://input"), $deleteVars);
         $id = isset($deleteVars['id']) ? intval($deleteVars['id']) : (isset($_GET['id']) ? intval($_GET['id']) : null);
         if (!$id) throw new Exception("Product ID required for delete");
 
-        // Delete only where admin_guid matches
-        $stmt = $conn->prepare("DELETE FROM products WHERE id = ? AND admin_guid = ?");
+        // Soft delete only where admin_guid matches
+        $stmt = $conn->prepare("UPDATE products SET isDeleted = 1 WHERE id = ? AND admin_guid = ?");
         $stmt->bind_param("is", $id, $admin_guid);
         $stmt->execute();
         if ($stmt->affected_rows === 0) {

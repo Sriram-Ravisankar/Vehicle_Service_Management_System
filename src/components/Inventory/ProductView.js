@@ -52,7 +52,8 @@ const ProductViewModal = ({ open, onClose, data }) => {
 
   const name   = data.product_name   || data.ProductName   || "—";
   const number = data.product_number || data.ProductNumber || "—";
-  const price  = data.price          || data.Price         || 0;
+  const purchasePrice = data.purchase_price || data.price || data.PurchasePrice || 0;
+  const sellingPrice  = data.selling_price  || data.SellingPrice  || 0;
   const image  = data.image          || data.Image         || "";
   const mfg    = data.manufacturer_name || "";
   const color  = data.color || "";
@@ -116,8 +117,11 @@ const ProductViewModal = ({ open, onClose, data }) => {
                 fontWeight: 800, fontSize: 18,
                 padding: "4px 0", borderRadius: 8,
               }}>
-                ₹{Number(price).toLocaleString()}
+                Selling: ₹{Number(sellingPrice).toLocaleString()}
               </span>
+              <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>
+                Cost: ₹{Number(purchasePrice).toLocaleString()}
+              </div>
             </Box>
           </Box>
         </Box>
@@ -126,7 +130,8 @@ const ProductViewModal = ({ open, onClose, data }) => {
 
         {/* detail rows */}
         <DetailRow icon={Hash}       label="Product Number" value={number} />
-        <DetailRow icon={DollarSign} label="Market Price"        value={`₹${Number(price).toLocaleString()}`} />
+        <DetailRow icon={DollarSign} label="Purchase Price (Cost)" value={`₹${Number(purchasePrice).toLocaleString()}`} />
+        <DetailRow icon={DollarSign} label="Selling Price (MRP)"   value={`₹${Number(sellingPrice).toLocaleString()}`} />
         {mfg   && <DetailRow icon={Tag} label="Manufacturer"     value={mfg} />}
         {color && <DetailRow icon={Tag} label="Variant / Colour" value={color} />}
       </DialogContent>

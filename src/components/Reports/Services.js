@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLUMNS = [
   "S.No",
@@ -17,30 +18,32 @@ export default function ServicesTab({ filters }) {
   );
   const [jobData, setJobData] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
-        const res = await fetch(`${apiEndpoints.report}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const json = await res.json();
+  const fetchData = React.useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${apiEndpoints.report}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const json = await res.json();
 
-        if (json.success && Array.isArray(json.job_reports)) {
-          setJobData(json.job_reports);
-        } else {
-          setJobData([]);
-        }
-      } catch (err) {
-        console.error("Error fetching job cards:", err);
+      if (json.success && Array.isArray(json.job_reports)) {
+        setJobData(json.job_reports);
+      } else {
         setJobData([]);
       }
-    };
-
-    fetchData();
+    } catch (err) {
+      console.error("Error fetching job cards:", err);
+      setJobData([]);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useAutoRefresh(fetchData);
 
   useEffect(() => {
     const onResize = () => setIsSmall(window.innerWidth <= 720);

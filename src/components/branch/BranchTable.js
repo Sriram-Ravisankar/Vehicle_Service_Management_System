@@ -14,9 +14,11 @@ import {
   Tooltip,
   Card,
   CardContent,
-  Menu,
-  MenuItem,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Plus,
@@ -30,6 +32,7 @@ import {
   MapPin,
   Globe,
   Home,
+  AlertTriangle,
 } from 'lucide-react';
 import SectionHeader from '../common/Header';
 import apiEndpoints from '../../apiconfig';
@@ -47,6 +50,9 @@ const BranchTable = () => {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -104,8 +110,14 @@ const BranchTable = () => {
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginated = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this branch?")) return;
+  const handleDelete = (id) => {
+    setBranchToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    const id = branchToDelete;
+    if (!id) return;
     try {
       show();
       const res = await fetch(`${apiEndpoints.branches}?id=${id}`, { 
@@ -114,13 +126,17 @@ const BranchTable = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setSnackbar({ open: true, message: 'Branch deleted.', severity: 'success' });
+        setSnackbar({ open: true, message: 'Branch deleted successfully.', severity: 'success' });
         fetchBranches();
+      } else {
+        setSnackbar({ open: true, message: data.message || 'Failed to delete branch.', severity: 'error' });
       }
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to delete.', severity: 'error' });
+      setSnackbar({ open: true, message: 'An error occurred during deletion.', severity: 'error' });
     } finally {
       hide();
+      setDeleteDialogOpen(false);
+      setBranchToDelete(null);
     }
   };
 
@@ -268,9 +284,51 @@ const BranchTable = () => {
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       </Box>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({...snackbar, open: false})} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "12px" }}>{snackbar.message}</Alert>
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={3500} 
+        onClose={() => setSnackbar({...snackbar, open: false})} 
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "10px", fontWeight: 600 }}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#4B5563", fontSize: "15px" }}>
+            Are you sure you want to delete this branch? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            variant="contained" 
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px"
+            }}
+          >
+            Delete Branch
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

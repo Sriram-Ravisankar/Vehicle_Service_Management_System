@@ -31,6 +31,7 @@ import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../apiconfig";
 import JobCardTable from "../common/JobCardTable";
 import { useTheme, useMediaQuery } from "@mui/material";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const MechanicDashboard = () => {
   const navigate = useNavigate();
@@ -73,6 +74,8 @@ const MechanicDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+  
+  useAutoRefresh(fetchData);
 
   useEffect(() => {
     if (recentJobs && recentJobs.length > 0) {
@@ -222,6 +225,7 @@ const MechanicDashboard = () => {
   const getStatusBadgeColor = (status) => {
     const s = status?.toLowerCase() || "";
     if (s.includes("approval") || s.includes("pending")) return "#f59e0b"; // Orange
+    if (s === "approved") return "#6366f1"; // Indigo/Purple for Approved
     if (s.includes("progress") || s.includes("in")) return "#3b82f6"; // Blue
     if (s.includes("completed") || s.includes("done") || s.includes("delivered")) return "#10b981"; // Green
     return "#64748b"; // Gray fallback
@@ -319,25 +323,39 @@ const MechanicDashboard = () => {
                   <Button
                     variant="contained"
                     fullWidth
+                    disabled={job.status !== "Approved" && job.status !== "Work In Progress"}
                     onClick={() => handleStatusUpdate(job.id, job.status === "Work In Progress" ? "Completed" : "Work In Progress")}
                     startIcon={job.status === "Work In Progress" ? <DoneAll /> : <PlayArrow />}
                     sx={{
                       ...styles.actionButton,
                       backgroundColor: job.status === "Work In Progress" ? "#10b981" : "#3b82f6",
+                      "&.Mui-disabled": {
+                        backgroundColor: "#cbd5e1",
+                        color: "#94a3b8"
+                      },
                       "&:hover": {
                         backgroundColor: job.status === "Work In Progress" ? "#059669" : "#2563eb",
                       },
                     }}
                   >
-                    {job.status === "Work In Progress" ? "Complete Job" : "Start Job"}
+                    {job.status === "Work In Progress" ? "Complete Job" : 
+                     (job.status === "Approved" ? "Start Job" : "Waiting for Approval")}
                   </Button>
 
                   <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
                     <Button 
                       variant="outlined" 
                       fullWidth 
+                      disabled={job.status !== "Approved" && job.status !== "Work In Progress"}
                       startIcon={<Add />} 
-                      sx={styles.secondaryButton}
+                      sx={{
+                        ...styles.secondaryButton,
+                        "&.Mui-disabled": {
+                          borderColor: "#e2e8f0",
+                          backgroundColor: "#f8fafc",
+                          color: "#cbd5e1"
+                        }
+                      }}
                       onClick={() => navigate("/services-form", { state: { guid: job.id, isEditing: true, initialStep: 2 } })}
                     >
                       Parts

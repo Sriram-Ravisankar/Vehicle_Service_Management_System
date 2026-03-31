@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLUMNS = [
   "S.No",
@@ -24,26 +25,29 @@ export default function UpcomingServices({filters}) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch(
-          `${apiEndpoints.report}?action=pending_jobs`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = await response.json();
-        if (data.success) setJobs(data.pending_jobs);
-      } catch (err) {
-        console.error("Failed to fetch pending jobs:", err);
-      }
-    };
-    fetchJobs();
+  const fetchJobs = React.useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(
+        `${apiEndpoints.report}?action=pending_jobs`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.success) setJobs(data.pending_jobs);
+    } catch (err) {
+      console.error("Failed to fetch pending jobs:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  useAutoRefresh(fetchJobs);
 
   const filtered = useMemo(() => {
     let rows = [...jobs];

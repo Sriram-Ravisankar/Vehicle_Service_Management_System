@@ -348,7 +348,7 @@ if ($method === 'GET') {
     }
 }
 
-// --- DELETE: Hard Delete by ID ---
+// --- DELETE: Soft Delete by ID ---
 if ($method === 'DELETE') {
     try {
         parse_str(file_get_contents("php://input"), $deleteVars); 
@@ -359,8 +359,8 @@ if ($method === 'DELETE') {
 
         $admin_guid = getAdminGUIDFromToken();
 
-        // 1️⃣ Delete purchase
-        $stmt = $conn->prepare("DELETE FROM purchases WHERE purchase_id = ? AND admin_guid = ?");
+        // 1️⃣ Soft Delete purchase
+        $stmt = $conn->prepare("UPDATE purchases SET isDeleted = 1 WHERE purchase_id = ? AND admin_guid = ?");
         if (!$stmt) throw new Exception("Prepare failed: " . $conn->error);
         $stmt->bind_param("is", $id, $admin_guid);
         $stmt->execute();
@@ -369,12 +369,12 @@ if ($method === 'DELETE') {
             throw new Exception("Unauthorized or purchase not found.");
         }
 
-        // 2️⃣ Delete related stock rows
-        $stockDelete = $conn->prepare("DELETE FROM stock WHERE purchase_id = ? AND admin_guid = ?");
+        // 2️⃣ Soft Delete related stock rows
+        $stockDelete = $conn->prepare("UPDATE stock SET isDeleted = 1 WHERE purchase_id = ? AND admin_guid = ?");
         $stockDelete->bind_param("is", $id, $admin_guid);
         $stockDelete->execute();
 
-        respond(['success' => true, 'message' => 'Purchase and related stock deleted successfully.']);
+        respond(['success' => true, 'message' => 'Purchase and related stock deleted successfully (soft delete).']);
 
     } catch (Exception $e) {
         respond(['success' => false, 'error' => $e->getMessage()], 400);

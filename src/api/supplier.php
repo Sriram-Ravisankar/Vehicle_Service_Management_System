@@ -215,7 +215,7 @@ if ($method === 'POST') {
 }
 
 
-// --- DELETE: Supplier
+// --- DELETE: Soft Delete supplier 
 if ($method === 'DELETE') {
 
     if (!isset($_GET['id'])) {
@@ -226,13 +226,13 @@ if ($method === 'DELETE') {
     $id = intval($_GET['id']);
 
     $stmt = $conn->prepare("
-        DELETE FROM suppliers 
+        UPDATE suppliers SET isDeleted = 1
         WHERE supplier_id = ? AND admin_guid = ?
     ");
     $stmt->bind_param("is", $id, $admin_guid);
     $stmt->execute();
 
-    echo json_encode(["success" => true, "message" => "Supplier deleted"]);
+    echo json_encode(["success" => true, "message" => "Supplier deleted successfully (soft delete)"]);
     exit;
 }
 

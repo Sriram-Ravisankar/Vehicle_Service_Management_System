@@ -14,6 +14,9 @@ const getStatusStyle = (status) => {
   if (s.includes('Pending') || s.includes('Approval')) {
     return { backgroundColor: '#FFF7ED', color: '#C2410C' }; // Orange
   }
+  if (s === 'Approved' || s === 'approved') {
+    return { backgroundColor: '#EEF2FF', color: '#4F46E5' }; // Indigo
+  }
   if (s.includes('Progress') || s.includes('In')) {
     return { backgroundColor: '#EFF6FF', color: '#1D4ED8' }; // Blue
   }

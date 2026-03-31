@@ -16,6 +16,8 @@ import {
   CardContent,
   Stack,
   Tooltip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import {
@@ -28,6 +30,7 @@ import {
   XCircle,
   FileText,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 
 import Pagination from "../../../components/DynamicComponents/Pagination";
@@ -36,6 +39,7 @@ import { useNavigate } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
 import { printQuotation } from "./QuotationPrint";
 import { useLoading } from "../../LoadingContext";
+import useAutoRefresh from "../../../hooks/useAutoRefresh";
 
 // Constants for colors
 const STATUS_COLORS = {
@@ -56,12 +60,25 @@ export default function QuotationList() {
   const [search, setSearch] = useState("");
   const [selectedRow, setSelectedRow] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 8; 
+  const [perPage, setPerPage]         = useState(15);
 
   const [confirmPopup, setConfirmPopup] = useState({
     open: false,
     quotation: null,
   });
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [quotationToDelete, setQuotationToDelete] = useState(null);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
   const [branches, setBranches] = useState([]);
 
   /* ---------------- LOAD LIST ---------------- */
@@ -94,6 +111,9 @@ export default function QuotationList() {
     fetchBranches();
   }, []);
 
+  /* ── Auto-sync: poll + tab-focus re-fetch via shared hook ── */
+  useAutoRefresh(loadQuotations);
+
   /* ---------------- STATS ---------------- */
   const stats = useMemo(() => {
     return {
@@ -114,11 +134,10 @@ export default function QuotationList() {
     );
   });
 
-  const totalPages = Math.ceil(filtered.length / rowsPerPage);
-
+  const totalPages = Math.ceil(filtered.length / perPage);
   const paginatedQuotations = filtered.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+    (currentPage - 1) * perPage,
+    currentPage * perPage
   );
 
   /* ---------------- STATUS ---------------- */
@@ -129,9 +148,10 @@ export default function QuotationList() {
     }
 
     if (newStatus === "Cancelled") {
-      if (!window.confirm("Are you sure you want to cancel this quotation?")) {
-        return;
-      }
+      // We could use a dialog here too, but for simplicity let's stick to the request of using snackbars first
+      // Actually, let's just update and show snackbar
+      await updateStatusAPI(quotation_guid, newStatus);
+      return;
     }
 
     await updateStatusAPI(quotation_guid, newStatus);
@@ -161,6 +181,9 @@ export default function QuotationList() {
               : q
           )
         );
+        showSnackbar(`Status updated to ${newStatus}`, "success");
+      } else {
+        showSnackbar(data.message || "Failed to update status", "error");
       }
     } catch (err) {
       console.error(err);
@@ -195,8 +218,14 @@ export default function QuotationList() {
     }
   };
 
-  const deleteQuotation = async (guid) => {
-    if (!window.confirm("Are you sure you want to delete this quotation?")) return;
+  const deleteQuotation = (guid) => {
+    setQuotationToDelete(guid);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    const guid = quotationToDelete;
+    if (!guid) return;
     try {
       show();
       const res = await fetch(
@@ -207,11 +236,18 @@ export default function QuotationList() {
         }
       );
       const data = await res.json();
-      if (data.success) loadQuotations();
+      if (data.success) {
+        loadQuotations();
+        showSnackbar("Quotation deleted successfully", "success");
+      } else {
+        showSnackbar(data.message || "Failed to delete quotation", "error");
+      }
     } catch (e) {
-      console.error(e);
+      showSnackbar("An error occurred during deletion", "error");
     } finally {
       hide();
+      setDeleteDialogOpen(false);
+      setQuotationToDelete(null);
     }
   };
 
@@ -349,7 +385,7 @@ export default function QuotationList() {
             fullWidth
             size="small"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 paddingLeft: "38px",
@@ -505,12 +541,15 @@ export default function QuotationList() {
         </Box>
       </Paper>
 
-      {/* Pagination Container */}
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt: 2 }}>
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
+          totalItems={filtered.length}
+          itemsPerPage={perPage}
           onPageChange={(page) => setCurrentPage(page)}
+          onPerPageChange={(n) => { setPerPage(n); setCurrentPage(1); }}
+          itemLabel="quotation"
         />
       </Box>
 
@@ -563,6 +602,57 @@ export default function QuotationList() {
       </Dialog>
 
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#4B5563", fontSize: "15px" }}>
+            Are you sure you want to delete this quotation? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            variant="contained" 
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px"
+            }}
+          >
+            Delete Quotation
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity} 
+          variant="filled" 
+          sx={{ width: '100%', borderRadius: "10px", fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

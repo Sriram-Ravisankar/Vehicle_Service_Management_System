@@ -271,6 +271,27 @@ $totals = json_encode($totalsArray, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNIC
     $payment_method = $body["payment_method"] ?? "";
     $notes          = $body["notes"] ?? "";
 
+    // BEFORE INSERT -> Validate Stock
+    foreach ($itemsArray as $item) {
+        if (isset($item['category']) && $item['category'] === 'Product') {
+            $qty = (int)($item['qty'] ?? 0);
+            $name = $conn->real_escape_string($item['name'] ?? '');
+            $productId = $item['product_id'] ?? null;
+            $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+            
+            if ($qty > 0 && ($productId || !empty($name))) {
+                $stockCheck = $conn->query("SELECT SUM(IFNULL(quantity_purchased,0) - IFNULL(quantity_sold, 0)) AS available FROM stock WHERE $whereClause AND admin_guid = '$admin_guid'");
+                $stockRow = $stockCheck->fetch_assoc();
+                $available = (int)($stockRow['available'] ?? 0);
+
+                if ($qty > $available) {
+                    echo json_encode(["success" => false, "message" => "Insufficient stock for product '$name'. Available: $available, Required: $qty"]);
+                    exit;
+                }
+            }
+        }
+    }
+
     $sql = "
         INSERT INTO invoice
         (invoice_guid, invoice_no, quotation_guid, job_guid, customer_guid, vehicle_guid, 
@@ -354,29 +375,67 @@ if ($method === "POST" && isset($_GET["invoice_guid"])) {
     if ($oldData = $oldRes->fetch_assoc()) {
         $invoice_no = $oldData['invoice_no'];
         $oldItems = json_decode($oldData['items'] ?? "[]", true) ?: [];
-        foreach ($oldItems as $item) {
-            if (isset($item['category']) && $item['category'] === 'Product') {
-                $qty = (int)($item['qty'] ?? 0);
-                $name = $conn->real_escape_string($item['name'] ?? '');
-                $productId = $item['product_id'] ?? null;
-                $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+    } else {
+        $oldItems = [];
+    }
 
-                if ($qty > 0 && ($productId || !empty($name))) {
-                    $stockSql = "
-                        UPDATE stock
-                        SET quantity_sold = GREATEST(0, IFNULL(quantity_sold, 0) - $qty),
-                            modifiedOn = NOW()
-                        WHERE $whereClause AND admin_guid = '$admin_guid'
-                        ORDER BY stock_id DESC LIMIT 1
-                    ";
-                    $conn->query($stockSql);
+    // ITEMS
+    $itemsArr = json_decode($body["items"] ?? "[]", true) ?: [];
+    $items = json_encode($itemsArr, JSON_UNESCAPED_UNICODE);
+
+    // BEFORE UPDATE -> Validate Stock Difference
+    foreach ($itemsArr as $item) {
+        if (isset($item['category']) && $item['category'] === 'Product') {
+            $qty = (int)($item['qty'] ?? 0);
+            $name = $conn->real_escape_string($item['name'] ?? '');
+            $productId = $item['product_id'] ?? null;
+            
+            $oldQty = 0;
+            foreach ($oldItems as $oItem) {
+                if (isset($oItem['category']) && $oItem['category'] === 'Product') {
+                    $oName = $oItem['name'] ?? '';
+                    $oId = $oItem['product_id'] ?? null;
+                    if (($productId && $oId == $productId) || (!$productId && $oName == $name)) {
+                        $oldQty += (int)($oItem['qty'] ?? 0);
+                    }
+                }
+            }
+            $diff = $qty - $oldQty;
+
+            if ($diff > 0 && ($productId || !empty($name))) {
+                $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+                $stockCheck = $conn->query("SELECT SUM(IFNULL(quantity_purchased,0) - IFNULL(quantity_sold, 0)) AS available FROM stock WHERE $whereClause AND admin_guid = '$admin_guid'");
+                $stockRow = $stockCheck->fetch_assoc();
+                $available = (int)($stockRow['available'] ?? 0);
+
+                if ($diff > $available) {
+                    echo json_encode(["success" => false, "message" => "Insufficient stock for product '$name'. Available: $available, Additional Required: $diff"]);
+                    exit;
                 }
             }
         }
     }
 
-    // ITEMS
-    $itemsArr = json_decode($body["items"] ?? "[]", true) ?: [];
+    // 1. REVERSE STOCK FOR OLD ITEMS
+    foreach ($oldItems as $item) {
+        if (isset($item['category']) && $item['category'] === 'Product') {
+            $qty = (int)($item['qty'] ?? 0);
+            $name = $conn->real_escape_string($item['name'] ?? '');
+            $productId = $item['product_id'] ?? null;
+            $whereClause = $productId ? "product_id = '" . $conn->real_escape_string($productId) . "'" : "product_name = '$name'";
+
+            if ($qty > 0 && ($productId || !empty($name))) {
+                $stockSql = "
+                    UPDATE stock
+                    SET quantity_sold = GREATEST(0, IFNULL(quantity_sold, 0) - $qty),
+                        modifiedOn = NOW()
+                    WHERE $whereClause AND admin_guid = '$admin_guid'
+                    ORDER BY stock_id DESC LIMIT 1
+                ";
+                $conn->query($stockSql);
+            }
+        }
+    }
     $items = json_encode($itemsArr, JSON_UNESCAPED_UNICODE);
 
     // TOTALS

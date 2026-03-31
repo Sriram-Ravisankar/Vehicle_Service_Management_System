@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Pencil, Trash2, Mail, Building2, User, Hash, Phone, MapPin, ExternalLink } from "lucide-react";
-import { Box, Snackbar, Alert, TextField, Tooltip } from "@mui/material";
+import { Search, Pencil, Trash2, Mail, Building2, User, Hash, Phone, MapPin, ExternalLink, AlertTriangle } from "lucide-react";
+import { Box, Snackbar, Alert, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../common/Header";
 import { useLoading } from "../../pages/LoadingContext";
 import SupplierViewModal from "./SupplierView";
+import Pagination from "../DynamicComponents/Pagination";
 
 const BLOB_URL = apiEndpoints.blob;
 
@@ -158,7 +159,10 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
   const [search, setSearch]= useState("");
   const [viewData, setViewData] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
 
   useEffect(() => {
     if (suppliers.length > 0) {
@@ -177,8 +181,11 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
     if (fetchData) fetchData(); 
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this supplier?")) return;
+  const handleDelete = async () => {
+    const id = deleteConfirm.id;
+    if (!id) return;
+    setDeleteConfirm({ open: false, id: null });
+    show(); // global loader
     try {
       await fetch(`${apiEndpoints.supplier}?id=${id}`, {
         method: "DELETE",
@@ -196,6 +203,8 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
       v?.toLowerCase().includes(search.toLowerCase())
     )
   );
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const paginated  = filtered.slice((page - 1) * perPage, page * perPage);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
@@ -211,7 +220,7 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
             fullWidth
             size="small"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 paddingLeft: "35px",
@@ -249,14 +258,14 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
           <div style={{ overflowX: "auto", width: "100%" }}>
             <div style={{ minWidth: COL.avatar + COL.info + COL.contact + COL.company + COL.action + 100 }}>
               <THead />
-              {filtered.map((s, i) => (
+              {paginated.map((s, i) => (
                 <ListRow
                   key={s.id}
                   item={s}
-                  isLast={i === filtered.length - 1}
+                  isLast={i === paginated.length - 1}
                   onView={() => { setViewData(s.originalData); setViewOpen(true); }}
                   onEdit={() => navigate("/add-supplier", { state: { editData: s.originalData } })}
-                  onDelete={() => handleDelete(s.id)}
+                  onDelete={() => setDeleteConfirm({ open: true, id: s.id })}
                 />
               ))}
             </div>
@@ -264,7 +273,53 @@ const SupplierPage = ({ suppliers = [], fetchData }) => {
         </div>
       )}
 
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        itemsPerPage={perPage}
+        onPageChange={(p) => setPage(p)}
+        onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+        itemLabel="supplier"
+      />
+
       <SupplierViewModal open={viewOpen} data={viewData} onClose={() => setViewOpen(false)} />
+
+      {/* ── delete confirmation dialog ── */}
+      <Dialog 
+        open={deleteConfirm.open} 
+        onClose={() => setDeleteConfirm({ open: false, id: null })}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1, maxWidth: "360px" } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0, fontSize: 15, color: "#4B5563", lineHeight: 1.5 }}>
+            Are you sure you want to delete this supplier? This action cannot be undone.
+          </p>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteConfirm({ open: false, id: null })}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            variant="contained"
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px", px: 3
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={3500}
         onClose={() => setSnackbar((p) => ({ ...p, open: false }))}

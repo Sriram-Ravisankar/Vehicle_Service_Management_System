@@ -1,12 +1,36 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Tooltip } from "@mui/material";
+import { 
+  Box, 
+  Tooltip, 
+  Snackbar, 
+  Alert, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Button, 
+  Typography 
+} from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
-import { Search, Pencil, Trash2, Shield, UserPlus, LogIn, Plus, Users, Key, Filter } from "lucide-react";
+import { 
+  Search, 
+  Pencil, 
+  Trash2, 
+  Shield, 
+  UserPlus, 
+  LogIn, 
+  Plus, 
+  Users, 
+  Key, 
+  Filter,
+  AlertTriangle 
+} from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 import SectionHeader from "../common/Header";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const KPICard = ({ title, value, icon: Icon, color, isMobile }) => (
   <div style={{
@@ -55,6 +79,19 @@ export default function WorkerManagement() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workerToDelete, setWorkerToDelete] = useState(null);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   // Dark mode state
   const [darkMode, setDarkMode] = useState(false);
@@ -494,7 +531,7 @@ export default function WorkerManagement() {
   };
 
   const saveRolePermissions = async () => {
-    if (!selectedRoleId) return alert("Select a role first");
+    if (!selectedRoleId) return showSnackbar("Select a role first", "warning");
     const token = sessionStorage.getItem("token");
     await fetch(`${API_BASE}?action=update_role_permissions`, {
       method: "PUT",
@@ -508,6 +545,7 @@ export default function WorkerManagement() {
       }),
     });
     await loadRolesAndPerms();
+    showSnackbar("Permissions updated successfully", "success");
     setShowRolePermEditor(false);
   };
 
@@ -577,6 +615,9 @@ export default function WorkerManagement() {
     loadUsers();
   }, []);
 
+  /* ── Auto-sync: background poll + tab-focus ── */
+  useAutoRefresh(loadUsers);
+
   const fullname = (u) => `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
   const normalizeUser = (u) => ({
     ...u,
@@ -621,10 +662,14 @@ export default function WorkerManagement() {
   const closeForm = () => setShowForm(false);
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
-  const handleDeleteWorker = async (worker) => {
-    if (!window.confirm(`Are you sure you want to delete ${worker.displayName}? This action uses soft delete.`)) {
-      return;
-    }
+  const handleDeleteWorker = (worker) => {
+    setWorkerToDelete(worker);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteWorker = async () => {
+    const worker = workerToDelete;
+    if (!worker) return;
 
     try {
       const token = sessionStorage.getItem("token");
@@ -638,25 +683,28 @@ export default function WorkerManagement() {
 
       const data = await resp.json();
       if (data.success) {
-        alert("Worker removed successfully (soft delete)");
+        showSnackbar("Worker removed successfully", "success");
         loadUsers();
       } else {
-        alert("Error: " + (data.error || "Failed to delete worker"));
+        showSnackbar(data.error || "Failed to delete worker", "error");
       }
     } catch (e) {
       console.error("Delete worker error:", e);
-      alert("An error occurred while deleting the worker.");
+      showSnackbar("An error occurred while deleting the worker.", "error");
+    } finally {
+      setDeleteDialogOpen(false);
+      setWorkerToDelete(null);
     }
   };
 
   const save = async () => {
     try {
       // show();
-      if (!form.first_name) return alert("First name is required");
-      if (!form.email) return alert("Email is required");
-      if (!form.role_id) return alert("Select a role");
+      if (!form.first_name) return showSnackbar("First name is required", "warning");
+      if (!form.email) return showSnackbar("Email is required", "warning");
+      if (!form.role_id) return showSnackbar("Select a role", "warning");
       if (form.createLogin && (!form.login_email || !form.login_password)) {
-        return alert("Login email and password are required");
+        return showSnackbar("Login email and password are required", "warning");
       }
 
       let payload = {
@@ -701,30 +749,22 @@ export default function WorkerManagement() {
 
       await loadUsers();
       await loadRolesAndPerms();
+      showSnackbar(form.id ? "Worker updated successfully" : "Worker created successfully", "success");
       closeForm();
     } catch (e) {
       console.error("Save failed", e);
-      alert("Save failed: " + e.message);
+      showSnackbar(e.message || "Save failed", "error");
     } finally {
       // hide();
     }
   };
 
   const workers = useMemo(() => {
-    // Current roles is already filtered for hidden roles
-    const validRoleIds = new Set(roles.map(r => String(r.id)));
-    
-    return (users || []).filter(u => {
-      // 1. Must have a role_id
-      if (!u.role_id) return false;
-      
-      // 2. Role must exist in the currently staff-only roles list
-      const roleIdStr = String(u.role_id);
-      if (!validRoleIds.has(roleIdStr)) return false;
-      
-      return true;
-    });
-  }, [users, roles]);
+    // Show all employees returned by the API.
+    // The backend already filters to user_type='employee' and admin_guid,
+    // so no further filtering by role is needed here.
+    return users || [];
+  }, [users]);
 
   const filtered = useMemo(() => {
     const q = (searchTerm || "").trim().toLowerCase();
@@ -742,7 +782,7 @@ export default function WorkerManagement() {
     }
 
     if (roleFilter !== "all") {
-      list = list.filter((u) => String(u.role_id) === String(roleFilter));
+      list = list.filter((u) => u.role_id && String(u.role_id) === String(roleFilter));
     }
     
     return list.sort((a, b) =>
@@ -1374,6 +1414,57 @@ export default function WorkerManagement() {
           </div>
         </div>
       )}
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#4B5563", fontSize: "15px" }}>
+            Are you sure you want to delete <b>{workerToDelete?.displayName}</b>? This action uses soft delete and cannot be undone easily.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDeleteWorker} 
+            variant="contained" 
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px"
+            }}
+          >
+            Delete Worker
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity} 
+          variant="filled" 
+          sx={{ width: '100%', borderRadius: "10px", fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

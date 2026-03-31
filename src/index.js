@@ -7,9 +7,9 @@ import { LoadingProvider } from './pages/LoadingContext';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   // <React.StrictMode>
-    <LoadingProvider>
-      <App />
-    </LoadingProvider>
+  <LoadingProvider>
+    <App />
+  </LoadingProvider>
   // </React.StrictMode>
 );
 

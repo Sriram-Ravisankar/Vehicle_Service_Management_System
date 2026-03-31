@@ -18,6 +18,7 @@ import {
 import apiEndpoints from "../../apiconfig";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Box } from "@mui/material";
+import SearchableSelect from "../DynamicComponents/SearchableSelect";
 
 // ── tiny helpers (consistent with other premium pages) ────────────────────────
 const Field = ({ label, icon: Icon, error, children }) => (
@@ -228,7 +229,7 @@ const Step1_ServiceDetails = forwardRef(
         setVehicles([]);
         return;
       }
-      setForm((f) => ({ ...f, customer_guid: newValue.value }));
+      setForm((f) => ({ ...f, customer_guid: newValue.value, customer_name: newValue.label }));
       // fetch vehicles for customer
       try {
         const url = `${apiEndpoints.dropDown}?table=vehicles&todo=dropdown&columns=vehicle_guid,make,model,registration_number&user_guid=${newValue.value}`;
@@ -315,7 +316,7 @@ const Step1_ServiceDetails = forwardRef(
                     setForm((f) => ({ 
                       ...f, 
                       vehicle_guid: newValue.value,
-                      vehicle_name: newValue.label 
+                      vehicle_name: newValue.label || newValue.regNo 
                     }));
                     setErrors((err) => ({ ...err, vehicle_guid: "" }));
                     return;
@@ -358,52 +359,45 @@ const Step1_ServiceDetails = forwardRef(
             </Field>
 
             <Field label="Repair Category *" icon={Wrench} error={errors.repair_category_id}>
-              <select
+              <SearchableSelect
                 disabled={isView}
-                value={form.repair_category_id || ""}
-                style={inputSx(!!errors.repair_category_id)}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, repair_category_id: e.target.value }));
+                value={String(form.repair_category_id || "")}
+                placeholder="-- Select Category --"
+                options={repairCategories.map((r) => ({ value: String(r.id), label: r.name }))}
+                onChange={(val) => {
+                  setForm((f) => ({ ...f, repair_category_id: val }));
                   setErrors((err) => ({ ...err, repair_category_id: "" }));
                 }}
-              >
-                <option value="">-- Select --</option>
-                {repairCategories.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
+              />
             </Field>
 
             <Field label="Service Type" icon={DollarSign} error={errors.service_type}>
-              <select
+              <SearchableSelect
                 disabled={isView}
                 value={form.service_type || "Paid"}
-                style={inputSx(!!errors.service_type)}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, service_type: e.target.value }));
+                placeholder="Select Type"
+                options={[
+                  { value: "Paid", label: "Paid" },
+                  { value: "Free", label: "Free" },
+                ]}
+                onChange={(val) => {
+                  setForm((f) => ({ ...f, service_type: val || "Paid" }));
                   setErrors((err) => ({ ...err, service_type: "" }));
                 }}
-              >
-                <option value="Paid">Paid</option>
-                <option value="Free">Free</option>
-              </select>
+              />
             </Field>
 
             <Field label="Branch *" icon={Building2} error={errors.branch_id}>
-              <select
+              <SearchableSelect
                 disabled={isView}
-                value={form.branch_id || ""}
-                style={inputSx(!!errors.branch_id)}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, branch_id: e.target.value }));
+                value={String(form.branch_id || "")}
+                placeholder="-- Select Branch --"
+                options={branches.map((b) => ({ value: String(b.value), label: b.label }))}
+                onChange={(val) => {
+                  setForm((f) => ({ ...f, branch_id: val }));
                   setErrors((err) => ({ ...err, branch_id: "" }));
                 }}
-              >
-                <option value="">-- Select Branch --</option>
-                {branches.map((b) => (
-                  <option key={b.value} value={b.value}>{b.label}</option>
-                ))}
-              </select>
+              />
             </Field>
 
             <Field label="Arrival Date" icon={Calendar} error={errors.arrival_date}>
@@ -433,20 +427,20 @@ const Step1_ServiceDetails = forwardRef(
             </Field>
 
             <Field label="Assign To *" icon={User} error={errors.assign_to}>
-              <select
+              <SearchableSelect
                 disabled={isView}
                 value={form.assign_to || ""}
-                style={inputSx(!!errors.assign_to)}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, assign_to: e.target.value }));
+                placeholder="-- Select Employee --"
+                options={employees.map((emp) => ({
+                  value: emp.value,
+                  label: emp.label,
+                  sub: emp.position,
+                }))}
+                onChange={(val) => {
+                  setForm((f) => ({ ...f, assign_to: val }));
                   setErrors((err) => ({ ...err, assign_to: "" }));
                 }}
-              >
-                <option value="">-- Select Employee --</option>
-                {employees.map((emp) => (
-                  <option key={emp.value} value={emp.value}>{emp.label}</option>
-                ))}
-              </select>
+              />
             </Field>
 
             <Field label="Additional Options" icon={MoreHorizontal}>

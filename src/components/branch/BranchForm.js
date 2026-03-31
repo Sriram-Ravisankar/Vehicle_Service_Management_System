@@ -437,8 +437,15 @@ const BranchForm = () => {
         </Box>
       </Box>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({...snackbar, open: false})} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "12px" }}>{snackbar.message}</Alert>
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={3500} 
+        onClose={() => setSnackbar({...snackbar, open: false})} 
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "10px", fontWeight: 600 }}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Box>
   );

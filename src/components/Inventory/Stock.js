@@ -3,6 +3,7 @@ import { Search, Filter, RefreshCw, Package, Truck, AlertTriangle, Plus, IndianR
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 import SectionHeader from "../common/Header";
+import Pagination from "../DynamicComponents/Pagination";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function getStatus(row) {
@@ -21,17 +22,36 @@ const statusStyle = {
 };
 
 // ─── sub-components ──────────────────────────────────────────────────────────
-const StatCard = ({ label, value, valueClass = "text-gray-900", icon: Icon, colorClass = "bg-blue-600" }) => (
-  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all duration-300">
-    <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase letter-spacing-wider mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
+const StatCard = ({ label, value, valueClass, icon: Icon, colorClass }) => {
+  const bgMap = {
+    "bg-[#0EA5E9]": "#0EA5E9",
+    "bg-[#3B82F6]": "#3B82F6",
+    "bg-[#F59E0B]": "#F59E0B",
+    "bg-[#EF4444]": "#EF4444",
+  };
+  const iconBg = bgMap[colorClass] || "#64748B";
+  return (
+    <div style={{
+      background: "#fff", padding: 20, borderRadius: 16,
+      border: "1px solid #F1F5F9", boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      minWidth: 0, width: "100%", boxSizing: "border-box",
+      transition: "box-shadow 0.2s",
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+          {label}
+        </p>
+        <p style={{ margin: 0, fontSize: 26, fontWeight: 700, color: valueClass === "text-amber-600" ? "#D97706" : valueClass === "text-rose-600" ? "#E11D48" : "#0F172A" }}>
+          {value}
+        </p>
+      </div>
+      <div style={{ width: 48, height: 48, borderRadius: 12, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={22} color="#fff" />
+      </div>
     </div>
-    <div className={`${colorClass} p-3 rounded-xl text-white shadow-lg shadow-opacity-20`}>
-      <Icon size={24} />
-    </div>
-  </div>
-);
+  );
+};
 
 const StockBar = ({ qty, max }) => {
   const pct = Math.min((qty / Math.max(max, 1)) * 100, 100);
@@ -54,6 +74,8 @@ const Stock = ({ stock = [], fetchData }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSupId, setSelectedSupId] = useState("");
   const [loading, setLoading]       = useState(false);
+  const [page, setPage]             = useState(1);
+  const [perPage, setPerPage]       = useState(15);
 
   useEffect(() => {
     if (stock.length > 0) {
@@ -86,6 +108,8 @@ const Stock = ({ stock = [], fetchData }) => {
     r.product_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const paginated  = filtered.slice((page - 1) * perPage, page * perPage);
 
   const totalValue    = allRows.reduce((s, r) => s + Number(r.amount ?? 0), 0);
   const lowStockCount = allRows.filter((r) => ["Low Stock","Critical"].includes(getStatus(r))).length;
@@ -103,12 +127,10 @@ const Stock = ({ stock = [], fetchData }) => {
     }`;
 
   return (
-    <div className="p-4 md:p-6" style={{ fontFamily: "inherit" }}>
+    <div style={{ padding: "24px", fontFamily: "inherit", boxSizing: "border-box", width: "100%" }}>
       <SectionHeader title="Stock" />
 
-      <div className="space-y-6" style={{ marginTop: 16 }}>
-        {/* ── page header removed refresh button ── */}
-
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 24 }}>
         {/* ── tabs ── */}
         <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB" }}>
           <button className={tabCls("items")}  onClick={() => setActiveTab("items")}>
@@ -122,8 +144,15 @@ const Stock = ({ stock = [], fetchData }) => {
         {/* ══════════════ ITEMS TAB ══════════════ */}
         {activeTab === "items" && (
           <>
-            {/* stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* stats — use auto-fill grid so cards respond to CONTENT width, not viewport width.
+                Tailwind breakpoints use vw which ignores the 256px sidebar offset. */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 16,
+              width: "100%",
+              boxSizing: "border-box",
+            }}>
               <StatCard 
                 label="Total Items" 
                 value={allRows.length} 
@@ -162,7 +191,7 @@ const Stock = ({ stock = [], fetchData }) => {
                     type="text"
                     placeholder="Search by product, SKU or supplier..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                     style={{
                       width: "100%", paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
                       border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, outline: "none",
@@ -189,7 +218,7 @@ const Stock = ({ stock = [], fetchData }) => {
                       <tr><td colSpan={5} style={{ textAlign: "center", padding: 40, color: "#6B7280" }}>Loading...</td></tr>
                     ) : filtered.length === 0 ? (
                       <tr><td colSpan={5} style={{ textAlign: "center", padding: 40, color: "#6B7280" }}>No stock items found.</td></tr>
-                    ) : filtered.map((row, i) => {
+                    ) : paginated.map((row, i) => {
                       const status = getStatus(row);
                       const qty    = Number(row.available_quantity ?? 0);
                       const total  = Number(row.quantity_purchased ?? qty);
@@ -230,6 +259,15 @@ const Stock = ({ stock = [], fetchData }) => {
                 </table>
               </div>
             </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filtered.length}
+              itemsPerPage={perPage}
+              onPageChange={(p) => setPage(p)}
+              onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+              itemLabel="item"
+            />
           </>
         )}
 

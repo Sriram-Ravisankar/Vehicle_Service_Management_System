@@ -86,6 +86,8 @@ function handleGet($conn) {
     $sql = "
         SELECT 
             s.*,
+            p.product_name,
+            sup.supplier_name,
             p.image AS product_image,
             totals.total_quantity_purchased,
             totals.total_quantity_sold,
@@ -100,14 +102,15 @@ function handleGet($conn) {
                 SUM(quantity_purchased) AS total_quantity_purchased,
                 SUM(quantity_sold) AS total_quantity_sold
             FROM stock
-            WHERE admin_guid = ?
+            WHERE admin_guid = ? AND isDeleted = 0
             GROUP BY product_id, supplier_id, admin_guid
         ) totals 
             ON s.product_id = totals.product_id 
             AND s.supplier_id = totals.supplier_id
             AND s.stock_id = totals.latest_stock_id
         JOIN products p ON s.product_id = p.id 
-        WHERE s.admin_guid = ?
+        LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+        WHERE s.admin_guid = ? AND s.isDeleted = 0
         ORDER BY s.stock_id DESC
     ";
 
@@ -278,9 +281,10 @@ function handleDelete($conn) {
 
     $stock_id = $params["id"];
 
-    $stmt = $conn->prepare("DELETE FROM stock WHERE stock_id = ? AND admin_guid = ?");
+    // Soft delete stock
+    $stmt = $conn->prepare("UPDATE stock SET isDeleted = 1 WHERE stock_id = ? AND admin_guid = ?");
     $stmt->bind_param("is", $stock_id, $admin_guid);
     $stmt->execute();
 
-    echo json_encode(["success" => true, "message" => "Stock deleted successfully"]);
+    echo json_encode(["success" => true, "message" => "Stock deleted successfully (soft delete)"]);
 }

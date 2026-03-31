@@ -1,30 +1,25 @@
 // AddServiceForm.js
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Box,
   Button,
   Stepper,
   Step,
   StepLabel,
-  Paper,
   Typography,
   Stack,
   CircularProgress,
-  IconButton,
   Snackbar,
   Alert,
   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { 
-  ClipboardList, 
-  X, 
-  ChevronRight, 
-  ChevronLeft, 
-  Save, 
+import {
+  ClipboardList,
   Edit2,
-  CheckCircle2,
-  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check
@@ -68,7 +63,7 @@ const SectionCard = ({ title, children, icon: Icon }) => (
     mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
+      {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
@@ -124,25 +119,6 @@ const buildFormDataForJobCard = (form) => {
     JSON.stringify(form.additional_options || {})
   );
 
-  // Images:
-
-  // (form.images || []).forEach((img) => {
-  //   if (img instanceof File) {
-  //     fd.append("images[]", img, img.name);
-  //   } else if (typeof img === "string") {
-  //     // when backend returned simple array of filenames
-  //     fd.append("existing_images[]", img);
-  //   } else if (img && img.name) {
-  //     // when we stored objects {name, url}
-  //     fd.append("existing_images[]", img.name);
-  //   }
-  // });
-
-  // // If user removed some images on frontend, send them to be removed
-  // if (Array.isArray(form.remove_images) && form.remove_images.length > 0) {
-  //   fd.append("remove_images", JSON.stringify(form.remove_images));
-  // }
-
   // Send inspection JSON as string (backend will merge uploaded photos)
   fd.append("inspection", JSON.stringify(form.inspection || []));
 
@@ -160,7 +136,6 @@ const buildFormDataForJobCard = (form) => {
 
   return fd;
 };
-
 
 export default function AddServiceForm({
   initialData = null,
@@ -198,8 +173,6 @@ export default function AddServiceForm({
   const [openQuotationDialog, setOpenQuotationDialog] = useState(false);
   const [pendingQuotationAction, setPendingQuotationAction] = useState(null);
 
-
-
   // Editing/view control:
   // - if routeIsEditing true -> editable
   // - else if routeGuid provided -> view-only by default
@@ -209,37 +182,110 @@ export default function AddServiceForm({
     return true; // either create or explicitly editing
   });
 
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false);
+
   // Combined form state
-  const [form, setForm] = useState({
-    // Step1
-    customer_guid: "",
-    customer_name: "",
-    vehicle_guid: "",
-    vehicle_name: "",
-    repair_category_id: "",
-    service_type: "Paid",
-    arrival_date: new Date().toISOString().slice(0, 10),
-    estimate_date: "",
-    assign_to: "",
-    additional_options: {},
-    images: [],
+  const [form, setForm] = useState(() => {
+    // If we're creating a new job card (no routeGuid), check for a draft in localStorage immediately
+    if (!routeGuid) {
+      const savedDraft = localStorage.getItem("service_jobcard_draft");
+      if (savedDraft) {
+        try {
+          const { form: dForm } = JSON.parse(savedDraft);
+          // Return the draft so our initial state is NOT empty
+          return dForm;
+        } catch (e) {
+          console.error("Draft parse error", e);
+        }
+      }
+    }
+    return {
+      // Step1
+      customer_guid: "",
+      customer_name: "",
+      vehicle_guid: "",
+      vehicle_name: "",
+      repair_category_id: "",
+      service_type: "Paid",
+      arrival_date: new Date().toISOString().slice(0, 10),
+      estimate_date: "",
+      assign_to: "",
+      additional_options: {},
+      images: [],
 
-    // Step2 (inspection)
-    inspection: [],
-    complaint: "",
-    inspectionNotes: "",
+      // Step2 (inspection)
+      inspection: [],
+      complaint: "",
+      inspectionNotes: "",
 
-    // Step3 (parts & labour)
-    parts: [],
-    labour: [],
-    totals: {},
+      // Step3 (parts & labour)
+      parts: [],
+      labour: [],
+      totals: {},
 
-    // meta
-    notes: "",
-    job_guid: null,
-    jobcardNo: null,
-    createdOn: null,
+      // meta
+      notes: "",
+      job_guid: null,
+      jobcardNo: null,
+      createdOn: null,
+    };
   });
+
+  // ── Draft System ──
+  useEffect(() => {
+    if (!routeGuid) {
+      const savedDraft = localStorage.getItem("service_jobcard_draft");
+      if (savedDraft) {
+        setDraftDialogOpen(true);
+      }
+    }
+  }, [routeGuid]);
+
+  // Save to draft whenever form changes (if not in view mode and not saved)
+  useEffect(() => {
+    // ONLY save if we have some minimal content to avoid saving an empty initial state over a draft
+    if (!routeGuid && isEditing && !form.job_guid && (form.customer_guid || form.vehicle_guid || form.complaint)) {
+      localStorage.setItem("service_jobcard_draft", JSON.stringify({ form, activeStep }));
+    }
+  }, [form, activeStep, routeGuid, isEditing]);
+
+  const resumeDraft = () => {
+    const savedDraft = localStorage.getItem("service_jobcard_draft");
+    if (savedDraft) {
+      const { form: dForm, activeStep: dStep } = JSON.parse(savedDraft);
+      setForm(dForm);
+      setActiveStep(dStep);
+    }
+    setDraftDialogOpen(false);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem("service_jobcard_draft");
+    setForm({
+      customer_guid: "",
+      customer_name: "",
+      vehicle_guid: "",
+      vehicle_name: "",
+      repair_category_id: "",
+      service_type: "Paid",
+      arrival_date: new Date().toISOString().slice(0, 10),
+      estimate_date: "",
+      assign_to: "",
+      additional_options: {},
+      images: [],
+      inspection: [],
+      complaint: "",
+      inspectionNotes: "",
+      parts: [],
+      labour: [],
+      totals: {},
+      notes: "",
+      job_guid: null,
+      jobcardNo: null,
+      createdOn: null,
+    });
+    setDraftDialogOpen(false);
+  };
 
   // Utility: safely parse JSON fields
   const safeParse = (value) => {
@@ -345,7 +391,6 @@ export default function AddServiceForm({
     setActiveStep((s) => Math.min(s + 1, steps.length - 1));
   const handleBack = () => setActiveStep((s) => Math.max(s - 1, 0));
 
-
   const openQuotationForJob = async (job_guid, jobcardNo) => {
     try {
       // 1️⃣ Fetch latest job card
@@ -355,35 +400,12 @@ export default function AddServiceForm({
       const jcData = await jcRes.json();
       const job = Array.isArray(jcData) ? jcData[0] : jcData;
 
-      // 2️⃣ Build quotation payload from job card
-      const parts = (job.parts || []).map((p) => ({
-        name: p.name || p.product,
-        qty: p.qty,
-        rate: p.rate,
-        discount: p.discount || 0,
-        amount: p.amount,
-      }));
-
-      const labour = (job.labour || []).map((l) => ({
-        title: l.title || l.name,
-        hours: l.hours || 1,
-        rate: l.rate,
-        amount: l.amount,
-      }));
-
-      const totals = job.totals || {};
-
-      // 3️⃣ Check quotation
       const qRes = await fetch(apiEndpoints.Quotation + "?job_guid=" + job_guid, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const qData = await qRes.json();
 
       if (qData?.quotation_guid) {
-        // 4️⃣ 🔥 UPDATE quotation with latest job card data
-
-
-        // 5️⃣ Navigate AFTER sync
         navigate("/edit-quotation/" + qData.quotation_guid);
       } else {
         navigate("/add-quotation", {
@@ -394,7 +416,6 @@ export default function AddServiceForm({
       showSnackbar("Failed to open quotation", "error");
     }
   };
-
 
   const buildQuotationFromJobCard = (form) => {
     const parts = (form.parts || []).map((p) => ({
@@ -419,19 +440,17 @@ export default function AddServiceForm({
     return { parts, labour, totals };
   };
 
-
   // Save (create or update)
   const handleSave = async (goToQuotation = false) => {
     try {
+      setIsSubmitting(true);
       const fd = buildFormDataForJobCard(form);
-
       let url = apiEndpoints.JobCard;
 
       if (form.job_guid) {
         url = `${apiEndpoints.JobCard}?job_guid=${form.job_guid}`;
-        fd.append("_method", "PUT"); // << required
+        fd.append("_method", "PUT");
       }
-
 
       const result = await fetch(url, {
         method: "POST",
@@ -439,60 +458,54 @@ export default function AddServiceForm({
         body: fd,
       });
 
-
       const data = await result.json();
 
       if (data.success) {
+        localStorage.removeItem("service_jobcard_draft");
         showSnackbar("Job card saved successfully!", "success");
         if (!form.job_guid && data.job_guid) {
-          // Only set on CREATE
           setForm((f) => ({
             ...f,
             job_guid: data.job_guid,
             jobcardNo: data.jobcardNo,
           }));
         }
+
+        if (goToQuotation) {
+          const jobGuidToSend = form.job_guid || data.job_guid;
+          const jobNoToSend = form.jobcardNo || data.jobcardNo;
+
+          const { parts, labour, totals } = buildQuotationFromJobCard(form);
+          const qSyncForm = new FormData();
+          qSyncForm.append("job_guid", jobGuidToSend);
+          qSyncForm.append("parts", JSON.stringify(parts));
+          qSyncForm.append("labour", JSON.stringify(labour));
+          qSyncForm.append("totals", JSON.stringify(totals));
+          qSyncForm.append("sync_from_job", "1");
+
+          await fetch(apiEndpoints.Quotation + "?job_guid=" + jobGuidToSend, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: qSyncForm,
+          });
+
+          openQuotationForJob(jobGuidToSend, jobNoToSend);
+        }
+      } else {
+        showSnackbar(data.message || "Failed to save", "error");
       }
-      if (data.success && goToQuotation) {
-        const jobGuidToSend = form.job_guid || data.job_guid;
-        const jobNoToSend = form.jobcardNo || data.jobcardNo;
-
-        // 🔁 SYNC QUOTATION DATA FROM JOB CARD (LIKE ADD FLOW)
-        const { parts, labour, totals } = buildQuotationFromJobCard(form);
-
-        const qSyncForm = new FormData();
-        qSyncForm.append("job_guid", jobGuidToSend);
-        qSyncForm.append("parts", JSON.stringify(parts));
-        qSyncForm.append("labour", JSON.stringify(labour));
-        qSyncForm.append("totals", JSON.stringify(totals));
-        qSyncForm.append("sync_from_job", "1"); // 🔑 REQUIRED
-
-        await fetch(apiEndpoints.Quotation + "?job_guid=" + jobGuidToSend, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: qSyncForm,
-        });
-
-        // 🚀 NOW open correct quotation
-        openQuotationForJob(jobGuidToSend, jobNoToSend);
-      }
-
-
-
     } catch (err) {
       showSnackbar("Failed to save job card", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-
-  // Toggle editing (from view mode)
   const enableEdit = () => setIsEditing(true);
   const cancelEdit = () => {
-    navigate("/services"); // Always go back to list
+    navigate("/services");
   };
 
-
-  // Simple loading UI
   if (loading) {
     return (
       <Box p={3} textAlign="center">
@@ -502,8 +515,8 @@ export default function AddServiceForm({
   }
 
   return (
-    <Box sx={{ 
-      px: { xs: 1, sm: 4, md: 6 }, 
+    <Box sx={{
+      px: { xs: 1, sm: 4, md: 6 },
       py: { xs: 2.5, sm: 4 },
       width: '100%',
       maxWidth: '100%',
@@ -576,55 +589,24 @@ export default function AddServiceForm({
         border: "1px solid #F3F4F6",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
       }}>
-        {/* Stepper */}
         <Box mb={2}>
           <Stepper
             activeStep={activeStep}
             alternativeLabel
             sx={{
-              // Active step circle
-              "& .MuiStepIcon-root.Mui-active": {
-                color: "rgba(14, 165, 233, 0.9)",
-              },
-
-              // Completed step circle
-              "& .MuiStepIcon-root.Mui-completed": {
-                color: "rgba(14, 165, 233, 0.9)",
-              },
-
-              // Step label text (active)
-              "& .MuiStepLabel-label.Mui-active": {
-                color: "rgba(14, 165, 233, 0.9)",
-                fontWeight: 600,
-              },
-
-              // Step label text (completed)
-              "& .MuiStepLabel-label.Mui-completed": {
-                color: "rgba(14, 165, 233, 0.9)",
-                fontWeight: 600,
-              },
-
-              // Connector line (active & completed)
-              "& .MuiStepConnector-line": {
-                borderColor: "rgba(14, 165, 233, 0.9)",
-              },
+              "& .MuiStepIcon-root.Mui-active": { color: "rgba(14, 165, 233, 0.9)" },
+              "& .MuiStepIcon-root.Mui-completed": { color: "rgba(14, 165, 233, 0.9)" },
+              "& .MuiStepLabel-label.Mui-active": { color: "rgba(14, 165, 233, 0.9)", fontWeight: 600 },
+              "& .MuiStepLabel-label.Mui-completed": { color: "rgba(14, 165, 233, 0.9)", fontWeight: 600 },
+              "& .MuiStepConnector-line": { borderColor: "rgba(14, 165, 233, 0.9)" },
             }}
           >
             {steps.map((s) => (
-              <Step key={s}>
-                <StepLabel>{s}</StepLabel>
-              </Step>
+              <Step key={s}><StepLabel>{s}</StepLabel></Step>
             ))}
           </Stepper>
-
         </Box>
 
-        {/* Render step components.
-            We pass:
-            - form / setForm (child components may still accept setForm; for view-only we rely on isEditing flag to prevent saves)
-            - onNext: when not allowed to save (view-only) it will be a noop
-            - isView: child can use it to disable inputs if implemented
-        */}
         <Box>
           {activeStep === 0 && (
             <Step1_ServiceDetails
@@ -642,13 +624,7 @@ export default function AddServiceForm({
               form={form}
               setForm={setForm}
               showSnackbar={showSnackbar}
-              onNext={() => {
-                if (!isEditing && routeGuid) {
-                  handleNext();
-                  return;
-                }
-                handleNext();
-              }}
+              onNext={handleNext}
               onBack={handleBack}
               isView={!isEditing}
             />
@@ -661,13 +637,7 @@ export default function AddServiceForm({
               showSnackbar={showSnackbar}
               onBack={handleBack}
               onSave={() => {
-                if (!isEditing && routeGuid) {
-                  // VIEW MODE → just go back to list
-                  navigate("/services");
-                  return;
-                }
-
-                // EDIT / CREATE MODE → save & go to quotation
+                if (!isEditing && routeGuid) { navigate("/services"); return; }
                 handleSave(true);
               }}
               isSubmitting={isSubmitting}
@@ -676,184 +646,100 @@ export default function AddServiceForm({
           )}
         </Box>
 
-        {/* Bottom navigation for steps */}
         <div style={{
-          marginTop: 32,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "20px 0",
-          borderTop: "1px solid #F3F4F6",
-          background: "transparent"
+          marginTop: 32, display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "20px 0", borderTop: "1px solid #F3F4F6", background: "transparent"
         }}>
           <button
             disabled={activeStep === 0}
             onClick={handleBack}
             style={{
-              padding: "10px 20px",
-              borderRadius: 10,
-              border: "1px solid #E5E7EB",
-              background: "#fff",
-              color: activeStep === 0 ? "#9CA3AF" : "#374151",
-              fontSize: 14,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: activeStep === 0 ? "not-allowed" : "pointer",
-              transition: "all 0.2s"
+              padding: "10px 20px", borderRadius: 10, border: "1px solid #E5E7EB",
+              background: "#fff", color: activeStep === 0 ? "#9CA3AF" : "#374151",
+              fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
+              cursor: activeStep === 0 ? "not-allowed" : "pointer", transition: "all 0.2s"
             }}
           >
-            <ArrowLeft size={18} />
-            Back
+            <ArrowLeft size={18} /> Back
           </button>
 
           {activeStep < steps.length - 1 ? (
             <button
               onClick={() => {
-                if (!isEditing && routeGuid) {
-                  handleNext();
-                  return;
-                }
+                if (!isEditing && routeGuid) { handleNext(); return; }
                 if (activeStep === 0) {
                   const valid = step1Ref.current?.validate();
                   if (!valid) return;
                 }
-                handleSave(false);
-                setTimeout(() => handleNext(), 200);
+
+                if (form.job_guid) handleSave(false);
+                setTimeout(() => handleNext(), 100);
               }}
               style={{
-                padding: "10px 24px",
-                borderRadius: 10,
-                border: "none",
-                background: "#0EA5E9",
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(14, 165, 233, 0.25)",
-                transition: "all 0.2s"
+                padding: "10px 24px", borderRadius: 10, border: "none", background: "#0EA5E9",
+                color: "#fff", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
+                cursor: "pointer", boxShadow: "0 4px 12px rgba(14, 165, 233, 0.25)", transition: "all 0.2s"
               }}
             >
-              Save & Continue
+              {form.job_guid ? "Save & Continue" : "Continue"}
               <ArrowRight size={18} />
             </button>
           ) : (
             <button
               disabled={isSubmitting}
               onClick={() => {
-                if (!isEditing && routeGuid) {
-                  navigate("/services");
-                  return;
-                }
+                if (!isEditing && routeGuid) { navigate("/services"); return; }
                 setPendingQuotationAction(() => () => handleSave(true));
                 setOpenQuotationDialog(true);
               }}
               style={{
-                padding: "10px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: isSubmitting ? "#9CA3AF" : "#7C3AED",
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                padding: "10px 28px", borderRadius: 10, border: "none",
+                background: isSubmitting ? "#9CA3AF" : "#7C3AED", color: "#fff",
+                fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 8,
                 cursor: isSubmitting ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(124, 58, 237, 0.3)",
-                transition: "all 0.2s"
+                boxShadow: "0 4px 12px rgba(124, 58, 237, 0.3)", transition: "all 0.2s"
               }}
             >
-              {isSubmitting ? (
-                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                   Saving...
-                 </span>
-              ) : (
-                <>
-                  {routeGuid ? "Finish & Save" : "Create & Save"}
-                  <Check size={18} />
-                </>
-              )}
+              {isSubmitting ? "Saving..." : (routeGuid ? "Finish & Save" : "Create & Save")}
+              {!isSubmitting && <Check size={18} />}
             </button>
           )}
         </div>
       </Box>
 
-      {fetchError && (
-        <Box mt={2}>
-          <Typography color="error">{fetchError}</Typography>
-        </Box>
-      )}
-
-      <Box mt={2}>
-        <Typography variant="caption" color="text.secondary">
-          Note: Opened in {routeGuid ? (isEditing ? "Edit" : "View") : "Create"}{" "}
-          mode.
-        </Typography>
-      </Box>
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert
-          onClose={closeSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "10px", fontWeight: 600 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
+
       <Dialog
-        open={openQuotationDialog}
-        onClose={() => setOpenQuotationDialog(false)}
-        maxWidth="xs"
-        fullWidth
+        open={draftDialogOpen}
+        onClose={discardDraft}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1, maxWidth: "400px" } }}
       >
+        <DialogTitle sx={{ fontWeight: 700, color: "#111827" }}>Continue Drafting?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">You have an unsaved job card from a previous session. Would you like to resume?</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={discardDraft} sx={{ textTransform: "none", color: "#6B7280" }}>Start New</Button>
+          <Button onClick={resumeDraft} variant="contained" sx={{ textTransform: "none", backgroundColor: "#0EA5E9" }}>Resume Work</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openQuotationDialog} onClose={() => setOpenQuotationDialog(false)} maxWidth="xs" fullWidth>
         <Box p={3}>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}
-          >
-            Proceed to Quotation?
-          </Typography>
-
-          <Typography
-            sx={{ textAlign: "center", mb: 3, color: "text.secondary" }}
-          >
-            Do you want to create a quotation for this job card now?
-          </Typography>
-
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>Proceed to Quotation?</Typography>
+          <Typography sx={{ textAlign: "center", mb: 3, color: "text.secondary" }}>Create a quotation for this job card now?</Typography>
           <Stack direction="row" spacing={2} justifyContent="center">
-            {/*  🚀 CANCEL → GO TO SERVICE LIST  */}
-            <Button
-              variant="outlined"
-              onClick={() => {
-                setOpenQuotationDialog(false);
-                navigate("/services"); // <--- move to /services
-              }}
-              sx={{ textTransform: "none", minWidth: 100 }}
-            >
-              Cancel
-            </Button>
-
-            {/*  ✔ CONTINUE TO QUOTATION  */}
-            <Button
-              variant="contained"
-              onClick={() => {
-                setOpenQuotationDialog(false);
-                pendingQuotationAction?.();
-              }}
-              sx={{ textTransform: "none", minWidth: 130, backgroundColor: "rgba(14, 165, 233, 0.9)" }}
-            >
-              Yes, Continue
-            </Button>
+            <Button variant="outlined" onClick={() => { setOpenQuotationDialog(false); navigate("/services"); }} sx={{ textTransform: "none" }}>Cancel</Button>
+            <Button variant="contained" onClick={() => { setOpenQuotationDialog(false); pendingQuotationAction?.(); }} sx={{ textTransform: "none", backgroundColor: "#0EA5E9" }}>Yes, Continue</Button>
           </Stack>
         </Box>
       </Dialog>

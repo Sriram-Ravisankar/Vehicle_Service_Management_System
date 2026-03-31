@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLUMNS = [
   "S.No",
@@ -23,41 +24,43 @@ export default function ProductUsageTab({filters}) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchUsage = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
+  const fetchUsage = React.useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("token");
 
-        const res = await fetch(apiEndpoints.report, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+      const res = await fetch(apiEndpoints.report, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        const json = await res.json();
+      const json = await res.json();
 
-        if (json.success && json.stock_reports) {
-          const formatted = json.stock_reports.map((row, index) => ({
-            "S.No": index + 1,
-            "Product Number": row["Product Number"],
-            "Supplier Name": row["Supplier Name"],
-            "Purchase Date": row["Purchase Date"],
-            "Product Name": row["Product Name"],
-            "Quantity sold": row["Quantity Sold"] ?? 0,
-          }));
+      if (json.success && json.stock_reports) {
+        const formatted = json.stock_reports.map((row, index) => ({
+          "S.No": index + 1,
+          "Product Number": row["Product Number"],
+          "Supplier Name": row["Supplier Name"],
+          "Purchase Date": row["Purchase Date"],
+          "Product Name": row["Product Name"],
+          "Quantity sold": row["Quantity Sold"] ?? 0,
+        }));
 
-          setData(formatted);
-        } else {
-          console.error("No usage data found");
-        }
-      } catch (err) {
-        console.error("Error fetching usage:", err);
+        setData(formatted);
+      } else {
+        console.error("No usage data found");
       }
-    };
-
-    fetchUsage();
+    } catch (err) {
+      console.error("Error fetching usage:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchUsage();
+  }, [fetchUsage]);
+
+  useAutoRefresh(fetchUsage);
 
   // --- Filter based on search term & dates ---
   const filtered = useMemo(() => {

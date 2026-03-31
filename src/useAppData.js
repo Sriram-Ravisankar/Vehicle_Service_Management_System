@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import apiEndpoints from "./apiconfig/index";
+import useAutoRefresh from "./hooks/useAutoRefresh";
 
 export default function useAppData() {
   const [data, setData] = useState(() => ({
@@ -79,6 +80,9 @@ export default function useAppData() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  /* ── Auto-sync: background poll + tab-focus for all data pages ── */
+  useAutoRefresh(fetchData);
 
   // Persist data in localStorage when it changes
   useEffect(() => {

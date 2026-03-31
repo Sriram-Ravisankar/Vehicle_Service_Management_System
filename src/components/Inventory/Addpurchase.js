@@ -25,6 +25,7 @@ import apiEndpoints from "../../apiconfig";
 import DynamicHeader from "../common/Dynamicheader";
 import { useLoading } from "../../pages/LoadingContext";
 import PurchaseDetailsForm from "./PurchaseDetails";
+import SearchableSelect from "../DynamicComponents/SearchableSelect";
 
 // ── tiny helpers (borrowed from AddSupplier for consistency) ───────────────────
 const Field = ({ label, icon: Icon, error, children }) => (
@@ -299,6 +300,24 @@ const AddPurchase = ({ fetchData }) => {
     }
   };
 
+  const handleDeleteItem = async (item_id) => {
+    try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const res = await fetch(`${apiEndpoints.purchaseItems}?id=${item_id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (!result.success) {
+        console.error("Failed to delete item from DB:", result);
+        setSnackbar({ open: true, message: result.message || "Failed to delete item", severity: "error" });
+      }
+    } catch (err) {
+      console.error("Delete item error:", err);
+      setSnackbar({ open: true, message: "Error deleting item", severity: "error" });
+    }
+  };
+
   const grandTotal = purchaseDetails.reduce((acc, curr) => acc + (Number(curr.quantity || 0) * Number(curr.price || 0)), 0);
 
   return (
@@ -321,19 +340,35 @@ const AddPurchase = ({ fetchData }) => {
             </Field>
 
             <Field label="Branch *" icon={Building2} error={errors.branch}>
-              <select name="branch" value={formData.branch} onChange={handleChange}
-                style={{ ...inputSx(!!errors.branch), appearance: "none" }}>
-                <option value="">Select Branch</option>
-                {branches.map(b => <option key={b.branch_id} value={b.branch_id}>{b.branch_name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.branch}
+                placeholder="Select Branch"
+                options={branches.map(b => ({ value: String(b.branch_id), label: b.branch_name }))}
+                onChange={(val) => {
+                  setFormData(prev => ({ ...prev, branch: val }));
+                  if (errors.branch) setErrors(p => ({ ...p, branch: "" }));
+                }}
+              />
             </Field>
 
             <Field label="Supplier *" icon={User} error={errors.supplier_id}>
-              <select name="supplier_id" value={formData.supplier_id} onChange={handleChange}
-                style={{ ...inputSx(!!errors.supplier_id), appearance: "none" }}>
-                <option value="">Select Supplier</option>
-                {suppliers.map(s => <option key={s.supplier_id} value={s.supplier_id}>{s.supplier_name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.supplier_id}
+                placeholder="Select Supplier"
+                options={suppliers.map(s => ({ value: String(s.supplier_id), label: s.supplier_name }))}
+                onChange={(val) => {
+                  const s = suppliers.find(sup => String(sup.supplier_id) === String(val));
+                  setFormData(prev => ({
+                    ...prev,
+                    supplier_id: val,
+                    mobile_no: s?.mobile_no || "",
+                    email: s?.email || "",
+                    landline_no: s?.landline_no || "",
+                    billing_address: s?.address || "",
+                  }));
+                  if (errors.supplier_id) setErrors(p => ({ ...p, supplier_id: "" }));
+                }}
+              />
             </Field>
 
             <Field label="Mobile Number *" icon={Phone} error={errors.mobile_no}>
@@ -394,6 +429,7 @@ const AddPurchase = ({ fetchData }) => {
             products={products}
             isEditMode={isEditMode}
             isSubmitting={isLoading}
+            onDeleteItem={handleDeleteItem}
           />
         </SectionCard>
 

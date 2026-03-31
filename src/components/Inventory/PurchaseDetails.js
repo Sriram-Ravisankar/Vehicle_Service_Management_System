@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  MenuItem,
-  Select,
   TextField,
   IconButton,
   Button,
@@ -15,6 +13,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Plus, Trash2, Info } from 'lucide-react';
+import SearchableSelect from '../DynamicComponents/SearchableSelect';
 
 const PurchaseDetailsForm = ({
   rows,
@@ -77,7 +76,7 @@ const PurchaseDetailsForm = ({
     setDeleteDialog({ open: false, index: null, productName: '' });
 
     const row = rows[index];
-    if (isEditMode && row.item_id) {
+    if (isEditMode && row.item_id && typeof onDeleteItem === 'function') {
       await onDeleteItem(row.item_id);
     }
     onRowsChange(rows.filter((_, i) => i !== index));
@@ -117,19 +116,16 @@ const PurchaseDetailsForm = ({
             {/* Product selection */}
             <Box sx={{ flex: 2 }}>
               <Typography sx={{ display: { lg: 'none' }, fontSize: 11, fontWeight: 700, color: '#94A3B8', mb: 0.5, textTransform: 'uppercase' }}>Product</Typography>
-              <Select
-                fullWidth
-                size="small"
-                displayEmpty
+              <SearchableSelect
                 value={row.product_id || ''}
-                onChange={(e) => handleChange(index, 'product_id', e.target.value)}
-                sx={{ borderRadius: '10px', background: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}
-              >
-                <MenuItem value="">
-                  <Typography sx={{ color: '#94A3B8', fontSize: 14 }}>Choose product...</Typography>
-                </MenuItem>
-                {products.map(p => <MenuItem key={p.id} value={p.id}>{p.product_name}</MenuItem>)}
-              </Select>
+                placeholder="Choose product..."
+                options={products.map(p => ({
+                  value: p.id,
+                  label: p.product_name,
+                  sub: p.product_number,
+                }))}
+                onChange={(val) => handleChange(index, 'product_id', val)}
+              />
             </Box>
 
             {/* Qty */}

@@ -12,6 +12,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import { useToast } from "../../../context/ToastContext";
 
 import {
   ArrowLeft,
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 
 import apiEndpoints from "../../../apiconfig";
+import SearchableSelect from "../../../components/DynamicComponents/SearchableSelect";
 
 /* utility */
 const currency = (v) =>
@@ -93,9 +95,7 @@ export default function AddQuotation() {
   const [loading, setLoading] = useState(Boolean(routeGuid));
   const [working, setWorking] = useState(false);
 
-  const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
-  const showSnack = (msg, sev = "success") => setSnack({ open: true, message: msg, severity: sev });
-  const closeSnack = () => setSnack((s) => ({ ...s, open: false }));
+  const showSnack = useToast();
 
   const [form, setForm] = useState({
     quotation_no: "",
@@ -290,11 +290,18 @@ export default function AddQuotation() {
         const update = { ...p, [key]: val };
         
         // Auto-detect price if product_id changes
-        if (key === "product_id") {
+        if (key === "product_id" && val) {
+          const isDuplicate = f.parts.some(existing => existing.id !== id && String(existing.product_id) === String(val));
+          if (isDuplicate) {
+            showSnack("This product is already added. Please increase the quantity of the existing row.", "warning");
+            update.product_id = "";
+            return update;
+          }
+
           const prod = products.find(prod => String(prod.id) === String(val));
           if (prod) {
             update.name = prod.product_name;
-            update.rate = Number(prod.price || 0);
+            update.rate = Number(prod.selling_price || prod.price || 0);
           }
         }
         
@@ -447,19 +454,17 @@ export default function AddQuotation() {
           <Grid item xs={12} md={6}>
             <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
               <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Job Card</Typography>
-              <select
+              <SearchableSelect
                 disabled={isViewMode}
                 value={form.job_guid}
-                style={inputSx()}
-                onChange={(e) => handleJobCardChange(e.target.value)}
-              >
-                <option value="">-- Select Job Card --</option>
-                {jobCards.map(jc => (
-                  <option key={jc.job_guid} value={jc.job_guid}>
-                    {jc.jobcardNo} {jc.customer_name ? `(${jc.customer_name})` : ""}
-                  </option>
-                ))}
-              </select>
+                placeholder="-- Select Job Card --"
+                options={jobCards.map(jc => ({
+                  value: jc.job_guid,
+                  label: jc.jobcardNo,
+                  sub: jc.customer_name || "",
+                }))}
+                onChange={(val) => val && handleJobCardChange(val)}
+              />
             </Box>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -489,14 +494,20 @@ export default function AddQuotation() {
           <Grid item xs={12} md={6}>
             <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 1.5 } }}>
               <Typography sx={{ ...labelStyle, mb: 0, width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>Status</Typography>
-              <select disabled={isViewMode} value={form.status} style={inputSx()} onChange={(e) => setForm(s => ({ ...s, status: e.target.value }))}>
-                <option value="Approval Pending">Approval Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Work In Progress">Work In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
+              <SearchableSelect
+                disabled={isViewMode}
+                value={form.status}
+                placeholder="Select Status"
+                options={[
+                  { value: "Approval Pending", label: "Approval Pending" },
+                  { value: "Approved", label: "Approved" },
+                  { value: "Work In Progress", label: "Work In Progress" },
+                  { value: "Completed", label: "Completed" },
+                  { value: "Delivered", label: "Delivered" },
+                  { value: "Cancelled", label: "Cancelled" },
+                ]}
+                onChange={(val) => setForm(s => ({ ...s, status: val }))}
+              />
             </Box>
           </Grid>
         </Grid>
@@ -517,17 +528,17 @@ export default function AddQuotation() {
             </div>
             {form.parts?.map((p) => (
               <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
-                <select 
-                  value={p.product_id || ""} 
-                  disabled={isViewMode} 
-                  style={inputSx(false)} 
-                  onChange={(e) => updatePart(p.id, "product_id", e.target.value)}
-                >
-                  <option value="">-- Select Product --</option>
-                  {products.map(prod => (
-                    <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.product_number})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={String(p.product_id || "")}
+                  disabled={isViewMode}
+                  placeholder="-- Select Product --"
+                  options={products.map(prod => ({
+                    value: String(prod.id),
+                    label: prod.product_name,
+                    sub: prod.product_number,
+                  }))}
+                  onChange={(val) => updatePart(p.id, "product_id", val)}
+                />
                 <input placeholder="Part Name..." value={p.name} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
                 <input type="number" placeholder="Qty" value={p.qty} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "qty", e.target.value)} />
                 <input type="number" placeholder="Rate" value={p.rate} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "rate", e.target.value)} />
@@ -579,21 +590,19 @@ export default function AddQuotation() {
             {form.labour?.map((l) => (
               <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
                 <input placeholder="Labour Title..." value={l.title} disabled={isViewMode} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
-                <select 
-                  value={l.mechanic_guid || ""} 
-                  disabled={isViewMode} 
-                  style={inputSx(false)} 
-                  onChange={(e) => updateLabour(l.id, "mechanic_guid", e.target.value)}
-                >
-                  <option value="">-- Assign Mechanic --</option>
-                  {workers
+                <SearchableSelect
+                  value={l.mechanic_guid || ""}
+                  disabled={isViewMode}
+                  placeholder="-- Assign Mechanic --"
+                  options={workers
                     .filter(w => String(w.role_id) === "4")
-                    .map(w => (
-                      <option key={w.user_guid} value={w.user_guid}>
-                        {w.first_name} {w.last_name}
-                      </option>
-                    ))}
-                </select>
+                    .map(w => ({
+                      value: w.user_guid,
+                      label: `${w.first_name} ${w.last_name}`,
+                      sub: w.position || "Mechanic",
+                    }))}
+                  onChange={(val) => updateLabour(l.id, "mechanic_guid", val)}
+                />
                 <input type="number" placeholder="Hours" value={l.hours} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "hours", e.target.value)} />
                 <input type="number" placeholder="Rate" value={l.rate} disabled={isViewMode} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "rate", e.target.value)} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
@@ -635,10 +644,16 @@ export default function AddQuotation() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
-                  <select disabled={isViewMode} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 }}))}>
-                    <option value="percent">Percentage (%)</option>
-                    <option value="amount">Fixed Amount (₹)</option>
-                  </select>
+                  <SearchableSelect
+                    disabled={isViewMode}
+                    value={form.totals?.discountType || "percent"}
+                    placeholder="Discount Type"
+                    options={[
+                      { value: "percent", label: "Percentage (%)" },
+                      { value: "amount", label: "Fixed Amount (₹)" },
+                    ]}
+                    onChange={(val) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: val, discountValue: 0 } }))}
+                  />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
@@ -741,11 +756,6 @@ export default function AddQuotation() {
 
 
 
-      <Snackbar open={snack.open} autoHideDuration={3000} onClose={closeSnack} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert severity={snack.severity} sx={{ borderRadius: "12px", fontWeight: 700 }}>
-          {snack.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

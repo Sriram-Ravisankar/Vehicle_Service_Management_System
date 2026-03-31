@@ -4,6 +4,7 @@ import { User, Building2, Phone, Mail, MapPin, Upload, X, Save } from "lucide-re
 import { Box, Button, Snackbar, Alert } from "@mui/material";
 import apiEndpoints from "../../apiconfig";
 import DynamicHeader from "../common/Dynamicheader";
+import SearchableSelect from "../DynamicComponents/SearchableSelect";
 
 const API_URL = apiEndpoints.supplier;
 
@@ -265,19 +266,25 @@ const AddSupplier = ({ fetchData }) => {
             </Field>
 
             <Field label="State">
-              <select name="state" value={formData.state} onChange={handleChange}
-                style={{ ...inputSx(false), appearance: "none" }}>
-                <option value="">Select State</option>
-                {states.map((s) => <option key={s.state_id} value={s.state_id}>{s.state_name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.state}
+                placeholder="Select State"
+                options={states.map((s) => ({ value: String(s.state_id), label: s.state_name }))}
+                onChange={(val) => {
+                  fetchCities(val);
+                  setFormData((p) => ({ ...p, state: val, city: "" }));
+                }}
+              />
             </Field>
 
             <Field label="Town / City">
-              <select name="city" value={formData.city} onChange={handleChange}
-                style={{ ...inputSx(false), appearance: "none" }}>
-                <option value="">Select City</option>
-                {cities.map((c) => <option key={c.city_id} value={c.city_id}>{c.city_name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.city}
+                placeholder={formData.state ? "Select City" : "Select State first"}
+                disabled={!formData.state}
+                options={cities.map((c) => ({ value: String(c.city_id), label: c.city_name }))}
+                onChange={(val) => setFormData((p) => ({ ...p, city: val }))}
+              />
             </Field>
 
             <Field label="Address">

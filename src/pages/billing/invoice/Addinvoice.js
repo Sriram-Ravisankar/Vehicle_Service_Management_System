@@ -14,6 +14,7 @@ import {
   Alert,
   CircularProgress
 } from "@mui/material";
+import { useToast } from "../../../context/ToastContext";
 import {
   ArrowLeft,
   Plus,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import apiEndpoints from "../../../apiconfig";
+import SearchableSelect from "../../../components/DynamicComponents/SearchableSelect";
 
 /* utility */
 const currency = (v) =>
@@ -148,11 +150,7 @@ export default function AddInvoice() {
     paidAmount: "",
     paymentMethod: "",
   });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const showToast = useToast();
 
   // ------------------- LOAD FROM QUOTATION --------------------
   useEffect(() => {
@@ -329,16 +327,24 @@ export default function AddInvoice() {
         let updated = { ...item, [key]: value };
 
         if (key === "product_id" && value) {
+          // Check for duplication
+          const isDuplicate = prev.items.some(existing => existing.id !== id && String(existing.product_id) === String(value));
+          if (isDuplicate) {
+            showToast("This product is already added. Please increase the quantity of the existing row.", "warning");
+            updated.product_id = "";
+            return updated;
+          }
+
           const prod = products.find(p => String(p.id) === String(value));
           if (prod) {
             const avail = Number(prod.available_stock || 0);
             if (avail <= 0) {
-              setSnackbar({ open: true, message: `Out of Stock! ${prod.product_name} has 0 available.`, severity: "error" });
+              showToast(`Out of Stock! ${prod.product_name} has 0 available.`, "error");
               updated.product_id = "";
               return updated;
             }
             updated.name = prod.product_name;
-            updated.price = Number(prod.price || 0);
+            updated.price = Number(prod.selling_price || prod.price || 0);
             if (!updated.qty || updated.qty < 1) updated.qty = 1;
           }
         }
@@ -348,7 +354,7 @@ export default function AddInvoice() {
           if (prod) {
             const avail = Number(prod.available_stock || 0);
             if (Number(value) > avail) {
-              setSnackbar({ open: true, message: `Not enough stock! Only ${avail} available for ${prod.product_name}.`, severity: "error" });
+              showToast(`Not enough stock! Only ${avail} available for ${prod.product_name}.`, "error");
               updated.qty = avail;
             }
           }
@@ -420,11 +426,7 @@ export default function AddInvoice() {
     const data = await res.json();
 
     if (!data || !data.success) {
-      setSnackbar({
-        open: true,
-        message: data?.message || "Something went wrong",
-        severity: "error",
-      });
+      showToast(data?.message || "Something went wrong", "error");
       return;
     }
 
@@ -434,13 +436,7 @@ export default function AddInvoice() {
     //   return;
     // }
 
-    setSnackbar({
-      open: true,
-      message: isEdit
-        ? "Invoice updated successfully"
-        : "Invoice created successfully",
-      severity: "success",
-    });
+    showToast(isEdit ? "Invoice updated successfully" : "Invoice created successfully", "success");
 
     setTimeout(() => navigate("/invoices"), 1200);
   };
@@ -526,17 +522,17 @@ export default function AddInvoice() {
             </div>
             {parts.map((item) => (
               <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 140px 140px 40px", gap: 12, alignItems: "center" }}>
-                <select 
-                  value={item.product_id || ""} 
-                  disabled={isView} 
-                  style={inputSx(false)} 
-                  onChange={(e) => updateItem(item.id, "product_id", e.target.value)}
-                >
-                  <option value="">-- Select Product --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.product_name}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={String(item.product_id || "")}
+                  disabled={isView}
+                  placeholder="-- Select Product --"
+                  options={products.map(prod => ({
+                    value: String(prod.id),
+                    label: prod.product_name,
+                    sub: prod.product_number,
+                  }))}
+                  onChange={(val) => updateItem(item.id, "product_id", val)}
+                />
                 <input placeholder="Description..." value={item.name} disabled={isView} style={inputSx(false)} onChange={(e) => updateItem(item.id, "name", e.target.value)} />
                 <input type="number" placeholder="Qty" value={item.qty} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateItem(item.id, "qty", Number(e.target.value))} />
                 <input type="number" placeholder="Rate" value={item.price} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateItem(item.id, "price", Number(e.target.value))} />
@@ -624,10 +620,16 @@ export default function AddInvoice() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
-                  <select disabled={isView} value={formData.discountType || "percent"} style={inputSx(false)} onChange={(e) => setFormData(f => ({ ...f, discountType: e.target.value, discount: 0 }))}>
-                    <option value="percent">Percentage (%)</option>
-                    <option value="amount">Fixed Amount (₹)</option>
-                  </select>
+                  <SearchableSelect
+                    disabled={isView}
+                    value={formData.discountType || "percent"}
+                    placeholder="Discount Type"
+                    options={[
+                      { value: "percent", label: "Percentage (%)" },
+                      { value: "amount", label: "Fixed Amount (₹)" },
+                    ]}
+                    onChange={(val) => setFormData(f => ({ ...f, discountType: val, discount: 0 }))}
+                  />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
@@ -638,13 +640,18 @@ export default function AddInvoice() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Payment Method</label>
-                  <select disabled={isView} value={formData.paymentMethod} style={inputSx(false)} onChange={(e) => setFormData(f => ({ ...f, paymentMethod: e.target.value }))}>
-                    <option value="">Select Method</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Online">Online Transfer</option>
-                    <option value="Card">Card Payment</option>
-                    <option value="UPI">UPI / GPay / PhonePe</option>
-                  </select>
+                  <SearchableSelect
+                    disabled={isView}
+                    value={formData.paymentMethod}
+                    placeholder="Select Method"
+                    options={[
+                      { value: "Cash", label: "Cash" },
+                      { value: "Online", label: "Online Transfer" },
+                      { value: "Card", label: "Card Payment" },
+                      { value: "UPI", label: "UPI / GPay / PhonePe" },
+                    ]}
+                    onChange={(val) => setFormData(f => ({ ...f, paymentMethod: val }))}
+                  />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Recieved Amount (₹)</label>
@@ -744,11 +751,6 @@ export default function AddInvoice() {
         </Box>
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert severity={snackbar.severity} sx={{ borderRadius: "12px", fontWeight: 700 }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

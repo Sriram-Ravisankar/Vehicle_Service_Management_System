@@ -7,6 +7,7 @@ import {
 import { Save, Upload, X, Tag, Hash, DollarSign, Calendar, GitBranch, Plus } from "lucide-react";
 import DynamicHeader from "../common/Dynamicheader";
 import apiEndpoints from "../../apiconfig";
+import SearchableSelect from "../DynamicComponents/SearchableSelect";
 
 // ── shared field components ───────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, error, children }) => (
@@ -53,7 +54,7 @@ const AddProduct = ({ fetchData }) => {
     product_number: "", product_name: "", unit: "",
     color: "", image: null, imagePreview: "",
     purchase_date: new Date().toISOString().split("T")[0],
-    branch: "", price: "", warranty: "",
+    branch: "", purchase_price: "", selling_price: "", warranty: "",
   });
 
   const [units, setUnits]               = useState([]);
@@ -100,7 +101,8 @@ const AddProduct = ({ fetchData }) => {
         imagePreview:   p.image          || "",
         purchase_date:  p.purchase_date  || new Date().toISOString().split("T")[0],
         branch:         p.branch         || "",
-        price:          p.price          || "",
+        purchase_price: p.purchase_price  || p.price || "",
+        selling_price:  p.selling_price   || "",
         warranty:       p.warranty       || "",
       });
     } else {
@@ -129,7 +131,8 @@ const AddProduct = ({ fetchData }) => {
     }
     
     // Prevent negative price
-    if (name === "price" && value !== "" && Number(value) < 0) {
+    // Prevent negative price
+    if ((name === "purchase_price" || name === "selling_price") && value !== "" && Number(value) < 0) {
       return;
     }
 
@@ -140,7 +143,8 @@ const AddProduct = ({ fetchData }) => {
   const validate = () => {
     const errs = {};
     if (!formData.product_name.trim())   errs.product_name   = "Required";
-    if (!formData.price)                 errs.price          = "Required";
+    if (!formData.purchase_price)        errs.purchase_price = "Required";
+    if (!formData.selling_price)         errs.selling_price  = "Required";
     if (!formData.unit)                  errs.unit           = "Required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -152,7 +156,7 @@ const AddProduct = ({ fetchData }) => {
     setIsLoading(true);
     try {
       const fd = new FormData();
-      ["product_number","product_name","unit","color","purchase_date","branch","price","warranty"]
+      ["product_number","product_name","unit","color","purchase_date","branch","purchase_price","selling_price","warranty"]
         .forEach((k) => fd.append(k, formData[k] ?? ""));
       if (formData.image instanceof File) fd.append("image", formData.image);
       if (isEditMode) fd.append("id", location.state.editData.id);
@@ -222,9 +226,14 @@ const AddProduct = ({ fetchData }) => {
                 placeholder="e.g. Brake Pad" style={inputSx(!!errors.product_name)} />
             </Field>
 
-            <Field label="Price *" icon={DollarSign} error={errors.price}>
-              <input name="price" type="number" value={formData.price} onChange={handleChange} min="0"
-                placeholder="0.00" style={inputSx(!!errors.price)} />
+            <Field label="Purchase Price (Cost) *" icon={DollarSign} error={errors.purchase_price}>
+              <input name="purchase_price" type="number" value={formData.purchase_price} onChange={handleChange} min="0"
+                placeholder="0.00" style={inputSx(!!errors.purchase_price)} />
+            </Field>
+            
+            <Field label="Selling Price (MRP) *" icon={DollarSign} error={errors.selling_price}>
+              <input name="selling_price" type="number" value={formData.selling_price} onChange={handleChange} min="0"
+                placeholder="0.00" style={inputSx(!!errors.selling_price)} />
             </Field>
 
             <Field label="Color">
@@ -240,13 +249,17 @@ const AddProduct = ({ fetchData }) => {
             {/* Unit of measurement */}
             <Field label="Unit of Measurement *" error={errors.unit}>
               <div style={{ display: "flex", gap: 8 }}>
-                <select name="unit" value={formData.unit} onChange={handleChange}
-                  style={{ ...inputSx(!!errors.unit), flex: 1, appearance: "none" }}>
-                  <option value="">Select Unit</option>
-                  {unitOptions.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
-                </select>
+                <SearchableSelect
+                  value={formData.unit}
+                  placeholder="Select Unit"
+                  options={unitOptions}
+                  onChange={(val) => {
+                    setErrors((p) => ({ ...p, unit: "" }));
+                    setFormData((p) => ({ ...p, unit: val }));
+                  }}
+                />
                 <button type="button" onClick={() => setOpenUnitDialog(true)}
-                  style={{ ...purpleBtn, padding: "9px 14px", background: "rgba(14, 165, 233,0.9)", color: "#fff", borderRadius: 8 }}>
+                  style={{ ...purpleBtn, padding: "9px 14px", background: "rgba(14, 165, 233,0.9)", color: "#fff", borderRadius: 8, flexShrink: 0 }}>
                   <Plus size={15} />
                 </button>
               </div>
@@ -292,11 +305,12 @@ const AddProduct = ({ fetchData }) => {
             </Field>
 
             <Field label="Branch" icon={GitBranch}>
-              <select name="branch" value={formData.branch} onChange={handleChange}
-                style={{ ...inputSx(false), appearance: "none" }}>
-                <option value="">Select Branch</option>
-                {branchOptions.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.branch}
+                placeholder="Select Branch"
+                options={branchOptions}
+                onChange={(val) => setFormData((p) => ({ ...p, branch: val }))}
+              />
             </Field>
           </div>
         </SectionCard>

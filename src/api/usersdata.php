@@ -843,66 +843,63 @@ switch ($method) {
         break;
 
     case 'DELETE':
-
         try {
-
             // Get vehicle_guid and user_guid
             $vehicleGuid = $_GET['vehicle_guid'] ?? null;
-            $userGuid = $_GET['user_guid'] ?? null;
+            $userGuid    = $_GET['user_guid'] ?? null;
 
-            if (!$vehicleGuid || !$userGuid) {
-
-                throw new Exception("vehicle_guid and user_guid required");
-
+            if (!$userGuid) {
+                throw new Exception("user_guid required");
             }
 
             $conn->begin_transaction();
 
-            // Count vehicles
-            $countSql = "
-            SELECT COUNT(*) as total
-            FROM vehicles
-            WHERE user_guid = '$userGuid'
-            AND isDeleted = 0
-            ";
+            // 1. Check user type
+            $typeRes = $conn->query("SELECT user_type FROM users WHERE user_guid = '$userGuid' AND isDeleted = FALSE");
+            if ($typeRes->num_rows === 0) throw new Exception("User not found or already deleted");
+            $uRow = $typeRes->fetch_assoc();
+            $uType = $uRow['user_type'];
 
-            $result = $conn->query($countSql);
+            // 2. Logic for Customer with Vehicle
+            if ($uType === 'customer' && $vehicleGuid) {
+                // Count active vehicles
+                $countSql = "SELECT COUNT(*) as total FROM vehicles WHERE user_guid = '$userGuid' AND isDeleted = 0";
+                $result = $conn->query($countSql);
+                $vRow = $result->fetch_assoc();
 
-            $row = $result->fetch_assoc();
-
-            // If multiple vehicles exist → delete only vehicle
-
-            if ($row['total'] > 1) {
-
-                $conn->query("
-                UPDATE vehicles
-                SET isDeleted = 1, isActive = 0
-                WHERE vehicle_guid = '$vehicleGuid'
-                ");
-
-            }
-
-            // If only one vehicle → delete vehicle and user
+                if ($vRow['total'] > 1) {
+                    // Just delete this vehicle
+                    $conn->query("UPDATE vehicles SET isDeleted = 1, isActive = 0 WHERE vehicle_guid = '$vehicleGuid'");
+                } else {
+                    // Delete the only vehicle and the user
+                    $conn->query("UPDATE vehicles SET isDeleted = 1, isActive = 0 WHERE vehicle_guid = '$vehicleGuid'");
+                    $conn->query("UPDATE users SET isDeleted = 1, isActive = 0 WHERE user_guid = '$userGuid'");
+                    $conn->query("UPDATE customers SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                }
+            } 
+            // 3. Logic for Employee/Staff (No Vehicle or direct deletion)
             else {
-
-                $conn->query("
-                UPDATE vehicles
-                SET isDeleted = 1, isActive = 0
-                WHERE vehicle_guid = '$vehicleGuid'
-                ");
-
-                $conn->query("
-                UPDATE users
-                SET isDeleted = 1, isActive = 0
-                WHERE user_guid = '$userGuid'
-                ");
-
+                // Soft delete user
+                $conn->query("UPDATE users SET isDeleted = 1, isActive = 0 WHERE user_guid = '$userGuid'");
+                
+                // Soft delete related type info (if table exists)
+                if ($uType === 'employee') {
+                    $conn->query("UPDATE employees SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                } else if ($uType === 'support_staff') {
+                   // $conn->query("UPDATE support_staff SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                } else if ($uType === 'accountant') {
+                   // $conn->query("UPDATE accountants SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                } else if ($uType === 'customer') {
+                    $conn->query("UPDATE customers SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                    $conn->query("UPDATE vehicles SET isDeleted = 1 WHERE user_guid = '$userGuid'");
+                }
             }
+
             $conn->commit();
 
             echo json_encode([
                 "status" => "success",
-                "message" => "Vehicle deleted correctly"
+                "message" => "Record deleted correctly"
             ]);
 
         } catch (Exception $e) {

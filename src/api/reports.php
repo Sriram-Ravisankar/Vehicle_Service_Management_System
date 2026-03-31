@@ -457,11 +457,13 @@ ORDER BY month_no;
         }
 
         $stockQuery = "
-            SELECT product_number, supplier_name, purchase_date,
-                   product_name, (IFNULL(quantity_purchased,0) - IFNULL(quantity_sold,0)) AS available_quantity, quantity_sold
+            SELECT st.product_number, sup.supplier_name, st.purchase_date,
+                   p.product_name, (IFNULL(st.quantity_purchased,0) - IFNULL(st.quantity_sold,0)) AS available_quantity, st.quantity_sold
             FROM stock st
-            where admin_guid = '$adminGuid'
-            ORDER BY purchase_date DESC
+            JOIN products p ON st.product_id = p.id
+            LEFT JOIN suppliers sup ON st.supplier_id = sup.supplier_id
+            WHERE st.admin_guid = '$adminGuid' AND st.isDeleted = 0
+            ORDER BY st.purchase_date DESC
         ";
 
         $stockResult = $conn->query($stockQuery);

@@ -3,6 +3,7 @@ import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
 import { Package, Search, Calendar, Tag, AlertCircle } from "lucide-react";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLUMNS = [
   "S.No",
@@ -26,39 +27,41 @@ export default function ProductStockTab({filters}) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchStockReport = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
-        const res = await fetch(apiEndpoints.report, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+  const fetchStockReport = React.useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(apiEndpoints.report, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        const json = await res.json();
+      const json = await res.json();
 
-        if (json.success && json.stock_reports) {
-          const formatted = json.stock_reports.map((row, index) => ({
-            "S.No": index + 1,
-            "Product Number": row["Product Number"],
-            "Supplier Name": row["Supplier Name"],
-            "Purchase Date": row["Purchase Date"],
-            "Product Name": row["Product Name"],
-            "Available Quantity": row["Available Quantity"],
-          }));
-          setData(formatted);
-        } else {
-          console.error("No stock data found");
-        }
-      } catch (err) {
-        console.error("Error fetching stock:", err);
+      if (json.success && json.stock_reports) {
+        const formatted = json.stock_reports.map((row, index) => ({
+          "S.No": index + 1,
+          "Product Number": row["Product Number"],
+          "Supplier Name": row["Supplier Name"],
+          "Purchase Date": row["Purchase Date"],
+          "Product Name": row["Product Name"],
+          "Available Quantity": row["Available Quantity"],
+        }));
+        setData(formatted);
+      } else {
+        console.error("No stock data found");
       }
-    };
-
-    fetchStockReport();
+    } catch (err) {
+      console.error("Error fetching stock:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStockReport();
+  }, [fetchStockReport]);
+
+  useAutoRefresh(fetchStockReport);
 
   // --- Filter based on search term & dates ---
   const filtered = useMemo(() => {

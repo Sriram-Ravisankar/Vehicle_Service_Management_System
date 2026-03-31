@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $password = "";
-$database = "garage";
+$database = "garage_management";
 
 
 $jwt_secret = 'qwerty1234qwerty';
@@ -16,11 +16,8 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-/**
- * Resolves the primary admin_guid for a given user.
- * If the user is an admin (role_id=1), returns their own user_guid.
- * If the user is an employee, returns the admin_guid they belong to.
- */
+
+ 
 function getAdminGuid($conn, $user_guid, $role_id) {
     if ($role_id == 1) {
         return $user_guid;

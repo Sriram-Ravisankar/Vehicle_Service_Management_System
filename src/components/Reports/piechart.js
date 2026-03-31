@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -20,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLORS = [
   "#3b82f6", // Blue
@@ -49,33 +50,35 @@ export default function GraphDashboard() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        // show();
-        const token = sessionStorage.getItem("token");
-        const res = await fetch(`${apiEndpoints.report}?action=dashboard`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  const fetchDashboard = React.useCallback(async () => {
+    try {
+      // show();
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${apiEndpoints.report}?action=dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        const data = await res.json();
-        if (data.success) {
-          setDashboard(data);
-        } else {
-          setDashboard(null);
-        }
-      } catch (err) {
-        console.error("Dashboard API error:", err);
+      const data = await res.json();
+      if (data.success) {
+        setDashboard(data);
+      } else {
         setDashboard(null);
-      } finally {
-        // hide();
       }
-    };
-
-    fetchDashboard();
+    } catch (err) {
+      console.error("Dashboard API error:", err);
+      setDashboard(null);
+    } finally {
+      // hide();
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  useAutoRefresh(fetchDashboard);
 
 
   const cardHeight = width < 640 ? 280 : width < 992 ? 320 : 360;

@@ -25,7 +25,7 @@ export function ToastProvider({ children }) {
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         sx={{ top: { xs: "72px", sm: "72px" }, zIndex: 9999 }}
       >
-        <Alert onClose={handleClose} severity={toast.severity} variant="filled"
+        <Alert severity={toast.severity} variant="filled"
           sx={{ borderRadius: "12px", fontWeight: 600, fontSize: 14, minWidth: 280, boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}>
           {toast.message}
         </Alert>

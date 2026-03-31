@@ -165,34 +165,37 @@ function getStandardTemplate(data) {
     .join("");
 
   const css = `
-    :root {
-      --primary: #0EA5E9;
-      --text-muted: #555;
-    }
+    :root { --primary: #0EA5E9; --text-muted: #555; }
     html, body { height: 100%; margin: 0; }
-    body { font-family: 'Arial'; background: #f0f3f9; padding: 20px; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f3f9; padding: 10px; box-sizing: border-box; }
     .page {
-      background: #fff; max-width: 900px; margin: auto; padding: 30px;
-      border-radius: 10px; border: 1px solid #e5e5e5; min-height: 95vh;
+      background: #fff; max-width: 860px; margin: auto; padding: 20px 24px;
+      border-radius: 10px; border: 1px solid #e5e5e5;
       box-sizing: border-box; display: flex; flex-direction: column;
     }
-    header { display: flex; justify-content: space-between; margin-bottom: 25px; }
-    .logo { width: 120px; height: 120px; background: none; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .company-details { font-size: 13px; color: var(--text-muted); }
+    header { display: flex; justify-content: space-between; margin-bottom: 14px; }
+    .logo { width: 80px; height: 80px; background: none; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .company-details { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .invoice-meta { text-align: right; }
-    .invoice-meta h2 { margin: 0; color: var(--primary); }
-    h3 { margin-top: 25px; color: #333; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    th { background: #f4f8ff; text-align: left; padding: 10px; font-weight: bold; border-bottom: 2px solid #e2e8f0; }
-    td { padding: 8px; border-bottom: 1px solid #eee; }
+    .invoice-meta h2 { margin: 0 0 4px; color: var(--primary); font-size: 20px; }
+    h3 { margin: 12px 0 4px; color: #333; font-size: 13px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 13px; }
+    th { background: #f4f8ff; text-align: left; padding: 7px 8px; font-weight: bold; border-bottom: 2px solid #e2e8f0; font-size: 12px; }
+    td { padding: 6px 8px; border-bottom: 1px solid #eee; }
     .right { text-align: right; }
-    .totals-box { margin-top: 25px; max-width: 320px; margin-left: auto; padding: 15px; border-radius: 10px; background: #f8fbff; border: 1px solid #dbe7f5; }
-    .t-row { display: flex; justify-content: space-between; margin: 5px 0; font-size: 15px; }
-    .t-final { font-size: 18px; font-weight: bold; border-top: 2px solid #d0d7e2; margin-top: 10px; padding-top: 10px; }
+    .totals-box {
+      margin-top: 14px; max-width: 300px; margin-left: auto;
+      padding: 10px 14px; border-radius: 8px;
+      background: #f8fbff; border: 1px solid #dbe7f5;
+      page-break-inside: avoid;   /* ← never split across pages */
+      break-inside: avoid;
+    }
+    .t-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
+    .t-final { font-size: 15px; font-weight: bold; border-top: 2px solid #d0d7e2; margin-top: 8px; padding-top: 8px; }
     @media print {
-      body { background: #fff !important; }
-      .page { min-height: auto !important; height: auto !important; border-radius: 0; }
+      body { background: #fff !important; padding: 0; }
+      .page { border-radius: 0; border: none; padding: 16px 20px; }
     }
   `;
 

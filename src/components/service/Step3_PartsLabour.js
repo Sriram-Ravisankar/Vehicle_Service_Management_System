@@ -1,22 +1,18 @@
 import React from "react";
-import { 
+import {
   Box,
 } from "@mui/material";
-import { 
-  Package, 
-  Wrench, 
-  Plus, 
-  Trash2, 
-  Wallet, 
-  Tag, 
-  Percent, 
-  DollarSign, 
-  FileText,
-  IndianRupee,
+import {
+  Package,
+  Wrench,
+  Plus,
+  Trash2,
+  Wallet,
   CheckCircle2,
   Circle
 } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
+import SearchableSelect from "../DynamicComponents/SearchableSelect";
 
 // ── tiny helpers ─────────────────────────────────────────────────────────────
 const SectionCard = ({ title, children, icon: Icon }) => (
@@ -29,7 +25,7 @@ const SectionCard = ({ title, children, icon: Icon }) => (
     mb: 3,
   }}>
     <div style={{ borderBottom: "1px solid #F3F4F6", paddingBottom: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-       {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
+      {Icon && <Icon size={18} style={{ color: "#0EA5E9" }} />}
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#111827", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</h3>
     </div>
     {children}
@@ -133,7 +129,7 @@ export default function Step3_PartsLabour({
             updated.product_id = "";
             return updated;
           }
-          
+
           const prod = products.find(prod => String(prod.id) === String(val));
           if (prod) {
             const avail = Number(prod.available_stock || 0);
@@ -225,17 +221,17 @@ export default function Step3_PartsLabour({
             </div>
             {form.parts?.map((p, idx) => (
               <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 80px 120px 120px 40px", gap: 12, alignItems: "center" }}>
-                <select 
-                  value={p.product_id || ""} 
-                  disabled={isView} 
-                  style={inputSx(false)} 
-                  onChange={(e) => updatePart(p.id, "product_id", e.target.value)}
-                >
-                  <option value="">-- Select Product --</option>
-                  {products.map(prod => (
-                    <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.product_number})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={String(p.product_id || "")}
+                  disabled={isView}
+                  placeholder="-- Select Product --"
+                  options={products.map(prod => ({
+                    value: String(prod.id),
+                    label: prod.product_name,
+                    sub: prod.product_number,
+                  }))}
+                  onChange={(val) => updatePart(p.id, "product_id", val)}
+                />
                 <input placeholder="Short Desc..." value={p.name} disabled={isView} style={inputSx(false)} onChange={(e) => updatePart(p.id, "name", e.target.value)} />
                 <input type="number" placeholder="Qty" value={p.qty} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "qty", Number(e.target.value))} />
                 <input type="number" placeholder="Rate" value={p.rate} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updatePart(p.id, "rate", Number(e.target.value))} />
@@ -248,20 +244,20 @@ export default function Step3_PartsLabour({
               </div>
             ))}
             {!isView && (
-              <button 
-                onClick={addPart} 
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 8, 
-                  padding: "8px 18px", 
-                  borderRadius: 10, 
-                  border: "none", 
-                  background: "#F5F3FF", 
-                  color: "#0EA5E9", 
-                  fontSize: 13, 
-                  fontWeight: 700, 
-                  cursor: "pointer", 
+              <button
+                onClick={addPart}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 18px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#F5F3FF",
+                  color: "#0EA5E9",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
                   marginTop: 12,
                   width: "fit-content",
                   boxShadow: "0 1px 2px rgba(14, 165, 233, 0.1)",
@@ -290,19 +286,19 @@ export default function Step3_PartsLabour({
             {form.labour?.map((l) => (
               <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 80px 120px 120px 40px", gap: 12, alignItems: "center" }}>
                 <input placeholder="Labour Title..." value={l.title} disabled={isView} style={inputSx(false)} onChange={(e) => updateLabour(l.id, "title", e.target.value)} />
-                <select 
-                  value={l.mechanic_guid || ""} 
-                  disabled={isView} 
-                  style={inputSx(false)} 
-                  onChange={(e) => updateLabour(l.id, "mechanic_guid", e.target.value)}
-                >
-                  <option value="">-- Select Mechanic --</option>
-                  {workers
+                <SearchableSelect
+                  value={l.mechanic_guid || ""}
+                  disabled={isView}
+                  placeholder="-- Select Mechanic --"
+                  options={workers
                     .filter(w => String(w.role_id) === "4")
-                    .map(w => (
-                      <option key={w.user_guid} value={w.user_guid}>{w.first_name} {w.last_name}</option>
-                    ))}
-                </select>
+                    .map(w => ({
+                      value: w.user_guid,
+                      label: `${w.first_name} ${w.last_name}`,
+                      sub: w.position || "Mechanic",
+                    }))}
+                  onChange={(val) => updateLabour(l.id, "mechanic_guid", val)}
+                />
                 <input type="number" placeholder="Hours" value={l.hours} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "hours", Number(e.target.value))} />
                 <input type="number" placeholder="Rate" value={l.rate} disabled={isView} style={inputSx(false)} min="0" onChange={(e) => updateLabour(l.id, "rate", Number(e.target.value))} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "right" }}>₹ {currency(l.amount)}</div>
@@ -314,20 +310,20 @@ export default function Step3_PartsLabour({
               </div>
             ))}
             {!isView && (
-              <button 
-                onClick={addLabour} 
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 8, 
-                  padding: "8px 18px", 
-                  borderRadius: 10, 
-                  border: "none", 
-                  background: "#F5F3FF", 
-                  color: "#0EA5E9", 
-                  fontSize: 13, 
-                  fontWeight: 700, 
-                  cursor: "pointer", 
+              <button
+                onClick={addLabour}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 18px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#F5F3FF",
+                  color: "#0EA5E9",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
                   marginTop: 12,
                   width: "fit-content",
                   boxShadow: "0 1px 2px rgba(14, 165, 233, 0.1)",
@@ -348,25 +344,25 @@ export default function Step3_PartsLabour({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Type</label>
-                  <select disabled={isView} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 }}))}>
+                  <select disabled={isView} value={form.totals?.discountType || "percent"} style={inputSx(false)} onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountType: e.target.value, discountValue: 0 } }))}>
                     <option value="percent">Percentage (%)</option>
                     <option value="amount">Fixed Amount (₹)</option>
                   </select>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Discount Value</label>
-                  <input type="number" disabled={isView} value={form.totals.discountValue || 0} style={inputSx(false)} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Math.max(0, Number(e.target.value)) }}))} />
+                  <input type="number" disabled={isView} value={form.totals.discountValue || 0} style={inputSx(false)} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, discountValue: Math.max(0, Number(e.target.value)) } }))} />
                 </div>
               </div>
 
-              <div 
-                onClick={() => !isView && setForm(f => ({ ...f, totals: { ...f.totals, includeGST: !f.totals.includeGST }}))}
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 8, 
-                  padding: "6px 14px", 
-                  background: form.totals.includeGST ? "#EEF2FF" : "#F9FAFB", 
+              <div
+                onClick={() => !isView && setForm(f => ({ ...f, totals: { ...f.totals, includeGST: !f.totals.includeGST } }))}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 14px",
+                  background: form.totals.includeGST ? "#EEF2FF" : "#F9FAFB",
                   borderRadius: 10,
                   cursor: isView ? "default" : "pointer",
                   border: `1px solid ${form.totals.includeGST ? "#C7D2FE" : "#E5E7EB"}`,
@@ -380,7 +376,7 @@ export default function Step3_PartsLabour({
                 <label style={{ fontSize: 13, fontWeight: 700, color: form.totals.includeGST ? "#312E81" : "#4B5563", cursor: "pointer" }}>Apply GST (18%)</label>
                 {form.totals.includeGST && (
                   <div onClick={(e) => e.stopPropagation()} style={{ marginLeft: 8 }}>
-                     <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Math.max(0, Number(e.target.value)) }}))} />
+                    <input type="number" disabled={isView} value={form.totals.gstRate || 0} style={{ ...inputSx(false), width: 60, padding: "4px 8px", height: "auto" }} min="0" onChange={(e) => setForm(f => ({ ...f, totals: { ...f.totals, gstRate: Math.max(0, Number(e.target.value)) } }))} />
                   </div>
                 )}
               </div>
@@ -395,13 +391,13 @@ export default function Step3_PartsLabour({
 
         <div style={{ background: "#1F2937", borderRadius: 20, padding: "32px", color: "#fff", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
           <h4 style={{ margin: "0 0 24px 0", fontSize: 16, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em" }}>Service Summary</h4>
-          
+
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
               <span style={{ color: "#9CA3AF" }}>Parts Subtotal</span>
               <span style={{ fontWeight: 600 }}>₹ {currency(form.totals?.partsTotal)}</span>
             </div>
-            
+
             {Number(form.totals?.discountAmount) > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
                 <span style={{ color: "#10B981" }}>Discount ({form.totals.discountType})</span>

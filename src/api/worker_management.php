@@ -99,12 +99,13 @@ if ($_GET["action"] === "create_worker" && $_SERVER["REQUEST_METHOD"] === "POST"
 
         $guid = generate_guid();
 
-        // Insert worker
+        // Insert worker — must include admin_guid and user_type so it is visible to this admin
         $pdo->prepare("
-            INSERT INTO users (user_guid, first_name, last_name, email, mobile)
-            VALUES (:ug, :fn, :ln, :em, :mb)
+            INSERT INTO users (user_guid, admin_guid, user_type, first_name, last_name, email, mobile)
+            VALUES (:ug, :ag, 'employee', :fn, :ln, :em, :mb)
         ")->execute([
             ":ug" => $guid,
+            ":ag" => $user_guid,   // admin's guid resolved from JWT above
             ":fn" => $first_name,
             ":ln" => $last_name,
             ":em" => $email,
@@ -160,6 +161,9 @@ if ($_GET["action"] === "create_worker" && $_SERVER["REQUEST_METHOD"] === "POST"
 
 if ($_GET["action"] === "workers" && $_SERVER["REQUEST_METHOD"] === "GET") {
 
+    // Join profile_crud for login/role info AND employees table for role_id fallback.
+    // COALESCE ensures role_id is populated even when the worker has no login account yet
+    // (role stored in employees table instead of profile_crud).
     $sql = "
         SELECT 
             u.id,
@@ -168,21 +172,30 @@ if ($_GET["action"] === "workers" && $_SERVER["REQUEST_METHOD"] === "GET") {
             u.last_name,
             u.email,
             u.mobile,
+            u.user_type,
 
             p.id AS profile_id,
             p.email AS login_email,
             AES_DECRYPT(p.encrypted_password, :k) AS login_password,
-            p.role_id
+            COALESCE(p.role_id, e.role_id_fallback) AS role_id
 
         FROM users u
-        LEFT JOIN profile_crud p ON p.user_guid = u.user_guid
-        WHERE u.admin_guid = '$user_guid'
+        LEFT JOIN profile_crud p ON p.user_guid = u.user_guid AND p.isDeleted = FALSE
+        LEFT JOIN (
+            SELECT user_guid,
+                   -- employees table doesn't store role_id directly; use NULL as placeholder.
+                   -- Adjust this if your employees table gains a role_id column in future.
+                   NULL AS role_id_fallback
+            FROM employees
+        ) e ON e.user_guid = u.user_guid
+        WHERE u.admin_guid = :ag
         AND u.isDeleted = FALSE
+        AND u.user_type IN ('employee')
         ORDER BY u.first_name, u.last_name
     ";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([":k" => $encKey]);
+    $stmt->execute([":k" => $encKey, ":ag" => $user_guid]);
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -192,6 +205,7 @@ if ($_GET["action"] === "workers" && $_SERVER["REQUEST_METHOD"] === "GET") {
             $u["login_password"] = $u["login_password"]; // decrypted
         }
     }
+    unset($u);
 
     echo json_encode($rows);
     exit;

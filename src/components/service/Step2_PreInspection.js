@@ -15,7 +15,9 @@ import {
   MessageSquare,
   RefreshCw,
   CheckCircle2,
-  Circle
+  Circle,
+  Database,
+  X
 } from "lucide-react";
 
 import { Box, Typography, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
@@ -207,26 +209,102 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
         {!isView && (
           <Box sx={{ mb: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel id="observation-select-label">Select checkpoints from Library</InputLabel>
               <Select
-                labelId="observation-select-label"
+                displayEmpty
                 value={selectedCheckpoint}
-                label="Select checkpoints from Library"
                 onChange={handleCheckpointSelect}
-                sx={{ borderRadius: 2, background: "#F9FAFB" }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#9CA3AF' }}>
+                        <Database size={16} />
+                        <span>Select checkpoints from Library...</span>
+                      </Box>
+                    );
+                  }
+                  const [cat, cp] = selected.split("|");
+                  return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircle2 size={14} style={{ color: '#10B981' }} />
+                      <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1E293B' }}>{cat}:</Typography>
+                      <Typography sx={{ fontSize: '13px', color: '#4B5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp}</Typography>
+                    </Box>
+                  );
+                }}
+                sx={{
+                  borderRadius: '12px',
+                  backgroundColor: "#F9FAFB",
+                  border: '1px solid #E5E7EB',
+                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                  '&.Mui-focused': { 
+                    border: '1px solid #0EA5E9', 
+                    boxShadow: '0 0 0 4px rgba(14, 165, 233, 0.1)',
+                    backgroundColor: '#fff'
+                  },
+                  height: '45px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      borderRadius: '16px',
+                      mt: 1,
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                      border: '1px solid #F1F5F9',
+                      maxHeight: '350px',
+                      '& .MuiMenuItem-root': {
+                        fontSize: '13px',
+                        py: 1.5,
+                        px: 2,
+                        borderBottom: '1px solid #F8FAFC',
+                        whiteSpace: 'normal',
+                        lineHeight: 1.4,
+                        '&:last-child': { borderBottom: 'none' },
+                        '&:hover': { background: '#F0F9FF', color: '#0EA5E9' },
+                        transition: 'all 0.1s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: 0.5
+                      }
+                    }
+                  }
+                }}
               >
-                <MenuItem value=""><em>None</em></MenuItem>
+                <MenuItem value="">
+                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#6B7280', fontSize: '13px', fontWeight: 600 }}>
+                     <X size={14} /> Clear Selection
+                   </Box>
+                </MenuItem>
+                
                 {Object.entries(observations).map(([category, items]) => (
                   items
                     .filter(item => {
-                      if (!item.vehicleModel || item.vehicleModel === "All Models") return true;
+                      // Show if it's General, All Models, or matching current vehicle
+                      if (!item.vehicleModel || 
+                          item.vehicleModel === "All Models" || 
+                          item.vehicleModel === "General" ||
+                          item.vehicleModel === "Any") return true;
+                          
                       if (!form.vehicle_name) return false;
                       // Case-insensitive inclusion search
                       return form.vehicle_name.toLowerCase().includes(item.vehicleModel.toLowerCase());
                     })
                     .map((item, idx) => (
                       <MenuItem key={`${category}-${idx}`} value={`${category}|${item.checkpoint}`}>
-                        {category}: {item.checkpoint}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Layers size={12} style={{ color: '#0EA5E9' }} />
+                          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0EA5E9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {category}
+                          </Typography>
+                          <Typography sx={{ fontSize: '10px', color: '#94A3B8' }}>
+                            • {item.vehicleModel}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ color: '#1F2937', fontWeight: 500 }}>
+                          {item.checkpoint}
+                        </Box>
                       </MenuItem>
                     ))
                 ))}
@@ -235,7 +313,7 @@ export default function Step2_PreInspection({ form, setForm, isView, showSnackba
           </Box>
         )}
         <textarea
-          placeholder="Enter detailed customer complaint or special instructions..."
+          placeholder="Enter detailed customer complaint or any instructions..."
           value={form.complaint || ""}
           disabled={isView}
           onChange={(e) => setForm((f) => ({ ...f, complaint: e.target.value }))}

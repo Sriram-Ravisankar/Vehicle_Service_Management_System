@@ -9,6 +9,11 @@ import {
   Alert,
   Tooltip,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { 
   Search, 
@@ -19,12 +24,14 @@ import {
   User, 
   Car, 
   Briefcase, 
-  GraduationCap
+  GraduationCap,
+  AlertTriangle
 } from "lucide-react";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../../components/common/Header";
 import { TextField } from "@mui/material";
 import CustomerViewModal from "./CustomerViewModal";
+import Pagination from "../../components/DynamicComponents/Pagination";
 
 // ── col widths ────────────────────────────────────────────────────────────────
 const COL = {
@@ -164,6 +171,9 @@ function UserList({
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userGuid: null, vehicleGuid: null });
+  const [page, setPage]     = useState(1);
+  const [perPage, setPerPage] = useState(15);
 
   useEffect(() => {
     fetchData();
@@ -202,8 +212,11 @@ function UserList({
     );
   }, [transformedUsers, searchTerm]);
 
-  const handleDelete = async (userGuid, vehicleGuid) => {
-    if (!window.confirm(`Are you sure you want to remove this ${title.toLowerCase()}?`)) return;
+  const handleDelete = async () => {
+    const { userGuid, vehicleGuid } = deleteConfirm;
+    if (!userGuid) return;
+    setDeleteConfirm({ open: false, userGuid: null, vehicleGuid: null });
+
     try {
       if (onDeleteProp) {
         await onDeleteProp([userGuid], vehicleGuid, userGuid);
@@ -241,7 +254,7 @@ function UserList({
               fullWidth
               size="small"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   paddingLeft: "36px",
@@ -291,22 +304,33 @@ function UserList({
           <Box sx={{ overflowX: "auto", width: "100%" }}>
             <Box sx={{ minWidth: COL.profile + COL.contact + COL.extra + COL.action + 100 }}>
               <THead extraLabel={extraColumn} />
-              {filteredUsers.map((user, i) => (
+              {filteredUsers.slice((page - 1) * perPage, page * perPage).map((user, i, arr) => (
                 <ListRow 
                   key={user.user_guid} 
                   user={user} 
                   extraLabel={extraColumn}
-                  isLast={i === filteredUsers.length - 1}
+                  isLast={i === arr.length - 1}
                   showView={["Customers", "Employees", "Support Staff", "Accountants"].includes(title)}
                   onView={() => { setSelectedUser(user); setViewOpen(true); }}
                   onEdit={() => navigate(`${editRoutePrefix}/${user.user_guid}`)}
-                  onDelete={() => handleDelete(user.user_guid, user.vehicle_guid)}
+                  onDelete={() => setDeleteConfirm({ open: true, userGuid: user.user_guid, vehicleGuid: user.vehicle_guid })}
                 />
               ))}
             </Box>
           </Box>
         </Box>
       )}
+
+      <Pagination
+        currentPage={page}
+        totalPages={Math.ceil(filteredUsers.length / perPage)}
+        totalItems={filteredUsers.length}
+        itemsPerPage={perPage}
+        onPageChange={(p) => setPage(p)}
+        onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+        itemLabel={title.toLowerCase().replace(/s$/, "")}
+      />
+
 
       {/* Notifications */}
       <Snackbar 
@@ -326,6 +350,42 @@ function UserList({
         user={selectedUser} 
         type={title}
       />
+
+      {/* ── delete confirmation dialog ── */}
+      <Dialog 
+        open={deleteConfirm.open} 
+        onClose={() => setDeleteConfirm({ open: false, userGuid: null, vehicleGuid: null })}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1, maxWidth: "360px" } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0, fontSize: 15, color: "#4B5563", lineHeight: 1.5 }}>
+            Are you sure you want to delete this {title.toLowerCase()}? This action cannot be undone.
+          </p>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteConfirm({ open: false, userGuid: null, vehicleGuid: null })}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            variant="contained"
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px", px: 3
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

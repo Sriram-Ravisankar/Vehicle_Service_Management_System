@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReportTable from "./ReportTable";
 import apiEndpoints from "../../apiconfig";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 const COLUMNS = [
   "S.No",
@@ -24,23 +25,26 @@ export default function EmpServicesTab({filters}) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
-        const res = await fetch(`${apiEndpoints.report}?action=employee_jobs`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-        if (data.success) setJobs(data.employee_jobs);
-      } catch (err) {
-        console.error("Failed to fetch employee jobs:", err);
-      }
-    };
-    fetchJobs();
+  const fetchJobs = React.useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${apiEndpoints.report}?action=employee_jobs`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) setJobs(data.employee_jobs);
+    } catch (err) {
+      console.error("Failed to fetch employee jobs:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  useAutoRefresh(fetchJobs);
 
   // Filter data (case-insensitive search over all fields)
   const filtered = useMemo(() => {

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Pencil, Trash2, Calendar, Hash, User, Package, ShoppingCart } from "lucide-react";
-import { Box, Snackbar, Alert, TextField, Tooltip } from "@mui/material";
+import { Search, Pencil, Trash2, Calendar, Hash, User, Package, ShoppingCart, AlertTriangle } from "lucide-react";
+import { Box, Snackbar, Alert, TextField, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import apiEndpoints from "../../apiconfig";
 import SectionHeader from "../common/Header";
 import { useLoading } from "../../pages/LoadingContext";
 import PurchaseViewModal from "./PurchaseView";
+import Pagination from "../DynamicComponents/Pagination";
 
 // ── col widths ────────────────────────────────────────────────────────────────
 const COL = {
@@ -151,9 +152,10 @@ function Purchase({ purchases = [], fetchData }) {
   const [tableData, setTableData] = useState([]);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewData, setViewData] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   
-  const PER_PAGE = 15;
+  const [perPage, setPerPage] = useState(15);
 
   useEffect(() => {
     if (purchases.length > 0) {
@@ -199,8 +201,10 @@ function Purchase({ purchases = [], fetchData }) {
     if (fetchData) fetchData(); 
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this purchase?")) return;
+  const handleDelete = async () => {
+    const id = deleteConfirm.id;
+    if (!id) return;
+    setDeleteConfirm({ open: false, id: null });
     show();
     try {
       const res = await fetch(`${apiEndpoints.purchase}?id=${id}`, {
@@ -225,8 +229,8 @@ function Purchase({ purchases = [], fetchData }) {
     )
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
@@ -285,7 +289,7 @@ function Purchase({ purchases = [], fetchData }) {
                 <ListRow key={item.id} item={item} isLast={i === paginated.length - 1}
                   onView={() => { setViewData(item); setViewOpen(true); }}
                   onEdit={() => navigate("/add-purchase", { state: { editData: item.originalData } })}
-                  onDelete={() => handleDelete(item.id)}
+                  onDelete={() => setDeleteConfirm({ open: true, id: item.id })}
                 />
               ))}
             </div>
@@ -293,27 +297,57 @@ function Purchase({ purchases = [], fetchData }) {
         </div>
       )}
 
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 20 }}>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button key={p} onClick={() => setCurrentPage(p)}
-              style={{
-                width: 34, height: 34, borderRadius: 8, border: "1px solid #E5E7EB",
-                background: currentPage === p ? "#0EA5E9" : "#fff",
-                color: currentPage === p ? "#fff" : "#374151",
-                fontWeight: currentPage === p ? 700 : 400,
-                cursor: "pointer", fontSize: 13,
-              }}>{p}</button>
-          ))}
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        itemsPerPage={perPage}
+        onPageChange={(p) => setCurrentPage(p)}
+        onPerPageChange={(n) => { setPerPage(n); setCurrentPage(1); }}
+        itemLabel="purchase"
+      />
 
       <PurchaseViewModal
         open={viewOpen}
         data={viewData}
         onClose={() => setViewOpen(false)}
       />
+
+      {/* ── delete confirmation dialog ── */}
+      <Dialog 
+        open={deleteConfirm.open} 
+        onClose={() => setDeleteConfirm({ open: false, id: null })}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1, maxWidth: "360px" } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0, fontSize: 15, color: "#4B5563", lineHeight: 1.5 }}>
+            Are you sure you want to delete this purchase? This will also remove the items from stock.
+          </p>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteConfirm({ open: false, id: null })}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            variant="contained"
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px", px: 3
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000}
         onClose={() => setSnackbar((p) => ({ ...p, open: false }))}

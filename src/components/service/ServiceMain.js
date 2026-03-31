@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   Pencil, 
   Trash2, 
   ClipboardList, 
-  Phone, 
   Car, 
   Calendar, 
-  ChevronLeft,
-  ChevronRight,
-  Filter
+  AlertTriangle
 } from "lucide-react";
 import { 
   Box, 
@@ -29,6 +26,8 @@ import {
 import SectionHeader from '../common/Header';
 import apiEndpoints from "../../apiconfig";
 import { useLoading } from "../../pages/LoadingContext";
+import Pagination from "../DynamicComponents/Pagination";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 // ── Status Styling ──
 const STATUS_STYLES = {
@@ -165,9 +164,9 @@ const ServiceMain = () => {
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 8;
+  const [perPage, setPerPage]         = useState(15);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, guid: null });
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const fetchJobCards = async () => {
     // show();
@@ -186,6 +185,9 @@ const ServiceMain = () => {
 
   useEffect(() => { fetchJobCards(); }, []);
 
+  /* ── Auto-sync: background poll + tab-focus ── */
+  useAutoRefresh(fetchJobCards);
+
   useEffect(() => {
     let temp = [...jobcards];
     if (search.trim()) {
@@ -200,13 +202,14 @@ const ServiceMain = () => {
     setCurrentPage(1);
   }, [search, jobcards]);
 
-  const totalPages = Math.ceil(filtered.length / rowsPerPage);
-  const paginatedData = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const totalPages    = Math.ceil(filtered.length / perPage);
+  const paginatedData = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   const handleDelete = async () => {
     const guid = deleteDialog.guid;
+    if (!guid) return;
     setDeleteDialog({ open: false, guid: null });
-    show();
+    show(); // global loader
     try {
       const res = await fetch(`${apiEndpoints.JobCard}?job_guid=${guid}`, {
         method: "DELETE",
@@ -214,11 +217,14 @@ const ServiceMain = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setSnackbar({ open: true, message: "Job card deleted successfully" });
+        setSnackbar({ open: true, message: "Job card deleted successfully", severity: "success" });
         fetchJobCards();
+      } else {
+        throw new Error(data.message || "Delete failed");
       }
     } catch (error) {
       console.error("Delete failed:", error);
+      setSnackbar({ open: true, message: error.message || "Delete failed", severity: "error" });
     } finally {
       hide();
     }
@@ -293,61 +299,30 @@ const ServiceMain = () => {
         </Box>
       </Paper>
 
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 1 }}>
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
-            style={{
-              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", color: currentPage === 1 ? "#CBD5E1" : "#64748B",
-              cursor: currentPage === 1 ? "not-allowed" : "pointer"
-            }}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          
-          {[...Array(totalPages)].map((_, i) => (
-            <button 
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              style={{
-                width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: 10, border: i + 1 === currentPage ? "1px solid #0EA5E9" : "1px solid #E2E8F0",
-                background: i + 1 === currentPage ? "#F5F3FF" : "#fff",
-                color: i + 1 === currentPage ? "#0EA5E9" : "#64748B",
-                fontWeight: i + 1 === currentPage ? 700 : 500,
-                cursor: "pointer"
-              }}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button 
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            style={{
-              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", color: currentPage === totalPages ? "#CBD5E1" : "#64748B",
-              cursor: currentPage === totalPages ? "not-allowed" : "pointer"
-            }}
-          >
-            <ChevronRight size={18} />
-          </button>
-        </Box>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        itemsPerPage={perPage}
+        onPageChange={(p) => setCurrentPage(p)}
+        onPerPageChange={(n) => { setPerPage(n); setCurrentPage(1); }}
+        itemLabel="service record"
+      />
 
       {/* ── Modern Delete Dialog ── */}
       <Dialog 
         open={deleteDialog.open} 
         onClose={() => setDeleteDialog({ open: false, guid: null })}
-        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+        PaperProps={{ sx: { borderRadius: "16px", p: 1, maxWidth: "360px" } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Confirm Deletion</DialogTitle>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
         <DialogContent>
-          <Typography color="text.secondary">Are you sure you want to delete this job card? This action cannot be undone.</Typography>
+          <p style={{ margin: 0, fontSize: 15, color: "#4B5563", lineHeight: 1.5 }}>
+            Are you sure you want to delete this job card? This action cannot be undone.
+          </p>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button 
@@ -377,11 +352,13 @@ const ServiceMain = () => {
       {/* ── Feedback Snackbar ── */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert severity="success" variant="filled" sx={{ borderRadius: "12px", fontWeight: 600 }}>
+        <Alert severity={snackbar.severity} variant="filled" 
+          onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+          sx={{ borderRadius: "12px", fontWeight: 600 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

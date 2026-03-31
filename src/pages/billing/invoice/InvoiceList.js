@@ -8,13 +8,21 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Button,
 } from "@mui/material";
 import { 
   Search, 
   Pencil, 
   Trash2, 
   Printer, 
-  FileText} from "lucide-react";
+  FileText,
+  AlertTriangle
+} from "lucide-react";
 import { printInvoice } from "./InvoicePrint";
 import apiEndpoints from "../../../apiconfig";
 import SectionHeader from '../../../components/common/Header';
@@ -169,12 +177,20 @@ function InvoiceList({ invoices = [], deleteItems }) {
   const { show, hide } = useLoading();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage]         = useState(15);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   // Previews
   const [viewData, setViewData] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
   const [branches, setBranches] = useState([]);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   React.useEffect(() => {
     const fetchBranches = async () => {
@@ -189,12 +205,11 @@ function InvoiceList({ invoices = [], deleteItems }) {
     fetchBranches();
   }, []);
 
-  const PER_PAGE = 15;
   const filteredInvoices = invoices.filter((inv) =>
     [inv.invoiceNumber, inv.customerName, inv.numberPlate].some(v => v?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  const totalPages = Math.ceil(filteredInvoices.length / PER_PAGE);
-  const paginated = filteredInvoices.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+  const totalPages = Math.ceil(filteredInvoices.length / perPage);
+  const paginated = filteredInvoices.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   const handlePrintClick = async (invoiceId) => {
     try {
@@ -235,6 +250,26 @@ function InvoiceList({ invoices = [], deleteItems }) {
     }
   };
 
+
+  const handleDeleteClick = (id) => {
+    setInvoiceToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!invoiceToDelete) return;
+    try {
+      show();
+      await deleteItems("invoices", [invoiceToDelete]);
+      showSnackbar("Invoice deleted successfully", "success");
+    } catch (err) {
+      showSnackbar("Failed to delete invoice", "error");
+    } finally {
+      hide();
+      setDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  };
 
 
   const handleOpenPreview = async (invoiceId) => {
@@ -330,7 +365,7 @@ function InvoiceList({ invoices = [], deleteItems }) {
                   onView={() => handleOpenPreview(item.id)}
                   onEdit={() => navigate(`/edit-invoice/${item.id}`)}
                   onPrint={() => handlePrintClick(item.id)}
-                  onDelete={() => deleteItems("invoices", [item.id])}
+                  onDelete={() => handleDeleteClick(item.id)}
                 />
               ))}
             </div>
@@ -338,11 +373,14 @@ function InvoiceList({ invoices = [], deleteItems }) {
         </div>
       )}
 
-      {/* ── PAGINATION ── */}
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
+        totalItems={filteredInvoices.length}
+        itemsPerPage={perPage}
         onPageChange={setCurrentPage}
+        onPerPageChange={(n) => { setPerPage(n); setCurrentPage(1); }}
+        itemLabel="invoice"
       />
 
 
@@ -355,14 +393,49 @@ function InvoiceList({ invoices = [], deleteItems }) {
 
       <Snackbar 
         open={snackbar.open} 
-        autoHideDuration={3000}
+        autoHideDuration={3500}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "10px" }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: "10px", fontWeight: 600 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 700, color: "#111827" }}>
+          <AlertTriangle size={24} style={{ color: "#EF4444" }} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#4B5563", fontSize: "15px" }}>
+            Are you sure you want to delete this invoice? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none", fontWeight: 600, color: "#6B7280" }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            variant="contained" 
+            sx={{ 
+              textTransform: "none", fontWeight: 600, 
+              backgroundColor: "#EF4444", "&:hover": { backgroundColor: "#DC2626" },
+              borderRadius: "8px"
+            }}
+          >
+            Delete Invoice
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
