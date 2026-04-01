@@ -1,4 +1,7 @@
-const API_BASE_URL = "http://localhost/php/Garage/api";
+// Dynamically use the IP or localhost depending on how you access the site
+const API_BASE_URL = `http://${window.location.hostname}/php/Garage/api`;
+// const API_BASE_URL = "http://localhost/php/Garage/api";
+
 const apiEndpoints = {
   baseURL: `${API_BASE_URL}/`,
   blob: `${API_BASE_URL}/`,
