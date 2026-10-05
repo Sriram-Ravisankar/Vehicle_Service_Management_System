@@ -91,9 +91,7 @@ A comprehensive, full-stack **Garage & Vehicle Service Management System** desig
   * **Firebase JWT** (`firebase/php-jwt`) for authentication
 * **Database**:
   * **MySQL** (`garage_management` database with 23 tables)
-* **DevOps & Containerization**:
-  * **Docker** (`Dockerfile`)
-  * **Vercel** (`vercel.json` rewrite configuration)
+
 
 ---
 
